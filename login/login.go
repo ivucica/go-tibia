@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"net"
 
-	"badc0de.net/pkg/gotserv"
+	tnet "badc0de.net/pkg/go-tibia/net"
 
 	"github.com/golang/glog"
 )
@@ -18,7 +18,7 @@ type Login struct {
 	pk *rsa.PrivateKey
 }
 
-func New(p, q string) (*Login, error) {
+func NewServer(p, q string) (*Login, error) {
 	pB, ok := new(big.Int).SetString(p, 10)
 	if !ok {
 		return nil, fmt.Errorf("login: invalid p", p)
@@ -52,7 +52,7 @@ func New(p, q string) (*Login, error) {
 func (c *Login) Serve(conn net.Conn) error {
 	defer conn.Close()
 
-	msg, err := gotserv.ReadMessage(conn)
+	msg, err := tnet.ReadMessage(conn)
 	if err != nil {
 		return err
 	}

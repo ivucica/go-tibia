@@ -1,4 +1,4 @@
-package gotserv
+package net
 
 import (
 	"bytes"
