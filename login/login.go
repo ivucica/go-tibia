@@ -54,7 +54,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 
 	var keys struct {
 		Version byte
-		Keys    [4]uint32
+		Key     [16]byte
 	}
 	// TODO(ivucica): restricted reader?
 	err = binary.Read(msg, binary.LittleEndian, &keys)
@@ -76,5 +76,29 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	msg.Next(47)
 
 	glog.Infof("acc:%s len(pwd):%d\n", acc, len(pwd))
+
+	resp := tnet.NewMessage()
+	MOTD(resp, "Hello!") // TODO(ivucica): error check
+	CharacterList(resp, []CharacterListEntry{
+		CharacterListEntry{
+			CharacterName:  "Demo Character",
+			CharacterWorld: "Demo World",
+			GameFrontend: net.TCPAddr{
+				IP:   net.IPv4(127, 0, 0, 1),
+				Port: 7171,
+			},
+		},
+	}, 30) // TODO(ivucica): error check
+
+	resp, err = resp.Encrypt(keys.Key)
+	if err != nil {
+		return err
+	}
+
+	// TODO(ivucica): ioutil.Copy?
+	// TODO(ivucica): include size
+	// TODO(ivucica): include checksums
+	//conn.Write(resp.Bytes())
+
 	return nil
 }

@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"math/big"
 
+	"golang.org/x/crypto/xtea"
+
 	"github.com/golang/glog"
 )
 
@@ -32,9 +34,14 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	if b, err := ioutil.ReadAll(lr); err != nil {
 		return nil, fmt.Errorf("message read error: %s", err)
 	} else {
-		b := b[4:] // skip checksums. TODO(ivucica): validate checksums
+		b := b[4:] // skip checksums.
+		// TODO(ivucica): validate checksums
 		return &Message{Buffer: *bytes.NewBuffer(b)}, nil
 	}
+}
+
+func NewMessage() *Message {
+	return &Message{Buffer: bytes.Buffer{}}
 }
 
 func (msg *Message) Read(b []byte) (int, error) {
@@ -95,4 +102,42 @@ func (msg *Message) ReadTibiaString() (string, error) {
 	}
 
 	return fmt.Sprintf("%s", b), nil
+}
+
+func (msg *Message) WriteTibiaString(s string) error {
+	sz := uint16(len(s))
+	err := binary.Write(msg, binary.LittleEndian, sz)
+	if err != nil {
+		return fmt.Errorf("writing tibia string size: %s", err)
+	}
+
+	n, err := msg.WriteString(s)
+	if err != nil {
+		return fmt.Errorf("writing tibia string: %s", err)
+	}
+
+	if n != len(s) {
+		return fmt.Errorf("writing tibia string: not all was written")
+	}
+
+	return nil
+}
+
+// Encrypt reads through the entire message buffer (moving the read cursor),
+// and returns a new Message containing the encrypted buffer.
+func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
+	cipher, err := xtea.NewCipher(xteaKey[:])
+	if err != nil {
+		return nil, err
+	}
+	newMsg := NewMessage()
+	for i := 0; i < msg.Len(); i += 8 {
+		src := [8]byte{}
+		msg.Read(src[:]) // TODO(ivucica): handle err. handle n.
+		var dst [8]byte
+		cipher.Encrypt(dst[:], src[:])
+
+		newMsg.Write(dst[:]) // TODO(ivucica): handle err. handle n.
+	}
+	return newMsg, nil
 }
