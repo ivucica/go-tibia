@@ -127,12 +127,13 @@ func (msg *Message) WriteTibiaString(s string) error {
 // Encrypt reads through the entire message buffer (moving the read cursor),
 // and returns a new Message containing the encrypted buffer.
 func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
+	glog.V(3).Infoln("input message size: ", msg.Len())
 	cipher, err := xtea.NewCipher(xteaKey[:])
 	if err != nil {
 		return nil, err
 	}
 	newMsg := NewMessage()
-	for i := 0; i < msg.Len(); i += 8 {
+	for ; msg.Len() > 0; {
 		src := [8]byte{}
 		msg.Read(src[:]) // TODO(ivucica): handle err. handle n.
 		var dst [8]byte
@@ -140,6 +141,7 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 
 		newMsg.Write(dst[:]) // TODO(ivucica): handle err. handle n.
 	}
+	glog.V(3).Infoln("encrypted message size: ", newMsg.Len())
 	return newMsg, nil
 }
 
@@ -153,6 +155,10 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 func (msg *Message) Finalize(includeChecksum bool) error {
 	newBuf := &bytes.Buffer{}
 	sz := int16(msg.Len())
+	if includeChecksum {
+		sz += 4
+	}
+	glog.V(2).Infof("finalizing message with size: %d", sz)
 	if err := binary.Write(newBuf, binary.LittleEndian, &sz); err != nil {
 		return err
 	}
