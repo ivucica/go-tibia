@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/binary"
 	"fmt"
+	"hash/adler32"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -140,4 +141,33 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 		newMsg.Write(dst[:]) // TODO(ivucica): handle err. handle n.
 	}
 	return newMsg, nil
+}
+
+// Finalize prepends the message length and checksum, making it ready for io.Readers
+// to read.
+//
+// TODO(ivucica): We could override the reader for a writable message to first Read()
+// out the size and the checksum, thus avoiding the need for a copy.
+//
+// TODO(ivucica): Maybe we could return the new message.
+func (msg *Message) Finalize(includeChecksum bool) error {
+	newBuf := &bytes.Buffer{}
+	sz := int16(msg.Len())
+	if err := binary.Write(newBuf, binary.LittleEndian, &sz); err != nil {
+		return err
+	}
+
+	if includeChecksum {
+		checksum := adler32.Checksum(msg.Bytes())
+		if err := binary.Write(newBuf, binary.LittleEndian, &checksum); err != nil {
+			return err
+		}
+	}
+
+	if written, err := io.Copy(newBuf, msg); err != nil || int16(written) != sz {
+		return fmt.Errorf("Message.Finalize() copy: error %s, written %s/%s", err, written, sz)
+	}
+
+	msg.Buffer = *newBuf
+	return nil
 }

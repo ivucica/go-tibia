@@ -90,15 +90,17 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		},
 	}, 30) // TODO(ivucica): error check
 
+	// add size
+	resp.Finalize(false)
+
 	resp, err = resp.Encrypt(keys.Key)
 	if err != nil {
 		return err
 	}
 
-	// TODO(ivucica): ioutil.Copy?
-	// TODO(ivucica): include size
-	// TODO(ivucica): include checksums
-	//conn.Write(resp.Bytes())
+	// add checksum and size
+	resp.Finalize(true)
+	io.Copy(conn, resp)
 
 	return nil
 }
