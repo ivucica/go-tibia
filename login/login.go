@@ -47,11 +47,11 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	}
 
 	var keys struct {
-		Version byte
+		Version byte // is this name right?
 		Keys    [4]uint32
 	}
-	// TODO(ivucica): restricted reader?
-	err = binary.Read(msg, binary.LittleEndian, &keys)
+	r = io.LimitReader(msg, 1+4*4)
+	err = binary.Read(r, binary.LittleEndian, &keys)
 	if err != nil {
 		return fmt.Errorf("key read error: %s", err)
 	}
@@ -148,6 +148,5 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 
 	//////////
 
-	
 	return nil
 }
