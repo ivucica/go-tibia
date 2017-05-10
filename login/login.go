@@ -36,18 +36,11 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	}
 
 	err := binary.Read(r, binary.LittleEndian, &connHeader)
-	/*
-		err = binary.Read(msg, binary.LittleEndian, &connHeader.OS)
-		err = binary.Read(msg, binary.LittleEndian, &connHeader.Version)
-		err = binary.Read(msg, binary.LittleEndian, &connHeader.DatSig)
-		err = binary.Read(msg, binary.LittleEndian, &connHeader.SprSig)
-		err = binary.Read(msg, binary.LittleEndian, &connHeader.PicSig)*/
 	if err != nil {
 		return fmt.Errorf("could not read conn header: %s", err)
 	}
 
 	glog.V(2).Infof("header: %+v", connHeader)
-
 	err = msg.RSADecryptRemainder(c.pk)
 	if err != nil {
 		return fmt.Errorf("rsa decrypt remainder error: %s", err)
@@ -95,33 +88,20 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 
 	glog.Infof("acc:%s len(pwd):%d\n", acc, len(pwd))
 
+	////////
+
 	resp := tnet.NewMessage()
-	//MOTD(resp, "Hello!") // TODO(ivucica): error check
-	CharacterList(resp, []CharacterListEntry{
-		CharacterListEntry{
-			CharacterName:  "Demo Character",
-			CharacterWorld: "Demo World",
-			GameFrontend: net.TCPAddr{
-				IP:   net.IPv4(127, 0, 0, 1),
-				Port: 7171,
-			},
-		},
-	}, 30) // TODO(ivucica): error check
-
-	// add size
-	err = resp.Finalize(false)
+	err = MOTD(resp, "1\nHello!")
 	if err != nil {
+		glog.Errorln("error generating the motd message: ", err)
 		return err
 	}
 
-	resp, err = resp.Encrypt(key)
+	// add checksum and size headers wherever appropriate, and perform
+	// XTEA crypto.
+	resp, err = resp.Finalize(key)
 	if err != nil {
-		return err
-	}
-
-	// add checksum and size
-	err = resp.Finalize(true)
-	if err != nil {
+		glog.Errorf("error finalizing login message response: %s", err)
 		return err
 	}
 
@@ -133,5 +113,41 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	}
 	glog.V(2).Infof("written %d bytes", wr)
 
+	///////
+	resp = tnet.NewMessage()
+	err = CharacterList(resp, []CharacterListEntry{
+		CharacterListEntry{
+			CharacterName:  "Demo Character",
+			CharacterWorld: "Demo World",
+			GameFrontend: net.TCPAddr{
+				IP:   net.IPv4(127, 0, 0, 1),
+				Port: 7171,
+			},
+		},
+	}, 30)
+	if err != nil {
+		glog.Errorln("error generating the character list message: ", err)
+		return err
+	}
+
+	// add checksum and size headers wherever appropriate, and perform
+	// XTEA crypto.
+	resp, err = resp.Finalize(key)
+	if err != nil {
+		glog.Errorf("error finalizing login message response: %s", err)
+		return err
+	}
+
+	// transmit the response
+	wr, err = io.Copy(conn, resp)
+	if err != nil {
+		glog.Errorf("error writing login message response: %s", err)
+		return err
+	}
+	glog.V(2).Infof("written %d bytes", wr)
+
+	//////////
+
+	
 	return nil
 }

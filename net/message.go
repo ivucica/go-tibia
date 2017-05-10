@@ -151,36 +151,60 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 	return newMsg, nil
 }
 
-// Finalize prepends the message length and checksum, making it ready for io.Readers
+// Finalize correctly adds the message length and checksum, as well as performs the
+// XTEA encryption on the message.
+func (msg *Message) Finalize(xteaKey [16]byte) (*Message, error) {
+
+	// add size
+	resp, err := msg.finalize(false)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = resp.Encrypt(xteaKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// add checksum and size
+	resp, err = resp.finalize(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil	
+}
+
+// finalize prepends the message length and checksum, making it ready for io.Readers
 // to read.
 //
 // TODO(ivucica): We could override the reader for a writable message to first Read()
 // out the size and the checksum, thus avoiding the need for a copy.
 //
 // TODO(ivucica): Maybe we could return the new message.
-func (msg *Message) Finalize(includeChecksum bool) error {
-	newBuf := &bytes.Buffer{}
+func (msg *Message) finalize(includeChecksum bool) (*Message, error) {
+	newMsg := NewMessage()
 	sz := int16(msg.Len())
 	origSz := sz
 	if includeChecksum {
 		sz += 4
 	}
+
 	glog.V(2).Infof("finalizing message with size: %d", sz)
-	if err := binary.Write(newBuf, binary.LittleEndian, &sz); err != nil {
-		return err
+	if err := binary.Write(newMsg, binary.LittleEndian, &sz); err != nil {
+		return nil, err
 	}
 
 	if includeChecksum {
 		checksum := adler32.Checksum(msg.Bytes())
-		if err := binary.Write(newBuf, binary.LittleEndian, &checksum); err != nil {
-			return err
+		if err := binary.Write(newMsg, binary.LittleEndian, &checksum); err != nil {
+			return nil, err
 		}
 	}
 
-	if written, err := io.Copy(newBuf, msg); err != nil || int16(written) != origSz {
-		return fmt.Errorf("Message.Finalize() copy: error %s, written %d/%d", err, written, origSz)
+	if written, err := io.Copy(newMsg, msg); err != nil || int16(written) != origSz {
+		return nil, fmt.Errorf("Message.Finalize() copy: error %s, written %d/%d", err, written, origSz)
 	}
 
-	msg.Buffer = *newBuf
-	return nil
+	return newMsg, nil
 }
