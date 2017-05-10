@@ -64,7 +64,8 @@ func (msg *Message) RSADecryptRemainder(pk *rsa.PrivateKey) error {
 
 	// stolen from DecryptOAEP.
 	// This is done because it looks like all public functions in crypto/rsa
-	// are performing extra checks.
+	// are performing extra checks. And we need just pk.decrypt() which is, as you
+	// can see in the name, unexported.
 	c := new(big.Int).SetBytes(msg.Bytes())
 	m, err := RSA___decrypt(rand.Reader, pk, c)
 	if err != nil {
@@ -72,6 +73,7 @@ func (msg *Message) RSADecryptRemainder(pk *rsa.PrivateKey) error {
 	}
 	k := 128
 
+	// stolen from golang rsa.
 	// leftPad returns a new slice of length size. The contents of input are right
 	// aligned in the new slice.
 	leftPad := func(input []byte, size int) (out []byte) {
@@ -133,13 +135,17 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 		return nil, err
 	}
 	newMsg := NewMessage()
-	for ; msg.Len() > 0; {
+	for msg.Len() > 0 {
 		src := [8]byte{}
 		msg.Read(src[:]) // TODO(ivucica): handle err. handle n.
 		var dst [8]byte
-		cipher.Encrypt(dst[:], src[:])
 
-		newMsg.Write(dst[:]) // TODO(ivucica): handle err. handle n.
+		// The following two lines are disgusting. We are converting not just [8]arrays
+		// into []slices. We are also converting 2x uint32 from little endian into big endian.
+		// Because this is what Go's XTEA implementation expects within a particular 8-byte
+		// block. ¯\_(ツ)_/¯
+		cipher.Encrypt(dst[:], []byte{src[3], src[2], src[1], src[0], src[7], src[6], src[5], src[4]})
+		newMsg.Write([]byte{dst[3], dst[2], dst[1], dst[0], dst[7], dst[6], dst[5], dst[4]}) // TODO(ivucica): handle err. handle n.
 	}
 	glog.V(3).Infoln("encrypted message size: ", newMsg.Len())
 	return newMsg, nil
@@ -155,6 +161,7 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 func (msg *Message) Finalize(includeChecksum bool) error {
 	newBuf := &bytes.Buffer{}
 	sz := int16(msg.Len())
+	origSz := sz
 	if includeChecksum {
 		sz += 4
 	}
@@ -170,8 +177,8 @@ func (msg *Message) Finalize(includeChecksum bool) error {
 		}
 	}
 
-	if written, err := io.Copy(newBuf, msg); err != nil || int16(written) != sz {
-		return fmt.Errorf("Message.Finalize() copy: error %s, written %s/%s", err, written, sz)
+	if written, err := io.Copy(newBuf, msg); err != nil || int16(written) != origSz {
+		return fmt.Errorf("Message.Finalize() copy: error %s, written %d/%d", err, written, origSz)
 	}
 
 	msg.Buffer = *newBuf

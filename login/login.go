@@ -1,6 +1,7 @@
 package login
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
 	"fmt"
@@ -45,7 +46,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		return fmt.Errorf("could not read conn header: %s", err)
 	}
 
-	glog.Infof("header: %+v", connHeader)
+	glog.V(2).Infof("header: %+v", connHeader)
 
 	err = msg.RSADecryptRemainder(c.pk)
 	if err != nil {
@@ -54,12 +55,29 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 
 	var keys struct {
 		Version byte
-		Key     [16]byte
+		Keys    [4]uint32
 	}
 	// TODO(ivucica): restricted reader?
 	err = binary.Read(msg, binary.LittleEndian, &keys)
 	if err != nil {
 		return fmt.Errorf("key read error: %s", err)
+	}
+
+	// XTEA in Go is bigendian-only. It treats the key as a single
+	// 128-bit integer, stored as bigendian. It then explodes it
+	// into [4]uint32.
+	//
+	// We need to flip the order of bytes in the key, otherwise
+	// we would quite easily be able to use Keys [16]byte and be
+	// done with it.
+	key := [16]byte{}
+	keyB := &bytes.Buffer{}
+	err = binary.Write(keyB, binary.BigEndian, keys.Keys)
+	if err != nil {
+		return fmt.Errorf("could not convert binary order of keys: %s", err)
+	}
+	for i := range key {
+		key[i] = keyB.Bytes()[i]
 	}
 
 	acc, err := msg.ReadTibiaString()
@@ -78,7 +96,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	glog.Infof("acc:%s len(pwd):%d\n", acc, len(pwd))
 
 	resp := tnet.NewMessage()
-	MOTD(resp, "Hello!") // TODO(ivucica): error check
+	//MOTD(resp, "Hello!") // TODO(ivucica): error check
 	CharacterList(resp, []CharacterListEntry{
 		CharacterListEntry{
 			CharacterName:  "Demo Character",
@@ -91,16 +109,29 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	}, 30) // TODO(ivucica): error check
 
 	// add size
-	resp.Finalize(false)
+	err = resp.Finalize(false)
+	if err != nil {
+		return err
+	}
 
-	resp, err = resp.Encrypt(keys.Key)
+	resp, err = resp.Encrypt(key)
 	if err != nil {
 		return err
 	}
 
 	// add checksum and size
-	resp.Finalize(true)
-	io.Copy(conn, resp)
+	err = resp.Finalize(true)
+	if err != nil {
+		return err
+	}
+
+	// transmit the response
+	wr, err := io.Copy(conn, resp)
+	if err != nil {
+		glog.Errorf("error writing login message response: %s", err)
+		return err
+	}
+	glog.V(2).Infof("written %d bytes", wr)
 
 	return nil
 }
