@@ -121,7 +121,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 			CharacterWorld: "Demo World",
 			GameFrontend: net.TCPAddr{
 				IP:   net.IPv4(127, 0, 0, 1),
-				Port: 7171,
+				Port: 7172,
 			},
 		},
 	}, 30)
