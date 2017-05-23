@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	"badc0de.net/pkg/go-tibia/login"
+	"badc0de.net/pkg/go-tibia/gameworld"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/secrets"
 )
@@ -28,6 +29,11 @@ func logins() {
 		glog.Errorln(err)
 		return
 	}
+	gameworld, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
 	glog.Infoln("gotserv loginserver now listening")
 	for {
 		conn, err := l.Accept()
@@ -35,10 +41,10 @@ func logins() {
 			glog.Errorln(err)
 			continue
 		}
-		go connection(login, conn.(*net.TCPConn))
+		go connection(login, gameworld, conn.(*net.TCPConn))
 	}
 }
-func connection(lgn *login.LoginServer, conn *net.TCPConn) {
+func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net.TCPConn) {
 	glog.Infoln("accepted connection from ", conn.RemoteAddr())
 	defer conn.Close()
 
@@ -65,7 +71,7 @@ func connection(lgn *login.LoginServer, conn *net.TCPConn) {
 	case 0x01:
 		glog.Errorln(lgn.Serve(conn, initialMsg))
 	case 0x0A:
-		glog.Errorln("gameworld protocol currently unsupported")
+		glog.Errorln(gw.Serve(conn, initialMsg))
 		return
 	default:
 		// TODO(ivucica): send error back "wrong protocol"
@@ -77,6 +83,11 @@ func connection(lgn *login.LoginServer, conn *net.TCPConn) {
 func games() {
 	login, err := login.NewServer(&secrets.OpenTibiaPrivateKey)
 	l, err := net.Listen("tcp", ":7172")
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
+	gameworld, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
 	if err != nil {
 		glog.Errorln(err)
 		return
@@ -113,7 +124,7 @@ func games() {
 				return
 			}
 			glog.V(2).Infof("written %d bytes", wr)
-			connection(login, conn.(*net.TCPConn))
+			connection(login, gameworld, conn.(*net.TCPConn))
 		}()
 	}
 }
