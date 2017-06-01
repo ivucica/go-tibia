@@ -1,14 +1,14 @@
 package gameworld
 
 import (
-tnet "badc0de.net/pkg/go-tibia/net"
+	tnet "badc0de.net/pkg/go-tibia/net"
+	"bytes"
 	"crypto/rsa"
-"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
-"net"
 	"github.com/golang/glog"
+	"io"
+	"net"
 )
 
 type GameworldServer struct {
@@ -32,13 +32,12 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 		OS, Version            uint16
 		DatSig, SprSig, PicSig uint32
 	}
-	
+
 	err := binary.Read(r, binary.LittleEndian, &connHeader)
 	if err != nil {
 		return fmt.Errorf("could not read conn header: %s", err)
 	}
 
-	
 	glog.V(2).Infof("header: %+v", connHeader)
 	err = msg.RSADecryptRemainder(c.pk)
 	if err != nil {
@@ -85,4 +84,3 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 	return nil
 }
-

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"badc0de.net/pkg/go-tibia/login"
 	"badc0de.net/pkg/go-tibia/gameworld"
+	"badc0de.net/pkg/go-tibia/login"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/secrets"
 )
