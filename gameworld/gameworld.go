@@ -1,6 +1,7 @@
 package gameworld
 
 import (
+	tdat "badc0de.net/pkg/go-tibia/dat"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"bytes"
 	"crypto/rsa"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"io"
+	"os"
 	"net"
 )
 
@@ -16,6 +18,9 @@ type GameworldServer struct {
 }
 
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
+	f, _ := os.Open("Tibia.dat")
+	tdat.NewDataset(f)
+
 	return &GameworldServer{
 		pk: pk,
 	}, nil
