@@ -1,4 +1,5 @@
 package dat
+
 import (
 	"os"
 	"testing"
@@ -12,5 +13,5 @@ func TestNewDataset854(t *testing.T) {
 	_, err = NewDataset(f)
 	if err != nil {
 		t.Fatalf("failed to parse dataset: %s", err)
-	}	
+	}
 }

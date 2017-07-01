@@ -2,6 +2,7 @@ package dat
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -17,14 +18,126 @@ type header struct {
 	ItemCount, OutfitCount, EffectCount, DistanceEffectCount uint16
 }
 
-type Item struct{}
-type Outfit struct{}
-type Effect struct{}
-type DistanceEffect struct{}
+type endOfOptBlock struct{ error }
+
+func (endOfOptBlock) Error() string {
+	return "quasi-error used to signal end of opt byte block"
+}
+
+type DatasetEntry interface {
+	GetGraphics() *Graphics
+}
+
+type Item struct {
+	DatasetEntry
+	Graphics
+
+	Id int
+
+	GroundSpeed uint16
+	SortOrder   uint16
+	Container   bool
+	Stackable   bool
+	AlwaysUsed  bool
+	Usable      bool
+	Rune        bool
+
+	Readable bool
+	Writable bool
+	MaxRWLen uint16
+
+	FluidContainer bool
+	Splash         bool
+
+	BlockingPlayer   bool
+	Immobile         bool
+	BlockingMissiles bool
+	BlockingMonsters bool
+
+	Equipable      bool
+	Hangable       bool
+	HorizontalItem bool
+	VerticalItem   bool
+	RotatableItem  bool
+
+	LightInfo
+	OffsetInfo
+	PlayerOffset uint16
+	LargeOffset  bool
+	IdleAnim     bool
+	MapColor     uint16
+	LookThrough  bool
+}
+type Outfit struct {
+	DatasetEntry
+	Graphics
+
+	Id int
+}
+type Effect struct {
+	DatasetEntry
+	Graphics
+}
+type DistanceEffect struct {
+	DatasetEntry
+	Graphics
+}
+
+type LightInfo struct {
+	Strength, Color uint16
+}
+type OffsetInfo struct {
+	X, Y uint16
+}
+
+type GraphicsDimensions struct {
+	// How many on-screen tiles will this sprite take, when drawn.
+	Width, Height uint8
+}
+
+type GraphicsDetails struct {
+	// How many WxH blocks will be drawn one on top of the other.
+	BlendFrames uint8
+	// How many variations does this sprite have based on its position on the map.
+	XDiv, YDiv, ZDiv uint8
+	// How many blocks of WxHxBlendFramesxXdivxYdivxZdiv does this sprite use as animation frames.
+	AnimCount uint8
+}
+
+type Graphics struct {
+	// WxH. Separated into a struct for easier reading.
+	GraphicsDimensions
+	// How many pixels should each sprite's tile take on screen? Usually 32.
+	RenderSize uint8
+	// Details on how to render each of the WxH sprite blocks (animations, variations, etc.)
+	// Separated into a struct for easier reading.
+	GraphicsDetails
+
+	// Which sprites are used when rendering.
+	Sprites []uint16
+}
+
+func (i Item) String() string {
+	return fmt.Sprintf("item %d", i.Id)
+}
+
+func (i Item) IsGround() bool {
+	return i.GroundSpeed != 0
+}
+
+func (i Item) GetGraphics() *Graphics {
+	return &i.Graphics
+}
+
+func (o Outfit) String() string {
+	return fmt.Sprintf("outfit %d", o.Id)
+}
 
 func NewDataset(r io.Reader) (*Dataset, error) {
 	h := header{}
-	binary.Read(r, binary.LittleEndian, &h)
+	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
+		return nil, fmt.Errorf("error reading dataset header: %v", err)
+	}
 
 	dataset := Dataset{
 		items:           make([]Item, h.ItemCount),
@@ -32,5 +145,371 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 		effects:         make([]Effect, h.EffectCount),
 		distanceEffects: make([]DistanceEffect, h.DistanceEffectCount),
 	}
+
+	err := dataset.load780plus(r)
+	if err != nil {
+		return nil, fmt.Errorf("error reading the dataset: %v", err)
+	}
+
 	return &dataset, nil
+}
+
+func (d *Dataset) load780plus(r io.Reader) error {
+	var e DatasetEntry
+	for id := 0; id < len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects); id++ {
+		e = nil
+		if id < len(d.items) {
+			e = &Item{Id: id + 100}
+		} else if id < len(d.items)+len(d.outfits) {
+			e = &Outfit{Id: id - len(d.items)}
+		}
+		if e == nil {
+			return fmt.Errorf("unsupported dataset entry type")
+		}
+
+		if err := d.load780OptBytes(r, e); err != nil {
+			return fmt.Errorf("error reading optbytes for %s: %v", e, err)
+		}
+
+		if err := d.loadGraphicsSpec(r, e); err != nil {
+			return fmt.Errorf("error reading graphics spec for %s: %v", e, err)
+		}
+
+	}
+	return nil
+}
+
+func (d *Dataset) load780OptBytes(r io.Reader, e DatasetEntry) error {
+	var prevOptByte uint8
+	for {
+		optByte, err := d.load780OptByte(r, e)
+		if err, ok := err.(*endOfOptBlock); err != nil && ok {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("optbyte 0x%x: %v (previous optbyte: 0x%x)", optByte, err, prevOptByte)
+		}
+		prevOptByte = optByte
+	}
+}
+
+func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
+	var optByte uint8
+	err := binary.Read(r, binary.LittleEndian, &optByte)
+	if err != nil {
+		return 0, fmt.Errorf("error reading the opt byte: %v", err)
+	}
+
+	switch optByte {
+	case 0x00: // Ground tile.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item ground tile")
+		}
+		err := binary.Read(r, binary.LittleEndian, &i.GroundSpeed)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading the ground tile speed: %v", err)
+		}
+
+	case 0x01: // On-top items.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item on-top entry")
+		}
+		i.SortOrder = 1
+
+	case 0x02: // Walk-through items (e.g. doors).
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item walk-through-1 entry")
+		}
+		i.SortOrder = 2
+
+	case 0x03: // Higher walk-through items (e.g. arches).
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item walk-through-2 entry")
+		}
+		i.SortOrder = 3
+
+	case 0x04: // Container item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item container entry")
+		}
+		i.Container = true
+
+	case 0x05: // Stackable item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item stackable entry")
+		}
+		i.Stackable = true
+
+	case 0x06: // Always used. (e.g. ladders)
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item always-used entry")
+		}
+		i.AlwaysUsed = true
+
+	case 0x07: // Usable.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item usable entry")
+		}
+		i.Usable = true
+
+	case 0x08: // Rune.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item usable entry")
+		}
+		i.Rune = true
+
+	case 0x09: // R/W item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item RW item entry")
+		}
+		i.Readable = true
+		i.Writable = true
+		err := binary.Read(r, binary.LittleEndian, &i.MaxRWLen)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading RW item info: %v", err)
+		}
+
+	case 0x0A: // RO item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item RO item entry")
+		}
+		i.Readable = true
+		err := binary.Read(r, binary.LittleEndian, &i.MaxRWLen)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading RO item info: %v", err)
+		}
+
+	case 0x0B: // Fluid container.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item fluid container")
+		}
+		i.FluidContainer = true
+
+	case 0x0C: // Splash.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item splash")
+		}
+		i.Splash = true
+
+	case 0x0D: // Blocking player.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item blocker")
+		}
+		i.BlockingPlayer = true
+
+	case 0x0E: // Immobile item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item immobile")
+		}
+		i.Immobile = true
+
+	case 0x0F: // Blocking missiles.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item blocker for missiles")
+		}
+		i.BlockingMissiles = true
+
+	case 0x10: // Blocking monsters.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item blocker for monsters")
+		}
+		i.BlockingMonsters = true
+
+	case 0x11: // Equipable.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item equipable")
+		}
+		i.Equipable = true
+
+	case 0x12: // Hangable.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item equipable")
+		}
+		i.Hangable = true
+
+	case 0x13: // Horizontal item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item horizontal")
+		}
+		i.HorizontalItem = true
+
+	case 0x14: // Vertical item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item vertical")
+		}
+		i.VerticalItem = true
+
+	case 0x15: // Rotatable item.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item rotatable")
+		}
+		i.RotatableItem = true
+
+	case 0x16: // Lightcaster.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item lightcaster")
+		}
+		err := binary.Read(r, binary.LittleEndian, &i.LightInfo)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading light info: %v", err)
+		}
+
+	case 0x17: // Floor changing item.
+		_, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item floor changer")
+		}
+
+	case 0x18: // Unknown information field.
+
+	case 0x19: // Has offset.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item with offset")
+		}
+		err := binary.Read(r, binary.LittleEndian, &i.OffsetInfo)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading offset info: %v", err)
+		}
+
+	case 0x1A: // Player offset. Usually 8px
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item with player offset")
+		}
+		err := binary.Read(r, binary.LittleEndian, &i.PlayerOffset)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading player offset info: %v", err)
+		}
+
+	case 0x1B: // Draw with height offset for all parts of the sprite (usually a 2x2 block).
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item with large height offset")
+		}
+		i.LargeOffset = true
+
+	case 0x1C: // Animate while idling.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item idler")
+		}
+		i.IdleAnim = true
+
+	case 0x1D: // Map color.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item with map color")
+		}
+		err := binary.Read(r, binary.LittleEndian, &i.MapColor)
+		if err != nil {
+			return optByte, fmt.Errorf("error reading map color info: %v", err)
+		}
+
+	case 0x1E: // Line spot.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item line spot")
+		}
+		var tmp uint8
+		if err := binary.Read(r, binary.LittleEndian, &tmp); err != nil {
+			return optByte, fmt.Errorf("error reading line spot info: %v", err)
+		}
+		if tmp == 0x58 {
+			i.Readable = true
+		} else if tmp != 0x4c && tmp != 0x4d && tmp != 0x4e && tmp != 0x4f && tmp != 0x50 && tmp != 0x51 && tmp != 0x52 && tmp != 0x53 && tmp != 0x54 && tmp != 0x55 && tmp != 0x56 && tmp != 0x57 {
+			// 0x4c: can be used to go up
+			// 0x4d: can be used to go down
+			// 0x4e: unknown
+			// 0x4f: switch
+			// 0x50: unknown
+			// 0x51: unknown
+			// 0x52: stairs up
+			// 0x54: unknown
+			// 0x55: unknown
+			// 0x56: openable holes
+			// 0x57: unknown
+
+			return optByte, fmt.Errorf("unknown linespot type 0x%x %d", tmp, tmp)
+		}
+		if err := binary.Read(r, binary.LittleEndian, &tmp); err != nil {
+			return optByte, fmt.Errorf("error reading line spot info: %v", err)
+		}
+		if tmp != 0x04 {
+			return optByte, fmt.Errorf("unknown linespot value 0x%x (expected 0x04)", tmp)
+		}
+
+	case 0x1F: // Unknown information field.
+
+	case 0x20: // Look through.
+		i, ok := e.(*Item)
+		if !ok {
+			return optByte, fmt.Errorf("non-item that can be looked-through")
+		}
+		i.LookThrough = true
+
+	case 0xFF:
+		return 0xFF, &endOfOptBlock{}
+
+	default:
+		return optByte, fmt.Errorf("unknown opt byte 0x%x", optByte)
+	}
+	return optByte, nil
+}
+
+func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
+	gfx := e.GetGraphics()
+
+	if err := binary.Read(r, binary.LittleEndian, &gfx.GraphicsDimensions); err != nil {
+		return fmt.Errorf("error reading graphics dimensions: %v", err)
+	}
+
+	if gfx.GraphicsDimensions.Width != 1 || gfx.GraphicsDimensions.Height != 1 {
+		if err := binary.Read(r, binary.LittleEndian, gfx.RenderSize); err != nil {
+			return fmt.Errorf("error reading render size: %v", err)
+		}
+
+	}
+
+	if err := binary.Read(r, binary.LittleEndian, &gfx.GraphicsDetails); err != nil {
+		return fmt.Errorf("error reading graphics details: %v", err)
+	}
+
+	spriteCount := uint(gfx.GraphicsDimensions.Width * gfx.GraphicsDimensions.Height)
+	spriteCount *= uint(gfx.GraphicsDetails.BlendFrames)
+	spriteCount *= uint(gfx.GraphicsDetails.XDiv * gfx.GraphicsDetails.YDiv * gfx.GraphicsDetails.ZDiv)
+	spriteCount *= uint(gfx.GraphicsDetails.AnimCount)
+	if spriteCount == 0 {
+		return fmt.Errorf("entry with zero sprites")
+	}
+	gfx.Sprites = make([]uint16, spriteCount)
+
+	if err := binary.Read(r, binary.LittleEndian, gfx.Sprites); err != nil {
+		return fmt.Errorf("error reading sprites: %v", err)
+	}
+
+	return nil
 }
