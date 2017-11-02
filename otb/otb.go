@@ -10,8 +10,18 @@ import (
 )
 
 // OTB reads in the file format as implemented in OpenTibia Server's fileloader.cpp.
+//
+// The implementation currently vaguely mirrors what's in fileloader.cpp. It's
+// somewhat suboptimal in the way it processes children, stores 'props' (non-node
+// blobs attached to a node) and such. It avoids some deficiencies in the
+// reference implementation, but is very suboptimal when it comes to parsing this
+// file format.
+//
+// It could be supplanted by a smarter, more Go-like file format reader.
 type OTB struct {
 	reader io.ReadSeeker
+
+	root *OTBNode
 }
 
 const (
@@ -38,7 +48,11 @@ func NewOTB(r io.ReadSeeker) (*OTB, error) {
 		return nil, fmt.Errorf("error starting reading otb node: %v", err)
 	}
 	if byt == NODE_START {
-		otb.parseNode()
+		root, err := otb.parseNode()
+		if err != nil {
+			return nil, fmt.Errorf("bad otb: could not parse root node: %s", err)
+		}
+		otb.root = root
 	} else {
 		return nil, fmt.Errorf("bad otb: expected start of node: got %x, want %x", byt, NODE_START)
 	}
