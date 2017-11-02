@@ -68,19 +68,20 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 		if err := binary.Read(reader, binary.LittleEndian, &nodeType); err != nil {
 			return fmt.Errorf("error reading otb node type: %v", err)
 		}
-		glog.Infof("%stype %x", strings.Repeat(" ", depth), nodeType)
+		glog.Infof("%stype 0x%02X", strings.Repeat(" ", depth), nodeType)
 		currentNode.nodeType = nodeType
 
+		var props []uint8
 		for {
 			shouldBreakFor := false
 
-			var props []uint8
 			var byt uint8
 			if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
 				return fmt.Errorf("error reading otb byte: %v", err)
 			}
 			switch byt {
 			case NODE_START:
+				props = []uint8{}
 				node := OTBNode{}
 				currentNode.child = &node
 				if err := node.parse(reader, depth+1); err != nil {
@@ -99,12 +100,14 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 					shouldBreakFor = true
 					// TODO(ivucica): why not just parse the subnode here?
 				case NODE_END:
+					glog.Infof("props: %+v", props)
 					return nil
 				default:
 					return fmt.Errorf("expected NODE_START or NODE_END, got %x", byt)
 				}
 			case ESCAPE_CHAR:
 				// Skip one byte. TODO(ivucica): simplify... too lazy to look up what's offered by io.ReadSeeker to skip 1 byte
+				var byt uint8
 				if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
 					return fmt.Errorf("error reading otb byte: %v", err)
 				}
@@ -119,6 +122,7 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 
 			if shouldBreakFor {
 				glog.Infof("props: %+v", props)
+				props = []uint8{}
 				break
 			}
 		}
