@@ -1,4 +1,4 @@
-package otb
+package itemsotb
 
 import (
 	"fmt"
@@ -30,12 +30,12 @@ func assertInRangeUint32(t *testing.T, name string, got, wantMin, wantMax uint32
 	})
 }
 
-func TestNewItemsOTB(t *testing.T) {
-	f, err := os.Open("../items.otb")
+func TestNew(t *testing.T) {
+	f, err := os.Open("../../items.otb")
 	if err != nil {
 		t.Fatalf("failed to open file: %s", err)
 	}
-	otb, err := NewItemsOTB(f)
+	otb, err := New(f)
 	if err != nil {
 		t.Fatalf("failed to parse otb: %s", err)
 	}

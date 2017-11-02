@@ -1,4 +1,4 @@
-package otb
+package itemsotb
 
 import (
 	"bytes"
@@ -7,21 +7,22 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+	"badc0de.net/pkg/go-tibia/otb"
 )
 
-type ItemsOTB struct {
-	OTB
-	Version ItemsOTBVersion
-	Items   []ItemOTB
+type Items struct {
+	otb.OTB
+	Version ItemsVersion
+	Items   []Item
 
 	ClientIDToArrayIndex map[uint16]int
 	ServerIDToArrayIndex map[uint16]int
 }
 
 type (
-	ItemsOTBAttribute uint8
-	ItemsOTBDataSize  uint16
-	ItemsOTBFlags     uint32
+	ItemsAttribute uint8
+	ItemsDataSize  uint16
+	ItemsFlags     uint32
 )
 
 const (
@@ -136,11 +137,11 @@ const (
 	ITEM_ATTR_LAST
 )
 
-type itemsOTBRootNodeVersion struct {
-	DataSize ItemsOTBDataSize
-	Version  ItemsOTBVersion
+type rootNodeVersion struct {
+	DataSize ItemsDataSize
+	Version  ItemsVersion
 }
-type ItemsOTBVersion struct {
+type ItemsVersion struct {
 	MajorVersion, MinorVersion, BuildNumber uint32
 	CSDVersion                              [128]uint8
 }
@@ -153,13 +154,13 @@ func stringFromCStr(cstr []byte) string {
 	return string(cstr[:idx])
 }
 
-func NewItemsOTB(r io.ReadSeeker) (*ItemsOTB, error) {
-	f, err := NewOTB(r)
+func New(r io.ReadSeeker) (*Items, error) {
+	f, err := otb.NewOTB(r)
 	if err != nil {
 		return nil, fmt.Errorf("newitemsotb failed to use fileloader: %s", err)
 	}
 
-	otb := ItemsOTB{
+	otb := Items{
 		OTB:                  *f,
 		ClientIDToArrayIndex: make(map[uint16]int),
 		ServerIDToArrayIndex: make(map[uint16]int),
@@ -177,17 +178,17 @@ func NewItemsOTB(r io.ReadSeeker) (*ItemsOTB, error) {
 	}
 	flags = flags // seemingly unused
 
-	var attr ItemsOTBAttribute
+	var attr ItemsAttribute
 	if err := binary.Read(props, binary.LittleEndian, &attr); err != nil {
 		return nil, fmt.Errorf("error reading itemsotb root node attr: %v", err)
 	}
 	switch attr {
 	case ROOT_ATTR_VERSION:
-		var vers itemsOTBRootNodeVersion
+		var vers rootNodeVersion
 		if err := binary.Read(props, binary.LittleEndian, &vers); err != nil {
 			return nil, fmt.Errorf("error reading itemsotb root node attr 'version': %v", err)
 		}
-		if vers.DataSize != /* sizeof ItemsOTBRootNodeVersion */ 4+4+4+128 {
+		if vers.DataSize != /* sizeof ItemsRootNodeVersion */ 4+4+4+128 {
 			return nil, fmt.Errorf("bad size of itemsotb root node attr 'version': %v", vers.DataSize)
 		}
 
@@ -233,23 +234,23 @@ func NewItemsOTB(r io.ReadSeeker) (*ItemsOTB, error) {
 	return &otb, nil
 }
 
-func (*ItemsOTB) readChildNode(node *OTBNode) (*ItemOTB, error) {
+func (*Items) readChildNode(node *otb.OTBNode) (*Item, error) {
 	props := node.PropsBuffer()
 
-	var flags ItemsOTBFlags
+	var flags ItemsFlags
 	if err := binary.Read(props, binary.LittleEndian, &flags); err != nil {
 		return nil, fmt.Errorf("error reading itemsotb child node flags: %v", err)
 	}
 
-	item := ItemOTB{
+	item := Item{
 		Group:      int(node.NodeType()),
 		Flags:      flags,
-		Attributes: make(map[ItemsOTBAttribute]interface{}),
+		Attributes: make(map[ItemsAttribute]interface{}),
 	}
 
-	var attr ItemsOTBAttribute
+	var attr ItemsAttribute
 	for err := binary.Read(props, binary.LittleEndian, &attr); err == nil; err = binary.Read(props, binary.LittleEndian, &attr) {
-		var datalen ItemsOTBDataSize
+		var datalen ItemsDataSize
 		if err := binary.Read(props, binary.LittleEndian, &datalen); err != nil {
 			return nil, fmt.Errorf("error reading itemsotb child node data len: %v", err)
 		}
@@ -280,7 +281,7 @@ func (*ItemsOTB) readChildNode(node *OTBNode) (*ItemOTB, error) {
 			if datalen != 4 {
 				return nil, fmt.Errorf("invalid attribute %d size: got %d, want %d", attr, datalen, 4)
 			}
-			var val ItemOTBLight
+			var val Light
 			if err := binary.Read(props, binary.LittleEndian, &val); err != nil {
 				return nil, fmt.Errorf("error reading itemsotb child node light attribute %d: %v", attr, err)
 			}
@@ -294,7 +295,7 @@ func (*ItemsOTB) readChildNode(node *OTBNode) (*ItemOTB, error) {
 	return &item, nil
 }
 
-func (otb *ItemsOTB) ItemByServerID(serverID uint16) (*ItemOTB, error) {
+func (otb *Items) ItemByServerID(serverID uint16) (*Item, error) {
 	if idx, ok := otb.ServerIDToArrayIndex[serverID]; ok {
 		return &otb.Items[idx], nil
 	} else {
@@ -302,7 +303,7 @@ func (otb *ItemsOTB) ItemByServerID(serverID uint16) (*ItemOTB, error) {
 	}
 }
 
-func (otb *ItemsOTB) ItemByClientID(clientID uint16) (*ItemOTB, error) {
+func (otb *Items) ItemByClientID(clientID uint16) (*Item, error) {
 	if idx, ok := otb.ClientIDToArrayIndex[clientID]; ok {
 		return &otb.Items[idx], nil
 	} else {
@@ -310,13 +311,13 @@ func (otb *ItemsOTB) ItemByClientID(clientID uint16) (*ItemOTB, error) {
 	}
 }
 
-type ItemOTB struct {
+type Item struct {
 	Group      int // enum type
-	Flags      ItemsOTBFlags
-	Attributes map[ItemsOTBAttribute]interface{}
+	Flags      ItemsFlags
+	Attributes map[ItemsAttribute]interface{}
 }
 
-type ItemOTBLight struct {
+type Light struct {
 	LightLevel uint16
 	LightColor uint16
 }
