@@ -60,12 +60,6 @@ func NewOTB(r io.ReadSeeker) (*OTB, error) {
 	return &otb, nil
 }
 
-type OTBNode struct {
-	nodeType uint8
-	child    *OTBNode
-	next     *OTBNode
-}
-
 func (otb *OTB) parseNode() (*OTBNode, error) {
 	node := OTBNode{}
 	if err := node.parse(otb.reader, 0); err != nil {
@@ -75,27 +69,64 @@ func (otb *OTB) parseNode() (*OTBNode, error) {
 	}
 }
 
+// TODO(ivucica): Refactor this. These calls should be made on OTBNode.
+func (otb *OTB) ChildNode(parent *OTBNode) *OTBNode {
+	if parent == nil {
+		return otb.root
+	}
+	return parent.ChildNode()
+}
+
+type OTBNode struct {
+	nodeType uint8
+	props    []byte
+	child    *OTBNode
+	next     *OTBNode
+}
+
+func (n *OTBNode) NodeType() uint8 {
+	return n.nodeType
+}
+
+func (n *OTBNode) ChildNode() *OTBNode {
+	return n.child
+}
+
+func (n *OTBNode) NextNode() *OTBNode {
+	return n.next
+}
+
 func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 	currentNode := n
 	for {
 		var nodeType uint8
 		if err := binary.Read(reader, binary.LittleEndian, &nodeType); err != nil {
+			if err == io.EOF {
+				if depth != 0 {
+					glog.Warning("warning: abrupt end to an OTB.")
+				}
+				return nil
+			}
 			return fmt.Errorf("error reading otb node type: %v", err)
 		}
-		glog.Infof("%stype 0x%02X", strings.Repeat(" ", depth), nodeType)
+		glog.V(3).Infof("%stype 0x%02X", strings.Repeat(" ", depth), nodeType)
 		currentNode.nodeType = nodeType
 
-		var props []uint8
 		for {
 			shouldBreakFor := false
 
 			var byt uint8
 			if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
+				if err == io.EOF {
+					if depth != 0 {
+						glog.Warning("warning: abrupt end to an OTB.")
+					}
+					return nil
+				}
 				return fmt.Errorf("error reading otb byte: %v", err)
 			}
 			switch byt {
 			case NODE_START:
-				props = []uint8{}
 				node := OTBNode{}
 				currentNode.child = &node
 				if err := node.parse(reader, depth+1); err != nil {
@@ -108,13 +139,14 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 				}
 				switch byt {
 				case NODE_START:
+					// glog.Infof("props: %+v", currentNode.props)
 					node := OTBNode{}
 					currentNode.next = &node
 					currentNode = &node
 					shouldBreakFor = true
 					// TODO(ivucica): why not just parse the subnode here?
 				case NODE_END:
-					glog.Infof("props: %+v", props)
+					// glog.Infof("props: %+v", currentNode.props)
 					return nil
 				default:
 					return fmt.Errorf("expected NODE_START or NODE_END, got %x", byt)
@@ -127,16 +159,12 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 				}
 				byt = byt
 
-				// TEMP construction of props
-				props = append(props, byt)
+				currentNode.props = append(currentNode.props, byt)
 			default:
-				// TEMP construction of props
-				props = append(props, byt)
+				currentNode.props = append(currentNode.props, byt)
 			}
 
 			if shouldBreakFor {
-				glog.Infof("props: %+v", props)
-				props = []uint8{}
 				break
 			}
 		}
