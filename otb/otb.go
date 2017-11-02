@@ -1,3 +1,9 @@
+// Package otb reads in the 'OpenTibia Binary' format.
+//
+// This format is used in items.otb specifying item attributes, as well as a
+// mapping from a client ID to a persistent server ID.
+//
+// It is also used in the OpenTibia Binary Map with extension .otbm.
 package otb
 
 import (
@@ -25,12 +31,19 @@ type OTB struct {
 	root *OTBNode
 }
 
+// Various special-meaning characters that might be encountered while parsing a
+// node.
 const (
-	ESCAPE_CHAR = 0xFD
-	NODE_START  = 0xFE
-	NODE_END    = 0xFF
+	ESCAPE_CHAR = 0xFD // Following character should be read verbatim, even if it otherwise has a special meaning.
+	NODE_START  = 0xFE // From this character onwards, this is a new OTB node. If preceded by NODE_END, this is the next sibling node. Otherwise, it's a child node.
+	NODE_END    = 0xFF // This character marks the end of the latest OTB node. If immediately followed by a NODE_START, that will be the next sibling node.
 )
 
+// NewOTB reads an OTB file from the given `io.ReadSeeker`, and constructs a
+// tree of nodes.
+//
+// No meaning is assigned to nodes; this is the task of readers for an
+// individual format.
 func NewOTB(r io.ReadSeeker) (*OTB, error) {
 	otb := OTB{
 		reader: r,
@@ -61,6 +74,7 @@ func NewOTB(r io.ReadSeeker) (*OTB, error) {
 	return &otb, nil
 }
 
+// parseNode processes the next node in the given reader.
 func (otb *OTB) parseNode() (*OTBNode, error) {
 	node := OTBNode{}
 	if err := node.parse(otb.reader, 0); err != nil {
@@ -70,6 +84,12 @@ func (otb *OTB) parseNode() (*OTBNode, error) {
 	}
 }
 
+// ChildNode returns whichever is the first child node of a given node. If nil
+// is passed, root node is assumed.
+//
+// To obtain further children, use child's NextNode to obtain the first
+// sibling, then use that child's NextNode to obtain the next sibling, etc.
+//
 // TODO(ivucica): Refactor this. These calls should be made on OTBNode.
 func (otb *OTB) ChildNode(parent *OTBNode) *OTBNode {
 	if parent == nil {
@@ -78,6 +98,16 @@ func (otb *OTB) ChildNode(parent *OTBNode) *OTBNode {
 	return parent.ChildNode()
 }
 
+// OTBNode represents a single node in an OTB-formatted file.
+//
+// Each node has a type, some data, and may have a sibling and a child attached
+// to it.
+//
+// Further meaning depends on the file; for example, root node in items.otb
+// does not use type, but uses data array to store the version of the file and
+// a free form descriptor. Its child is the first item in the file; item's
+// sibling is the second item; second item's sibling is the third item; et
+// cetera.
 type OTBNode struct {
 	nodeType uint8
 	props    []byte
@@ -85,14 +115,23 @@ type OTBNode struct {
 	next     *OTBNode
 }
 
+// NodeType returns the type of the node.
+//
+// For example, in item nodes in items.otb, this means which item group the
+// item belongs to (item groups being used in editors to group items into
+// sections such as ground, walls, etc).
 func (n *OTBNode) NodeType() uint8 {
 	return n.nodeType
 }
 
+// ChildNode returns the first child of the node, or null if there are no
+// children.
 func (n *OTBNode) ChildNode() *OTBNode {
 	return n.child
 }
 
+// NextNode returns the next sibling of the node, or null if there are no
+// more siblings.
 func (n *OTBNode) NextNode() *OTBNode {
 	return n.next
 }
@@ -102,6 +141,10 @@ func (n *OTBNode) PropsBuffer() *bytes.Buffer {
 	return bytes.NewBuffer(n.props)
 }
 
+// parse reads all the bytes associated with the current node, as well as its
+// children.
+//
+// It expects that NODE_START byte has already been read.
 func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 	currentNode := n
 	for {

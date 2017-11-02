@@ -1,3 +1,7 @@
+// Package itemsotb reads in an items.otb file.
+//
+// Top level OTB node's data represents version header, and its children
+// represents individual items.
 package itemsotb
 
 import (
@@ -6,8 +10,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
 	"badc0de.net/pkg/go-tibia/otb"
+	"github.com/golang/glog"
 )
 
 type Items struct {
@@ -29,6 +33,11 @@ const (
 	ROOT_ATTR_VERSION = 0x01
 )
 
+// Enumeration containing recognized protocol versions for which a particular
+// items.otb file might be targeted.
+//
+// Implementation detail: iota is not used primarily for easier referencing in
+// case of an error.
 const (
 	CLIENT_VERSION_750                     = 1
 	CLIENT_VERSION_755                     = 2
@@ -55,6 +64,9 @@ const (
 	CLIENT_VERSION_870                     = 23
 )
 
+// Enumeration containing which overarching item group this item belongs to.
+//
+// Useful primarily for editors.
 const (
 	ITEM_GROUP_NONE = iota
 	ITEM_GROUP_GROUND
@@ -74,6 +86,7 @@ const (
 	ITEM_GROUP_LAST
 )
 
+// Enumeration containing possible bits in the `flags` bitmask of an item.
 const (
 	FLAG_BLOCK_SOLID = 1 << iota
 	FLAG_BLOCK_PROJECTILE
@@ -101,6 +114,7 @@ const (
 	FLAG_LOOKTHROUGH
 )
 
+// Enumeration containing recognized attributes in the items.otb file.
 const (
 	ITEM_ATTR_FIRST    = 0x10
 	ITEM_ATTR_SERVERID = iota + 0x10 - 1
@@ -141,11 +155,26 @@ type rootNodeVersion struct {
 	DataSize ItemsDataSize
 	Version  ItemsVersion
 }
+
+// ItemsVersion represents the version of the items.otb file.
+//
+// MajorVersion means a revision of the file format, MinorVersion means the
+// targeted protocol version, BuildNumber is an arbitrary number representing
+// ther revision of the file, and CSDVersion is a byte array with a C-style
+// null-terminated string.
 type ItemsVersion struct {
 	MajorVersion, MinorVersion, BuildNumber uint32
 	CSDVersion                              [128]uint8
 }
 
+// CSDVersionAsString formats null-terminated C-style string `CSDArray` from a
+// byte array into usual Go string.
+func (v ItemsVersion) CSDVersionAsString() string {
+	return stringFromCStr(v.CSDVersion[:])
+}
+
+// stringFromCStr turns a byte slice representing a null-terminated C-style
+// string into a Go string.
 func stringFromCStr(cstr []byte) string {
 	idx := bytes.IndexByte(cstr, 0x00)
 	if idx == -1 {
@@ -154,6 +183,7 @@ func stringFromCStr(cstr []byte) string {
 	return string(cstr[:idx])
 }
 
+// New reads an OTB file from a given reader.
 func New(r io.ReadSeeker) (*Items, error) {
 	f, err := otb.NewOTB(r)
 	if err != nil {
@@ -234,6 +264,7 @@ func New(r io.ReadSeeker) (*Items, error) {
 	return &otb, nil
 }
 
+// readChildNode reads a single "OTB node", as read from an OTB file.
 func (*Items) readChildNode(node *otb.OTBNode) (*Item, error) {
 	props := node.PropsBuffer()
 
@@ -295,6 +326,9 @@ func (*Items) readChildNode(node *otb.OTBNode) (*Item, error) {
 	return &item, nil
 }
 
+// ItemByServerID allows lookup of an item stored in an items.otb file based on
+// its persistent 'server' ID, which stays fixed between versions, and is used
+// by the server-side data storage, by map files, etc.
 func (otb *Items) ItemByServerID(serverID uint16) (*Item, error) {
 	if idx, ok := otb.ServerIDToArrayIndex[serverID]; ok {
 		return &otb.Items[idx], nil
@@ -303,6 +337,8 @@ func (otb *Items) ItemByServerID(serverID uint16) (*Item, error) {
 	}
 }
 
+// ItemByClientID allows lookup of an item stored in an items.otb file based on
+// its ID used by the network protocol and associated data files.
 func (otb *Items) ItemByClientID(clientID uint16) (*Item, error) {
 	if idx, ok := otb.ClientIDToArrayIndex[clientID]; ok {
 		return &otb.Items[idx], nil
@@ -311,12 +347,15 @@ func (otb *Items) ItemByClientID(clientID uint16) (*Item, error) {
 	}
 }
 
+// Item represents a single item stored in the items.otb file.
 type Item struct {
 	Group      int // enum type
 	Flags      ItemsFlags
 	Attributes map[ItemsAttribute]interface{}
 }
 
+// Light represents the data structure describing a lit-up item's light attribute
+// ITEM_ATTR_LIGHT2, as stored in an items.otb file.
 type Light struct {
 	LightLevel uint16
 	LightColor uint16
