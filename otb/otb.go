@@ -1,6 +1,7 @@
 package otb
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -94,6 +95,11 @@ func (n *OTBNode) ChildNode() *OTBNode {
 
 func (n *OTBNode) NextNode() *OTBNode {
 	return n.next
+}
+
+// Returns a new (i.e. reset to start) buffer for reading properties.
+func (n *OTBNode) PropsBuffer() *bytes.Buffer {
+	return bytes.NewBuffer(n.props)
 }
 
 func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
