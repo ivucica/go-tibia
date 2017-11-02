@@ -62,6 +62,8 @@ func NewItemsOTB(r io.ReadSeeker) (*ItemsOTB, error) {
 		if vers.DataSize != /* sizeof ItemsOTBRootNodeVersion */ 4+4+4+128 {
 			return nil, fmt.Errorf("bad size of itemsotb root node attr 'version': %v", vers.DataSize)
 		}
+
+		glog.Infof("version %d.%d.%d, csd %s", vers.Version.MajorVersion, vers.Version.MinorVersion, vers.Version.BuildNumber, string(vers.Version.CSDVersion[:]))
 	default:
 		// ignore, apparently
 	}
