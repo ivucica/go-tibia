@@ -173,9 +173,9 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 
 	glog.V(3).Infof("creating dataset")
 	dataset := Dataset{
-		items:           make([]Item, h.ItemCount),
-		outfits:         make([]Outfit, h.OutfitCount),
-		effects:         make([]Effect, h.EffectCount),
+		items:           make([]Item, h.ItemCount-100+1),
+		outfits:         make([]Outfit, h.OutfitCount-h.ItemCount-100+1),
+		effects:         make([]Effect, h.EffectCount-h.OutfitCount-h.ItemCount-100+1),
 		distanceEffects: make([]DistanceEffect, h.DistanceEffectCount),
 	}
 
@@ -195,9 +195,15 @@ func (d *Dataset) load780plus(r io.Reader) error {
 		e = nil
 		if id < len(d.items) {
 			e = &Item{Id: id + 100}
-		} else if id < len(d.items)+len(d.outfits) {
-			e = &Outfit{Id: id - len(d.items)}
+		} else if id < len(d.items)-100+1+len(d.outfits) {
+			return nil // Stop after reading items in.
+			e = &Outfit{Id: id + 100 - len(d.items)}
+		} else if id < len(d.items)-100+1+len(d.outfits)+len(d.effects) {
+			e = &Effect{Id: id + 100 - len(d.items) - len(d.effects)}
+		} else if id < len(d.items)-100+1+len(d.outfits)+len(d.effects)+len(d.distanceEffects) {
+			e = &DistanceEffect{Id: id + 100 - len(d.items) - len(d.effects) - len(d.distanceEffects)}
 		}
+		glog.V(4).Infof("id %d (%d, %d, %d, %d) %T", id, len(d.items), len(d.items)+len(d.outfits), len(d.items)+len(d.outfits)+len(d.effects), len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects), e)
 		if e == nil {
 			return fmt.Errorf("unsupported dataset entry type")
 		}
