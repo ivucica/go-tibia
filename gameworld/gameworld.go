@@ -18,9 +18,16 @@ type GameworldServer struct {
 }
 
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
-	f, _ := os.Open("Tibia.dat")
-	tdat.NewDataset(f)
-
+	f, err := os.Open("Tibia.dat")
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
+	_, err = tdat.NewDataset(f)
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
 	return &GameworldServer{
 		pk: pk,
 	}, nil
