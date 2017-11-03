@@ -15,11 +15,20 @@ import (
 	"badc0de.net/pkg/go-tibia/secrets"
 )
 
+var (
+	quitChan = make(chan int)
+)
+
 func main() {
 	flag.Parse()
 	go logins()
 	go games()
+
 	for {
+		select {
+		case <-quitChan:
+			return
+		}
 	}
 }
 func logins() {
