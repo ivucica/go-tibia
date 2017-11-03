@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"github.com/golang/glog"
 )
 
 type Dataset struct {
@@ -73,14 +75,23 @@ type Outfit struct {
 	Graphics
 
 	Id int
+	OffsetInfo
+	IdleAnim bool
+	LightInfo
 }
 type Effect struct {
 	DatasetEntry
 	Graphics
+
+	Id int
+	LightInfo
 }
 type DistanceEffect struct {
 	DatasetEntry
 	Graphics
+
+	Id int
+	LightInfo
 }
 
 type LightInfo struct {
@@ -131,6 +142,26 @@ func (i Item) GetGraphics() *Graphics {
 
 func (o Outfit) String() string {
 	return fmt.Sprintf("outfit %d", o.Id)
+}
+
+func (o Outfit) GetGraphics() *Graphics {
+	return &o.Graphics
+}
+
+func (e Effect) String() string {
+	return fmt.Sprintf("effect %d", e.Id)
+}
+
+func (e Effect) GetGraphics() *Graphics {
+	return &e.Graphics
+}
+
+func (d DistanceEffect) String() string {
+	return fmt.Sprintf("distance effect %d", d.Id)
+}
+
+func (d DistanceEffect) GetGraphics() *Graphics {
+	return &d.Graphics
 }
 
 func NewDataset(r io.Reader) (*Dataset, error) {
@@ -368,13 +399,28 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		i.RotatableItem = true
 
 	case 0x16: // Lightcaster.
-		i, ok := e.(*Item)
-		if !ok {
-			return optByte, fmt.Errorf("non-item lightcaster")
-		}
-		err := binary.Read(r, binary.LittleEndian, &i.LightInfo)
-		if err != nil {
-			return optByte, fmt.Errorf("error reading light info: %v", err)
+		if i, ok := e.(*Item); ok {
+			err := binary.Read(r, binary.LittleEndian, &i.LightInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading light info: %v", err)
+			}
+		} else if o, ok := e.(*Outfit); ok {
+			err := binary.Read(r, binary.LittleEndian, &o.LightInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading light info: %v", err)
+			}
+		} else if ef, ok := e.(*Effect); ok {
+			err := binary.Read(r, binary.LittleEndian, &ef.LightInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading light info: %v", err)
+			}
+		} else if de, ok := e.(*DistanceEffect); ok {
+			err := binary.Read(r, binary.LittleEndian, &de.LightInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading light info: %v", err)
+			}
+		} else {
+			return optByte, fmt.Errorf("non-item/outfit/effect/distanceeffect lightcaster")
 		}
 
 	case 0x17: // Floor changing item.
@@ -386,13 +432,18 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 	case 0x18: // Unknown information field.
 
 	case 0x19: // Has offset.
-		i, ok := e.(*Item)
-		if !ok {
-			return optByte, fmt.Errorf("non-item with offset")
-		}
-		err := binary.Read(r, binary.LittleEndian, &i.OffsetInfo)
-		if err != nil {
-			return optByte, fmt.Errorf("error reading offset info: %v", err)
+		if i, ok := e.(*Item); ok {
+			err := binary.Read(r, binary.LittleEndian, &i.OffsetInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading offset info: %v", err)
+			}
+		} else if o, ok := e.(*Outfit); ok {
+			err := binary.Read(r, binary.LittleEndian, &o.OffsetInfo)
+			if err != nil {
+				return optByte, fmt.Errorf("error reading offset info: %v", err)
+			}
+		} else {
+			return optByte, fmt.Errorf("non-item/outfit with offset (type %T)", e)
 		}
 
 	case 0x1A: // Player offset. Usually 8px
@@ -413,11 +464,13 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		i.LargeOffset = true
 
 	case 0x1C: // Animate while idling.
-		i, ok := e.(*Item)
-		if !ok {
-			return optByte, fmt.Errorf("non-item idler")
+		if i, ok := e.(*Item); ok {
+			i.IdleAnim = true
+		} else if o, ok := e.(*Outfit); ok {
+			o.IdleAnim = true
+		} else {
+			return optByte, fmt.Errorf("non-item/outfit idler (%T)", e)
 		}
-		i.IdleAnim = true
 
 	case 0x1D: // Map color.
 		i, ok := e.(*Item)
