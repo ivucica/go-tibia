@@ -165,11 +165,13 @@ func (d DistanceEffect) GetGraphics() *Graphics {
 }
 
 func NewDataset(r io.Reader) (*Dataset, error) {
+	glog.V(3).Info("starting to read dataset")
 	h := header{}
 	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
 		return nil, fmt.Errorf("error reading dataset header: %v", err)
 	}
 
+	glog.V(3).Infof("creating dataset")
 	dataset := Dataset{
 		items:           make([]Item, h.ItemCount),
 		outfits:         make([]Outfit, h.OutfitCount),
@@ -177,10 +179,12 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 		distanceEffects: make([]DistanceEffect, h.DistanceEffectCount),
 	}
 
+	glog.V(3).Infoln("loading...")
 	err := dataset.load780plus(r)
 	if err != nil {
 		return nil, fmt.Errorf("error reading the dataset: %v", err)
 	}
+	glog.V(3).Infoln("loaded")
 
 	return &dataset, nil
 }
@@ -197,16 +201,18 @@ func (d *Dataset) load780plus(r io.Reader) error {
 		if e == nil {
 			return fmt.Errorf("unsupported dataset entry type")
 		}
-
+		glog.V(4).Infoln("load bytes for ", id+100)
 		if err := d.load780OptBytes(r, e); err != nil {
 			return fmt.Errorf("error reading optbytes for %s: %v", e, err)
 		}
+		glog.V(4).Infoln("load spec")
 
 		if err := d.loadGraphicsSpec(r, e); err != nil {
 			return fmt.Errorf("error reading graphics spec for %s: %v", e, err)
 		}
-
+		glog.V(4).Infoln("next item")
 	}
+	glog.V(3).Infof("done with 780 dataset")
 	return nil
 }
 
@@ -539,7 +545,7 @@ func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
 	if err := binary.Read(r, binary.LittleEndian, &gfx.GraphicsDimensions); err != nil {
 		return fmt.Errorf("error reading graphics dimensions: %v", err)
 	}
-
+	glog.V(5).Info("reading rendersize")
 	if gfx.GraphicsDimensions.Width != 1 || gfx.GraphicsDimensions.Height != 1 {
 		if err := binary.Read(r, binary.LittleEndian, gfx.RenderSize); err != nil {
 			return fmt.Errorf("error reading render size: %v", err)
@@ -558,11 +564,13 @@ func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
 	if spriteCount == 0 {
 		return fmt.Errorf("entry with zero sprites")
 	}
+	glog.V(5).Infof("allocating %d sprites", spriteCount)
 	gfx.Sprites = make([]uint16, spriteCount)
+	glog.V(5).Infof("reading %d sprites", spriteCount)
 
 	if err := binary.Read(r, binary.LittleEndian, gfx.Sprites); err != nil {
 		return fmt.Errorf("error reading sprites: %v", err)
 	}
-
+	glog.V(5).Infof("sprites have been read")
 	return nil
 }
