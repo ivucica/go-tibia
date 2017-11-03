@@ -21,6 +21,7 @@ var (
 
 func main() {
 	flag.Parse()
+	glog.Infoln("starting gotserv services")
 	go logins()
 	go games()
 
@@ -33,12 +34,19 @@ func main() {
 }
 func logins() {
 	login, err := login.NewServer(&secrets.OpenTibiaPrivateKey)
-	l, err := net.Listen("tcp", ":7171")
 	if err != nil {
 		glog.Errorln(err)
 		return
 	}
+
 	gameworld, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
+	//gameworld := (*gameworld.GameworldServer)(nil)
+
+	l, err := net.Listen("tcp", ":7171")
 	if err != nil {
 		glog.Errorln(err)
 		return
@@ -91,12 +99,16 @@ func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net
 }
 func games() {
 	login, err := login.NewServer(&secrets.OpenTibiaPrivateKey)
-	l, err := net.Listen("tcp", ":7172")
 	if err != nil {
 		glog.Errorln(err)
 		return
 	}
 	gameworld, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
+	l, err := net.Listen("tcp", ":7172")
 	if err != nil {
 		glog.Errorln(err)
 		return
