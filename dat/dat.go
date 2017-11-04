@@ -185,8 +185,8 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 	dataset := Dataset{
 		header:          h,
 		items:           make([]Item, h.ItemCount-100+1),
-		outfits:         make([]Outfit, h.OutfitCount-h.ItemCount-100+1),
-		effects:         make([]Effect, h.EffectCount-h.OutfitCount-h.ItemCount-100+1),
+		outfits:         make([]Outfit, h.OutfitCount),
+		effects:         make([]Effect, h.EffectCount),
 		distanceEffects: make([]DistanceEffect, h.DistanceEffectCount),
 	}
 
@@ -204,21 +204,34 @@ func (d *Dataset) load780plus(r io.Reader) error {
 	var e DatasetEntry
 	for id := 0; id < len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects); id++ {
 		e = nil
+		eid := 0
 		if id < len(d.items) {
-			e = &Item{Id: id + 100}
-		} else if id < len(d.items)-100+1+len(d.outfits) {
-			return nil // Stop after reading items in.
-			e = &Outfit{Id: id + 100 - len(d.items)}
-		} else if id < len(d.items)-100+1+len(d.outfits)+len(d.effects) {
-			e = &Effect{Id: id + 100 - len(d.items) - len(d.effects)}
-		} else if id < len(d.items)-100+1+len(d.outfits)+len(d.effects)+len(d.distanceEffects) {
-			e = &DistanceEffect{Id: id + 100 - len(d.items) - len(d.effects) - len(d.distanceEffects)}
+			eid = id
+			glog.V(4).Infof("loading item id %d", eid)
+			e = &d.items[eid]
+			e.(*Item).Id = eid + 100
+		} else if id < len(d.items)+len(d.outfits) {
+			eid = id - len(d.items)
+			glog.V(4).Infof("loading outfit id %d", eid)
+			e = &d.outfits[eid]
+			e.(*Outfit).Id = eid + 1
+		} else if id < len(d.items)+len(d.outfits)+len(d.effects) {
+			eid = id - len(d.items) - len(d.outfits)
+			glog.V(4).Infof("loading effect id %d", eid)
+			e = &d.effects[eid]
+			e.(*Effect).Id = eid + 1
+		} else if id < len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects) {
+			eid = id - len(d.items) - len(d.outfits) - len(d.effects)
+			glog.V(4).Infof("loading distance effect id %d", eid)
+			e = &d.distanceEffects[eid]
+			e.(*DistanceEffect).Id = eid + 1
 		}
 		glog.V(4).Infof("id %d (%d, %d, %d, %d) %T", id, len(d.items), len(d.items)+len(d.outfits), len(d.items)+len(d.outfits)+len(d.effects), len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects), e)
 		if e == nil {
-			return fmt.Errorf("unsupported dataset entry type")
+			glog.Errorf("unsupported dataset entry type at index %d", id)
+			return fmt.Errorf("unsupported dataset entry type at index %d", id)
 		}
-		glog.V(4).Infoln("load bytes for ", id+100)
+		glog.V(4).Infoln("load bytes for ", eid)
 		if err := d.load780OptBytes(r, e); err != nil {
 			return fmt.Errorf("error reading optbytes for %s: %v", e, err)
 		}
