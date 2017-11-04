@@ -8,7 +8,17 @@ import (
 	"github.com/golang/glog"
 )
 
+// Enumeration of versions that are 'actively' supported.
+//
+// (Values may change between versions of the package and have no meaning.)
+const (
+	CLIENT_VERSION_UNKNOWN = iota
+	CLIENT_VERSION_854
+)
+
 type Dataset struct {
+	header header
+
 	items           []Item
 	outfits         []Outfit
 	effects         []Effect
@@ -17,7 +27,7 @@ type Dataset struct {
 
 type header struct {
 	Signature                                                uint32
-	ItemCount, OutfitCount, EffectCount, DistanceEffectCount uint16
+	ItemCount, OutfitCount, EffectCount, DistanceEffectCount uint16 // TODO(ivucica): rename to 'max id'
 }
 
 type endOfOptBlock struct{ error }
@@ -173,6 +183,7 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 
 	glog.V(3).Infof("creating dataset")
 	dataset := Dataset{
+		header:          h,
 		items:           make([]Item, h.ItemCount-100+1),
 		outfits:         make([]Outfit, h.OutfitCount-h.ItemCount-100+1),
 		effects:         make([]Effect, h.EffectCount-h.OutfitCount-h.ItemCount-100+1),
@@ -220,6 +231,13 @@ func (d *Dataset) load780plus(r io.Reader) error {
 	}
 	glog.V(3).Infof("done with 780 dataset")
 	return nil
+}
+
+func (d Dataset) ClientVersion() int {
+	if d.header.Signature == 0x4b28b89e || d.header.Signature == 0x4b1e2caa {
+		return CLIENT_VERSION_854
+	}
+	return CLIENT_VERSION_UNKNOWN
 }
 
 func (d *Dataset) load780OptBytes(r io.Reader, e DatasetEntry) error {
