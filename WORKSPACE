@@ -21,3 +21,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_too
 go_rules_dependencies()
 go_register_toolchains()
 
+load("@io_bazel_rules_go//go:def.bzl", "go_repository")
+go_repository(
+    name = "org_golang_x_crypto",
+    importpath = "golang.org/x/crypto",
+    commit = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8",
+)
+

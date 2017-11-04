@@ -18,10 +18,19 @@ type GameworldServer struct {
 }
 
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
-	f, err := os.Open("Tibia.dat")
+	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.dat")
 	if err != nil {
-		glog.Errorln(err)
-		return nil, err
+		var err2 error
+		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.dat")
+		if err2 != nil {
+			var err3 error
+			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.dat")
+			if err3 != nil {
+				err4 := fmt.Errorf("failed to open data file: %s & %s & %s", err, err2, err3)
+				glog.Errorln(err4)
+				return nil, err4
+			}
+		}
 	}
 	_, err = tdat.NewDataset(f)
 	if err != nil {

@@ -24,7 +24,7 @@ func TestNewDataset(t *testing.T) {
 			var err3 error
 			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.dat")
 			if err3 != nil {
-				t.Fatalf("failed to open file: %s & %s", err, err2, err3)
+				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
 			}
 		}
 	}
