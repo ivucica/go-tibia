@@ -1,0 +1,16 @@
+# -*- mode: python; -*-
+# vim: set syntax=python:
+
+load("@io_bazel_rules_go//go:def.bzl", "gazelle", "go_library")
+
+gazelle(
+    name = "gazelle",
+    prefix = "badc0de.net/pkg/go-tibia",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["doc.go"],
+    importpath = "badc0de.net/pkg/go-tibia",
+    visibility = ["//visibility:public"],
+)

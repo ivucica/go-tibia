@@ -9,9 +9,13 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	f, err := os.Open("../../items.otb")
+	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.otb")
 	if err != nil {
-		t.Fatalf("failed to open file: %s", err)
+		var err2 error
+		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.otb")
+		if err2 != nil {
+			t.Fatalf("failed to open file: %s & %s", err, err2)
+		}
 	}
 	otb, err := New(f)
 	if err != nil {
