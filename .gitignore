@@ -1,3 +1,12 @@
-Tibia.dat
-Tibia.pic
-Tibia.spr
+datafiles/Tibia.dat
+datafiles/Tibia.pic
+datafiles/Tibia.spr
+datafiles/items.otb
+datafiles/items.xml
+datafiles/items.xsd
+bazel-bin
+bazel-go-tibia
+bazel-out
+bazel-genfiles
+bazel-testlogs
+
