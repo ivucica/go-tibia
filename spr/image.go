@@ -14,11 +14,10 @@ import (
 
 func init() {
 	// 8.54: 0x4868ECC9
- 	image.RegisterFormat("spr", string([]byte{0xC9, 0xEC, 0x68, 0x48}), Decode, DecodeConfig)
+	image.RegisterFormat("spr", string([]byte{0xC9, 0xEC, 0x68, 0x48}), Decode, DecodeConfig)
 }
 
 type Options struct{}
-
 
 func DecodeConfig(r io.Reader) (image.Config, error) {
 	return image.Config{}, fmt.Errorf("not implemented")
