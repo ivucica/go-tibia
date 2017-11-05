@@ -9,4 +9,4 @@ bazel-go-tibia
 bazel-out
 bazel-genfiles
 bazel-testlogs
-
+bazel-gotibia
