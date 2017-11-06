@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["things.go"],
+    importpath = "badc0de.net/pkg/go-tibia/things",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//otb/items:go_default_library",
+        "//spr:go_default_library",
+    ],
+)
