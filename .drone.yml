@@ -2,6 +2,5 @@ pipeline:
   build:
     image: dazel/dazel
     commands:
-      - find /
-      - mkdir -p /drone/src/badc0de.net/pkg && rm -rf /drone/src/badc0de.net/pkg/go-tibia && mv /drone/src/bitbucket.org/ivucica/go-tibia /drone/src/badc0de.net/pkg/go-tibia
-      - bazel test //...
+      - cd /drone/src/bitbucket.org/ivucica/go-tibia && bazel test //...
+
