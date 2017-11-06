@@ -1,6 +1,6 @@
 alias(
     name = "items.otb",
-    actual = "@itemsotb854//:items.otb",
+    actual = "@itemsotb854//file",
 )
 
 exports_files([
