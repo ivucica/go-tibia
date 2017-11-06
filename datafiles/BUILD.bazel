@@ -1,4 +1,9 @@
+alias(
+    name = "items.otb",
+    actual = "@itemsotb854//:items.otb",
+)
+
 exports_files([
-    "items.otb",
+    #"items.otb",
     "Tibia.dat",
 ])
