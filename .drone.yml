@@ -2,6 +2,6 @@ pipeline:
   build:
     image: dazel/dazel
     commands:
-      - apt-get update && apt-get install git
+      - apt-get update && apt-get install -y --no-install-recommends git
       - cd /drone/src/bitbucket.org/ivucica/go-tibia && bazel test //...
 
