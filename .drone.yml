@@ -1,11 +1,7 @@
 pipeline:
   build:
-    image: golang
-    environment:
-      - GOPATH=/drone
+    image: dazel/dazel
     commands:
+      - find /
       - mkdir -p /drone/src/badc0de.net/pkg && rm -rf /drone/src/badc0de.net/pkg/go-tibia && mv /drone/src/bitbucket.org/ivucica/go-tibia /drone/src/badc0de.net/pkg/go-tibia
-      - go get -t badc0de.net/pkg/go-tibia/...  # install dependencies of tests
-      - go test badc0de.net/pkg/go-tibia/...  # test *everything*
-
-
+      - bazel test //...
