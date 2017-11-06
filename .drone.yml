@@ -4,8 +4,7 @@ pipeline:
     environment:
       - GOPATH=/drone
     commands:
-      - go get
-      - go build
-      - go test
+      - go get badc0de.net/pkg/go-tibia  # fetch the empty root package, but also all the children
+      - go test badc0de.net/pkg/go-tibia/...  # test *everything*
 
 
