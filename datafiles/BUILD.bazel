@@ -1,6 +1,7 @@
 alias(
     name = "items.otb",
     actual = "@itemsotb854//file",
+    visibility = ["//visibility:public"],
 )
 
 exports_files([
