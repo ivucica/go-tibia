@@ -3,13 +3,13 @@ package gameworld
 import (
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
 	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
 	"fmt"
 	"github.com/golang/glog"
 	"io"
-	"os"
 	"net"
 )
 
@@ -18,28 +18,16 @@ type GameworldServer struct {
 }
 
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.dat")
-	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Args[0] + ".runfiles/go_tibia/datafiles/Tibia.dat")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Args[0] + ".runfiles/tibia854/Tibia.dat")
-			if err3 != nil {
-				err4 := fmt.Errorf("failed to open data file: %s & %s & %s", err, err2, err3)
-				glog.Errorln(err4)
-				return nil, err4
-			}
-		}
-	}
-	_, err = tdat.NewDataset(f)
-	if err != nil {
-		glog.Errorln(err)
-		return nil, err
-	}
 	return &GameworldServer{
 		pk: pk,
 	}, nil
+}
+
+func (c *GameworldServer) AddItemsOTB(*itemsotb.Items) {
+	glog.Info("TODO: add items otb")
+}
+func (c *GameworldServer) AddTibiaDataset(*tdat.Dataset) {
+	glog.Info("TODO: add tibia dat")
 }
 
 func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {

@@ -5,21 +5,56 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	"github.com/golang/glog"
 
+	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/login"
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/secrets"
 )
 
 var (
 	quitChan = make(chan int)
+
+	itemsOTBPath string
+	tibiaDatPath string
 )
 
+func setupFilePathFlags() {
+	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
+	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+}
+
+func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
+	possiblePaths := []string{
+		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
+		os.Args[0] + ".runfiles/go_tibia/datafiles/" + fileName,
+		os.Args[0] + ".runfiles/go_tibia/external/itemsotb854/file/" + fileName,
+		os.Args[0] + ".runfiles/go_tibia/external/tibia854/" + fileName,
+	}
+
+	didReg := false
+	for _, path := range possiblePaths {
+		if f, err := os.Open(path); err == nil {
+			f.Close()
+			flag.StringVar(flagPtr, flagName, path, "Path to "+fileName)
+			didReg = true
+			break
+		}
+	}
+	if !didReg {
+		flag.StringVar(flagPtr, flagName, "", "Path to "+fileName)
+	}
+}
+
 func main() {
+	setupFilePathFlags()
+
 	flag.Parse()
 	glog.Infoln("starting gotserv services")
 	go logins()
@@ -44,7 +79,6 @@ func logins() {
 		glog.Errorln(err)
 		return
 	}
-	//gameworld := (*gameworld.GameworldServer)(nil)
 
 	l, err := net.Listen("tcp", ":7171")
 	if err != nil {
@@ -108,6 +142,33 @@ func games() {
 		glog.Errorln(err)
 		return
 	}
+
+	f, err := os.Open(itemsOTBPath)
+	if err != nil {
+		glog.Errorln("opening items otb file for add", err)
+		return
+	}
+	itemsOTB, err := itemsotb.New(f)
+	f.Close()
+	if err != nil {
+		glog.Errorln("parsing items otb for add", err)
+		return
+	}
+	gameworld.AddItemsOTB(itemsOTB)
+
+	f, err = os.Open(tibiaDatPath)
+	if err != nil {
+		glog.Errorln("opening tibia dat file for add", err)
+		return
+	}
+	dataset, err := tdat.NewDataset(f)
+	f.Close()
+	if err != nil {
+		glog.Errorln("parsing tibia dat for add", err)
+		return
+	}
+	gameworld.AddTibiaDataset(dataset)
+
 	l, err := net.Listen("tcp", ":7172")
 	if err != nil {
 		glog.Errorln(err)

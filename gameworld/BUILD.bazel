@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//dat:go_default_library",
         "//net:go_default_library",
+        "//otb/items:go_default_library",
         "@com_github_golang_glog//:go_default_library",
     ],
 )

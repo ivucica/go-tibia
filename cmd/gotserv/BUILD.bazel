@@ -6,9 +6,11 @@ go_library(
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotserv",
     visibility = ["//visibility:private"],
     deps = [
+        "//dat:go_default_library",
         "//gameworld:go_default_library",
         "//login:go_default_library",
         "//net:go_default_library",
+        "//otb/items:go_default_library",
         "//secrets:go_default_library",
         "@com_github_golang_glog//:go_default_library",
     ],
@@ -16,7 +18,10 @@ go_library(
 
 go_binary(
     name = "gotserv",
-    data = ["@tibia854//:Tibia.dat"],
+    data = [
+        "@itemsotb854//file",
+        "@tibia854//:Tibia.dat",
+    ],
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotserv",
     library = ":go_default_library",
     visibility = ["//visibility:public"],
