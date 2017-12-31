@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"io"
 	"net"
+	"time"
 )
 
 type GameworldServer struct {
@@ -38,8 +39,8 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	r := io.LimitReader(msg, 2 /* os */ +2 /* version */ +4*3 /* dat, spr, pic sigs */)
 
 	var connHeader struct {
-		OS, Version            uint16
-		DatSig, SprSig, PicSig uint32
+		OS, Version uint16
+		//		DatSig, SprSig, PicSig uint32
 	}
 
 	err := binary.Read(r, binary.LittleEndian, &connHeader)
@@ -85,11 +86,38 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 		return fmt.Errorf("account read error: %s", err)
 	}
 
-	pwd, err := msg.ReadTibiaString()
-	if err != nil {
-		return fmt.Errorf("pwd read error: %s", err)
-	}
+	//pwd, err := msg.ReadTibiaString()
+	//if err != nil {
+	//	return fmt.Errorf("pwd read error: %s", err)
+	//}
+	pwd := "?"
 	glog.Infof("acc:%s len(pwd):%d\n", acc, len(pwd))
 
+	c.initialAppear(conn, key)
+
+	time.Sleep(5 * time.Second)
+
+	return nil
+}
+
+func (c *GameworldServer) initialAppear(conn net.Conn, key [16]byte) error {
+	outMap := tnet.NewMessage()
+	c.initialAppearSelfAppear(outMap, conn, key)
+	c.initialAppearMap(outMap, conn, key)
+	// add checksum and size headers wherever appropriate, and perform
+	// XTEA crypto.
+	outMap, err := outMap.Finalize(key)
+	if err != nil {
+		glog.Errorf("error finalizing map response: %s", err)
+		return err
+	}
+
+	// transmit the response
+	wr, err := io.Copy(conn, outMap)
+	if err != nil {
+		glog.Errorf("error writing map response: %s", err)
+		return err
+	}
+	glog.V(2).Infof("written %d bytes", wr)
 	return nil
 }

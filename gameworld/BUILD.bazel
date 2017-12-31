@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["gameworld.go"],
+    srcs = [
+        "gameworld.go",
+        "stubs.go",
+    ],
     importpath = "badc0de.net/pkg/go-tibia/gameworld",
     visibility = ["//visibility:public"],
     deps = [
