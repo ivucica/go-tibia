@@ -3,15 +3,15 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "doc.go",
         "gameworld.go",
         "stubs.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/gameworld",
     visibility = ["//visibility:public"],
     deps = [
-        "//dat:go_default_library",
         "//net:go_default_library",
-        "//otb/items:go_default_library",
+        "//things:go_default_library",
         "@com_github_golang_glog//:go_default_library",
     ],
 )
