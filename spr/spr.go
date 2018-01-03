@@ -16,15 +16,24 @@ type SpriteSet struct {
 	Images []image.Image
 }
 
+// DecodeAll decodes all images in the passed reader, and returns a sprite set.
+//
+// It is currently not implemented.
 func DecodeAll(r io.Reader) (*SpriteSet, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *SpriteSet) EncodeAll() error {
+// EncodeAll encodes all images in the sprite set and writes them to the passed writer.
+//
+// It is currently not implemented.
+func (s *SpriteSet) EncodeAll(w io.Writer) error {
 	return fmt.Errorf("not implemented")
 }
 
-type ReaderAndByteReader interface {
+// readerAndByteReader combines io.Reader and io.ByteReader into one interface.
+//
+// It's necessary for an internal data decoding function.
+type readerAndByteReader interface {
 	io.Reader
 	io.ByteReader
 }
@@ -34,6 +43,9 @@ type header struct {
 	SpriteCount uint16
 }
 
+// DecodeOne accepts an io.ReadSeeker positioned at the beginning of a spr-formatted
+// file (a sprite set file), finds the image with passed index, and returns the
+// requested image as an image.Image.
 func DecodeOne(r io.ReadSeeker, which int) (image.Image, error) {
 	var h header
 	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
@@ -80,7 +92,7 @@ func DecodeUpcoming(r io.Reader) (image.Image, error) {
 	return decodeData(&buf)
 }
 
-func decodeData(r ReaderAndByteReader) (image.Image, error) {
+func decodeData(r readerAndByteReader) (image.Image, error) {
 	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
 
 	transparent := true
