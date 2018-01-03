@@ -16,12 +16,16 @@ import (
 	"github.com/golang/glog"
 )
 
+// Message implements the network message primitive in the login and gameworld protocols, and provides an io.Reader and io.Writer interface.
+//
+// It happens to be a bytes.Buffer.
 type Message struct {
 	bytes.Buffer
 
 	xteaEncrypted bool
 }
 
+// ReadMessage reads the message primitive from the passed reader, and returns it as a new Message.
 func ReadMessage(r io.Reader) (*Message, error) {
 	var len uint16
 	if err := binary.Read(r, binary.LittleEndian, &len); err != nil {
@@ -41,15 +45,26 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	}
 }
 
+// NewMessage creates a new blank message primitive.
 func NewMessage() *Message {
 	return &Message{Buffer: bytes.Buffer{}}
 }
 
+// Read fetches bytes into the passed byte slice, and returns how many bytes were read.
+//
+// This implements the io.Reader protocol, but happens to be only a thin wrapper around bytes.Buffer.
+// Specific implementation will probably be dropped in favor of fully reusing the bytes.Buffer
+// implementation.
 func (msg *Message) Read(b []byte) (int, error) {
 	n, err := msg.Buffer.Read(b)
 	glog.V(3).Infof("read %d bytes", n)
 	return n, err
 }
+
+// RSADecryptRemainder checks if the remaining bytes form 128 bytes of data, and decrypts them using the passed RSA private key.
+//
+// Once decrypted, the bytes are overwritten in the original buffer, instead of being returned
+// as a new message.
 func (msg *Message) RSADecryptRemainder(pk *rsa.PrivateKey) error {
 	if len(msg.Bytes()) != 128 {
 		return fmt.Errorf("rsa encrypted block size = %d; want 128", len(msg.Bytes()))
@@ -92,6 +107,7 @@ func (msg *Message) RSADecryptRemainder(pk *rsa.PrivateKey) error {
 
 }
 
+// ReadTibiaString is a helper function to decode Tibia-style strings coming up in the buffer: u16+bytes of the message.
 func (msg *Message) ReadTibiaString() (string, error) {
 	var sz uint16
 	err := binary.Read(msg, binary.LittleEndian, &sz)
@@ -107,6 +123,7 @@ func (msg *Message) ReadTibiaString() (string, error) {
 	return fmt.Sprintf("%s", b), nil
 }
 
+// WriteTibiaString is a helper function to encode Tibia-style string passed, appending it onto the message buffer.
 func (msg *Message) WriteTibiaString(s string) error {
 	sz := uint16(len(s))
 	err := binary.Write(msg, binary.LittleEndian, sz)

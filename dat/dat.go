@@ -16,6 +16,8 @@ const (
 	CLIENT_VERSION_854
 )
 
+// Dataset represents a set of items, outfits, effects and distance
+// effects read from a Tibia dataset file ('things' or 'dataset entries').
 type Dataset struct {
 	header header
 
@@ -36,10 +38,21 @@ func (endOfOptBlock) Error() string {
 	return "quasi-error used to signal end of opt byte block"
 }
 
+// DatasetEntry interface represents an entry in the dataset.
+//
+// It exposes a method to get a description of graphics for a particular 'thing',
+// but is primarily intended to make it easier to abstract representing 'any entry'
+// in the type system.
+//
+// All dataset entries have graphics attached to them.
 type DatasetEntry interface {
 	GetGraphics() *Graphics
 }
 
+// Item represents a dataset entry describing an in-game item.
+//
+// Items range from ground tiles, through wall tiles, to inventory items such as
+// apples or swords.
 type Item struct {
 	DatasetEntry
 	Graphics
@@ -80,6 +93,7 @@ type Item struct {
 	MapColor     uint16
 	LookThrough  bool
 }
+// Outfit represents a dataset entry describing a possible appearance for an in-game character, whether NPC or player.
 type Outfit struct {
 	DatasetEntry
 	Graphics
@@ -89,6 +103,7 @@ type Outfit struct {
 	IdleAnim bool
 	LightInfo
 }
+// Effect represents a temporarily-appearing in-game effect, such as a poof of smoke, then disappears.
 type Effect struct {
 	DatasetEntry
 	Graphics
@@ -96,6 +111,7 @@ type Effect struct {
 	Id int
 	LightInfo
 }
+// DistanceEffect represents an in-game effect which moves from one tile to another over a period of time, then diappears.
 type DistanceEffect struct {
 	DatasetEntry
 	Graphics
@@ -104,18 +120,28 @@ type DistanceEffect struct {
 	LightInfo
 }
 
+// LightInfo represents a recurring structure in the binary format of the data file concerning the strength and color of the light emitted client-side.
 type LightInfo struct {
 	Strength, Color uint16
 }
+// OffsetInfo represents how far the object should be drawn offset to its usual drawing location.
 type OffsetInfo struct {
 	X, Y uint16
 }
 
+// GraphicsDimensions represents size of an item expressed in tiles.
+//
+// It's extracted as a type so it can more easily be read from the binary file.
 type GraphicsDimensions struct {
 	// How many on-screen tiles will this sprite take, when drawn.
 	Width, Height uint8
 }
 
+// GraphicsDetails represents various points detailing how many individual sprites compose
+// a thing, and how should they be drawn.
+//
+// This includes number of animation frames, number of sprites that should be layered
+// one on top of the other, etc.
 type GraphicsDetails struct {
 	// How many WxH blocks will be drawn one on top of the other.
 	BlendFrames uint8
@@ -125,6 +151,8 @@ type GraphicsDetails struct {
 	AnimCount uint8
 }
 
+// Graphics describes sprites associated with a particular thing, and how
+// they should be drawn.
 type Graphics struct {
 	// WxH. Separated into a struct for easier reading.
 	GraphicsDimensions
@@ -138,42 +166,54 @@ type Graphics struct {
 	Sprites []uint16
 }
 
+// String returns a string representation for an item.
 func (i Item) String() string {
 	return fmt.Sprintf("item %d", i.Id)
 }
 
+// IsGround returns information whether an item is a ground item.
+//
+// Currently this is based on existence of an item's ground speed.
 func (i Item) IsGround() bool {
 	return i.GroundSpeed != 0
 }
 
+// GetGraphics returns sprites associated with this item.
 func (i Item) GetGraphics() *Graphics {
 	return &i.Graphics
 }
 
+// String returns a string representation for an outfit.
 func (o Outfit) String() string {
 	return fmt.Sprintf("outfit %d", o.Id)
 }
 
+// GetGraphics returns sprites associated with this outfit.
 func (o Outfit) GetGraphics() *Graphics {
 	return &o.Graphics
 }
 
+// String returns a string representation for an effect.
 func (e Effect) String() string {
 	return fmt.Sprintf("effect %d", e.Id)
 }
 
+// GetGraphics returns sprites associated with this effect.
 func (e Effect) GetGraphics() *Graphics {
 	return &e.Graphics
 }
 
+// String returns a string representation for a distance effect.
 func (d DistanceEffect) String() string {
 	return fmt.Sprintf("distance effect %d", d.Id)
 }
 
+// GetGraphics returns sprites associated with this distance effect.
 func (d DistanceEffect) GetGraphics() *Graphics {
 	return &d.Graphics
 }
 
+// NewDataset reads the dataset file from the passed io.Reader and returns the Dataset object.
 func NewDataset(r io.Reader) (*Dataset, error) {
 	glog.V(3).Info("starting to read dataset")
 	h := header{}
@@ -200,6 +240,7 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 	return &dataset, nil
 }
 
+// load780plus loads the format used in game version 7.8 and later.
 func (d *Dataset) load780plus(r io.Reader) error {
 	var e DatasetEntry
 	for id := 0; id < len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects); id++ {
@@ -246,6 +287,9 @@ func (d *Dataset) load780plus(r io.Reader) error {
 	return nil
 }
 
+// ClientVersion returns which version of the game this data file comes from.
+//
+// Currently supported is only 8.54.
 func (d Dataset) ClientVersion() int {
 	if d.header.Signature == 0x4b28b89e || d.header.Signature == 0x4b1e2caa {
 		return CLIENT_VERSION_854
@@ -253,6 +297,9 @@ func (d Dataset) ClientVersion() int {
 	return CLIENT_VERSION_UNKNOWN
 }
 
+// load780OptBytes reads all option bytes from the passed reader, configuring the passed dataset entry.
+//
+// load780OptByte is repeatedly invoked.
 func (d *Dataset) load780OptBytes(r io.Reader, e DatasetEntry) error {
 	var prevOptByte uint8
 	for {
@@ -267,6 +314,9 @@ func (d *Dataset) load780OptBytes(r io.Reader, e DatasetEntry) error {
 	}
 }
 
+// load780OptByte reads a single option byte from the passed reader and configures the passed dataset entry.
+//
+// Byte that was just read is returned.
 func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 	var optByte uint8
 	err := binary.Read(r, binary.LittleEndian, &optByte)
@@ -576,6 +626,7 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 	return optByte, nil
 }
 
+// loadGraphicsSpec reads sprite information from the passed reader and stores it into the passed entry.
 func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
 	gfx := e.GetGraphics()
 

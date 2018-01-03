@@ -17,12 +17,17 @@ type LoginServer struct {
 	pk *rsa.PrivateKey
 }
 
+// NewServer creates a new LoginServer which can decrypt the initial login message using the passed RSA private key.
 func NewServer(pk *rsa.PrivateKey) (*LoginServer, error) {
 	return &LoginServer{
 		pk: pk,
 	}, nil
 }
 
+// Serve begins serving the login protocol on the accepted network connection.
+//
+// User of this method needs to bring their own listening schema and accept the connection,
+// then pass on the control to this method.
 func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	defer conn.Close()
 

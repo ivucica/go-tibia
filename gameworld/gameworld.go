@@ -18,6 +18,7 @@ type GameworldServer struct {
 	pk *rsa.PrivateKey
 }
 
+// NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 	return &GameworldServer{
 		pk: pk,
@@ -25,12 +26,19 @@ func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 }
 
 func (c *GameworldServer) AddItemsOTB(*itemsotb.Items) {
+	// TODO(ivucica): Switch to using badc0de.net/pkg/go-tibia/things
 	glog.Info("TODO: add items otb")
 }
 func (c *GameworldServer) AddTibiaDataset(*tdat.Dataset) {
 	glog.Info("TODO: add tibia dat")
 }
 
+// Serve begins serving the gameworld protocol on the accepted network connection.
+//
+// User of this method needs to bring their own listening schema and accept the connection,
+// then pass on the control to this method.
+//
+// User also needs to transmit the initial gameworld message which the server sends.
 func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	defer conn.Close()
 

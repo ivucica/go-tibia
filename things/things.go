@@ -1,4 +1,4 @@
-package items
+package things
 
 import (
 	"badc0de.net/pkg/go-tibia/otb/items"

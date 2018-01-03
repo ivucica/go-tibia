@@ -1,5 +1,8 @@
 package login
 
+// This file contains various functions to transmit a particular message to the client
+// as well as some model structures.
+
 import (
 	"encoding/binary"
 	gonet "net"
@@ -7,11 +10,15 @@ import (
 	"badc0de.net/pkg/go-tibia/net"
 )
 
+// CharacterListEntry represents a single character presented on the character list.
 type CharacterListEntry struct {
 	CharacterName, CharacterWorld string
 	GameFrontend                  gonet.TCPAddr
 }
 
+// Error writes a login error network message to the passed net.Message.
+//
+// Passed error text will be included.
 func Error(w *net.Message, errorText string) error {
 	if err := w.WriteByte(0x0A); err != nil {
 		return err
@@ -22,6 +29,9 @@ func Error(w *net.Message, errorText string) error {
 	return nil
 }
 
+// FYI writes an FYI network message to the passed net.Messsage.
+//
+// Passed FYI text will be included.
 func FYI(w *net.Message, fyiText string) error {
 	if err := w.WriteByte(0x0B); err != nil {
 		return err
@@ -32,6 +42,14 @@ func FYI(w *net.Message, fyiText string) error {
 	return nil
 }
 
+// MOTD writes the message-of-the-day network message to the passed net.Message.
+//
+// Passed motdText will be included.
+//
+// The motdText should begin with ascii-encoded decimal number identifying the
+// sequence number of the MOTD, then it should be followed by a newline
+// set of characters (ascii 13+10, \r\n). The number is used by the client
+// to avoid bothering the user with the same message that was already seen.
 func MOTD(w *net.Message, motdText string) error {
 	if err := w.WriteByte(0x0B); err != nil {
 		return err
@@ -44,6 +62,7 @@ func MOTD(w *net.Message, motdText string) error {
 
 // Patching functions 0x1E-0x20 not supported.
 
+// ChangeLoginServer sends network message with ID 0x28, of uncertain functionality.
 func ChangeLoginServer(w *net.Message) error {
 	// TODO(ivucica): Is this function name correct?
 	// This documents 0x28 as 'change session key' with a string
@@ -54,6 +73,8 @@ func ChangeLoginServer(w *net.Message) error {
 	return nil
 }
 
+// CharacterList sends the network message containing the passed characters
+// on the character list, and tells the user they have premiumDays left.
 func CharacterList(w *net.Message, chars []CharacterListEntry, premiumDays uint16) error {
 	if err := w.WriteByte(0x64); err != nil {
 		return err

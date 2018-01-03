@@ -1,5 +1,7 @@
 package gameworld
 
+// This file contains temporary, development-only implementations of some chunks of the game protocol.
+
 import (
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"net"
