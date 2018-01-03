@@ -6,4 +6,4 @@
 //
 // Since .pic format also uses the same encoder, it can be used as a basis for
 // a .pic decoder.
-package doc
+package spr
