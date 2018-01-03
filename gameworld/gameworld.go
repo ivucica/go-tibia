@@ -1,9 +1,8 @@
 package gameworld
 
 import (
-	tdat "badc0de.net/pkg/go-tibia/dat"
 	tnet "badc0de.net/pkg/go-tibia/net"
-	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/things"
 	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
@@ -16,6 +15,7 @@ import (
 
 type GameworldServer struct {
 	pk *rsa.PrivateKey
+	things *things.Things
 }
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
@@ -25,12 +25,14 @@ func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 	}, nil
 }
 
-func (c *GameworldServer) AddItemsOTB(*itemsotb.Items) {
-	// TODO(ivucica): Switch to using badc0de.net/pkg/go-tibia/things
-	glog.Info("TODO: add items otb")
-}
-func (c *GameworldServer) AddTibiaDataset(*tdat.Dataset) {
-	glog.Info("TODO: add tibia dat")
+// SetThings sets the thing registry to the passed value. It's used to refer to a
+// combination of items.otb, Tibia.dat and Tibia.spr from the gameworld.
+//
+// It's not constructed by GameworldServer as the same registry may be used for
+// other servers (such as a web server).
+func (c *GameworldServer) SetThings(t *things.Things) error {
+	c.things = t
+	return nil
 }
 
 // Serve begins serving the gameworld protocol on the accepted network connection.

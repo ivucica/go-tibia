@@ -16,6 +16,7 @@ import (
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/secrets"
+	"badc0de.net/pkg/go-tibia/things"
 )
 
 var (
@@ -143,6 +144,12 @@ func games() {
 		return
 	}
 
+	///
+	t, err := things.New()
+	if err != nil {
+		glog.Errorln("creating thing registry", err)
+	}
+
 	f, err := os.Open(itemsOTBPath)
 	if err != nil {
 		glog.Errorln("opening items otb file for add", err)
@@ -154,7 +161,7 @@ func games() {
 		glog.Errorln("parsing items otb for add", err)
 		return
 	}
-	gameworld.AddItemsOTB(itemsOTB)
+	t.AddItemsOTB(itemsOTB)
 
 	f, err = os.Open(tibiaDatPath)
 	if err != nil {
@@ -167,7 +174,11 @@ func games() {
 		glog.Errorln("parsing tibia dat for add", err)
 		return
 	}
-	gameworld.AddTibiaDataset(dataset)
+	t.AddTibiaDataset(dataset)
+
+	gameworld.SetThings(t)
+	///
+
 
 	l, err := net.Listen("tcp", ":7172")
 	if err != nil {
