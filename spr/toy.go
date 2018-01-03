@@ -1,8 +1,11 @@
 package spr
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
+	"image/png"
 )
 
 // printImage draws an image using 256color'd ascii art.
@@ -31,4 +34,15 @@ func printImage(i image.Image) {
 		}
 		fmt.Printf("\n")
 	}
+}
+
+// printImageITerm draws an image using iTerm2's escape sequences.
+//
+// https://www.iterm2.com/documentation-images.html
+func printImageITerm(i image.Image, fn string) {
+	name := base64.StdEncoding.EncodeToString([]byte(fn))
+	b := &bytes.Buffer{}
+	bEnc := base64.NewEncoder(base64.StdEncoding, b)
+	png.Encode(bEnc, i)
+	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=32px;height=32px:%s\a\n", name, len(b.String()), b.String())
 }

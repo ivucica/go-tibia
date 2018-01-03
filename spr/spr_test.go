@@ -1,9 +1,6 @@
 package spr
 
 import (
-	"bytes"
-	"encoding/base64"
-	"fmt"
 	"os"
 	"testing"
 
@@ -34,11 +31,5 @@ func TestDecodeOne(t *testing.T) {
 	f2.Close()
 
 	printImage(img)
-
-	name := base64.StdEncoding.EncodeToString([]byte("423.png"))
-	b := &bytes.Buffer{}
-	bEnc := base64.NewEncoder(base64.StdEncoding, b)
-	png.Encode(bEnc, img)
-	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=32px;height=32px:%s\a\n", name, len(b.String()), b.String())
-	f2.Close()
+	printImageITerm(img, "423.png")
 }
