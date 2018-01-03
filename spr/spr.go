@@ -103,30 +103,7 @@ func decodeData(r ReaderAndByteReader) (image.Image, error) {
 					B: cB,
 					A: 0xFF,
 				}
-				fmt.Printf("\x1b[38;2;%d;%d;%dm", cR, cG, cB)
-				a := cR + cG + cB
-				switch {
-				case a < 64:
-					fmt.Printf(".")
-				case a < 128:
-					fmt.Printf("-")
-				case a < 192:
-					fmt.Printf("=")
-				default:
-					fmt.Printf("#")
-				}
-				fmt.Printf("\x1b[0m")
-				if (px+i)%32 == 31 {
-					fmt.Printf("\n")
-				}
 				img.SetRGBA((px+i)%32, (px+i)/32, col)
-			}
-		} else {
-			for i := 0; i < int(size); i++ {
-				fmt.Printf(" ")
-				if (px+i)%32 == 31 {
-					fmt.Printf("\n")
-				}
 			}
 		}
 		transparent = !transparent

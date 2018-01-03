@@ -33,6 +33,8 @@ func TestDecodeOne(t *testing.T) {
 	png.Encode(f2, img)
 	f2.Close()
 
+	printImage(img)
+
 	name := base64.StdEncoding.EncodeToString([]byte("423.png"))
 	b := &bytes.Buffer{}
 	bEnc := base64.NewEncoder(base64.StdEncoding, b)
