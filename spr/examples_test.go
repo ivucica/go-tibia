@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"image/png"
 	"os"
-
-	"badc0de.net/pkg/go-tibia/spr"
 )
 
 // ExampleDecodeOne decodes a single spr, encodes it into a png, and prints out the image size.
@@ -15,9 +13,12 @@ func ExampleDecodeOne() {
 	if f == nil {
 		f, _ = os.Open("../datafiles/Tibia.spr")
 	}
+	if f == nil {
+		f, _ = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.spr")
+	}
 	defer f.Close()
 
-	img, err := spr.DecodeOne(f, 423)
+	img, err := DecodeOne(f, 423)
 	if err != nil {
 		fmt.Printf("failed to decode spr: %s", err)
 		return
