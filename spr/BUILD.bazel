@@ -16,11 +16,20 @@ go_test(
     name = "go_default_test",
     size = "small",
     srcs = [
-        "examples_test.go",
         "spr_test.go",
     ],
     data = ["@tibia854//:Tibia.spr"],
     importpath = "badc0de.net/pkg/go-tibia/spr",
     library = ":go_default_library",
-    deps = [":go_default_library"],
+)
+
+go_test(
+    name = "go_default_test_examples",
+    size = "small",
+    srcs = [
+        "examples_test.go",
+    ],
+    data = ["@tibia854//:Tibia.spr"],
+    importpath = "badc0de.net/pkg/go-tibia/spr",
+    library = ":go_default_library",
 )
