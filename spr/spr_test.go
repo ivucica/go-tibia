@@ -16,7 +16,11 @@ func TestDecodeOne(t *testing.T) {
 			var err3 error
 			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.spr")
 			if err3 != nil {
-				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
+				var err4 error
+				f, err4 = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.spr")
+				if err4 != nil {
+					t.Fatalf("failed to open file: %s & %s & %s & %s", err, err2, err3, err4)
+				}
 			}
 		}
 	}
