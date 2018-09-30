@@ -100,7 +100,8 @@ func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net
 	glog.Infoln("accepted connection from ", conn.RemoteAddr())
 	defer conn.Close()
 
-	conn.SetDeadline(time.Now().Add(5 * time.Second)) // TODO(ivucica): later, make this longer
+	// This deadline is extended later after login.
+	conn.SetDeadline(time.Now().Add(5 * time.Second))
 
 	initialMsg, err := tnet.ReadMessage(conn)
 	if err != nil {

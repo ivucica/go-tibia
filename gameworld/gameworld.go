@@ -105,7 +105,7 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 	c.initialAppear(conn, key)
 
-	time.Sleep(5 * time.Second)
+	conn.SetDeadline(time.Time{}) // Disable deadline
 
 	return nil
 }
