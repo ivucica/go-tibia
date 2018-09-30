@@ -14,7 +14,7 @@ import (
 )
 
 type GameworldServer struct {
-	pk *rsa.PrivateKey
+	pk     *rsa.PrivateKey
 	things *things.Things
 }
 
