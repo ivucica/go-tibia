@@ -119,6 +119,55 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 	conn.SetDeadline(time.Time{}) // Disable deadline
 
+	for {
+		msg, err := tnet.ReadMessage(conn)
+		if err != nil {
+			glog.Errorf("failed to read message: %v", err)
+			return err
+		}
+		msg, err = msg.Decrypt(key)
+		if err != nil {
+			glog.Errorf("failed to decrypt message: %v", err)
+			return err
+		}
+		glog.Infof("decrypted message: %d", msg.Len())
+
+		msgType, err := msg.ReadByte()
+		if err != nil {
+			glog.Errorf("error reading msg type: %v", err)
+			return err
+		}
+
+		glog.Infof("received message: %x", msgType)
+		switch msgType {
+		case 0x65: // move north
+			c.playerCancelMove(conn, key, 0)
+			break
+		case 0x66: // move east
+			c.playerCancelMove(conn, key, 1)
+			break
+		case 0x67: // move south
+			c.playerCancelMove(conn, key, 2)
+			break
+		case 0x68: // move west
+			c.playerCancelMove(conn, key, 3)
+			break
+		// case 0x69: // stop autowalk
+		case 0x6A: // move northeast
+			c.playerCancelMove(conn, key, 1)
+			break
+		case 0x6B: // move southeast
+			c.playerCancelMove(conn, key, 2)
+			break
+		case 0x6C: // move southwest
+			c.playerCancelMove(conn, key, 3)
+			break
+		case 0x6D: // move northwest
+			c.playerCancelMove(conn, key, 0)
+			break
+		}
+	}
+
 	return nil
 }
 
@@ -136,6 +185,28 @@ func (c *GameworldServer) initialAppear(conn net.Conn, key [16]byte) error {
 
 	// transmit the response
 	wr, err := io.Copy(conn, outMap)
+	if err != nil {
+		glog.Errorf("error writing map response: %s", err)
+		return err
+	}
+	glog.V(2).Infof("written %d bytes", wr)
+	return nil
+}
+
+func (c *GameworldServer) playerCancelMove(conn net.Conn, key [16]byte, dir byte) error {
+	out := tnet.NewMessage()
+	out.Write([]byte{0xB5})
+	out.Write([]byte{
+		dir, // direction
+	})
+	out, err := out.Finalize(key)
+	if err != nil {
+		glog.Errorf("error finalizing player cancel move: %s", err)
+		return err
+	}
+
+	// transmit the response
+	wr, err := io.Copy(conn, out)
 	if err != nil {
 		glog.Errorf("error writing map response: %s", err)
 		return err
