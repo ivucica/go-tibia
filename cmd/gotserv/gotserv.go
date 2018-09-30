@@ -108,6 +108,11 @@ func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net
 		return
 	}
 
+	// Skip checksum.
+	checksums := [4]byte{}
+	checksumsSlice := checksums[:]
+	initialMsg.Read(checksumsSlice)
+
 	r := io.LimitReader(initialMsg, 1)
 	b, err := ioutil.ReadAll(r)
 	if err != nil {

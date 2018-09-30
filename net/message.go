@@ -39,8 +39,6 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	if b, err := ioutil.ReadAll(lr); err != nil {
 		return nil, fmt.Errorf("message read error: %s", err)
 	} else {
-		b := b[4:] // skip checksums.
-		// TODO(ivucica): validate checksums
 		return &Message{Buffer: *bytes.NewBuffer(b)}, nil
 	}
 }
@@ -166,6 +164,46 @@ func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
 	}
 	glog.V(3).Infoln("encrypted message size: ", newMsg.Len())
 	return newMsg, nil
+}
+
+// Decrypt reads through the entire message buffer (moving the read cursor),
+// and returns a new Message containing the decrypted buffer.
+func (msg *Message) Decrypt(xteaKey [16]byte) (*Message, error) {
+	glog.V(3).Infoln("input message size: ", msg.Len())
+
+	// Skip checksum.
+	checksums := [4]byte{}
+	checksumsSlice := checksums[:]
+	msg.Read(checksumsSlice)
+
+	cipher, err := xtea.NewCipher(xteaKey[:])
+	if err != nil {
+		return nil, err
+	}
+	// TODO(ivucica): Instead of creating a message, create a buffer.
+	// Then, ReadMessage() from the buffer.
+	// Alternatively, use a reader that will use cipher.Decrypt to return
+	// decrypted data.
+	newMsg := NewMessage()
+	for msg.Len() > 0 {
+		src := [8]byte{}
+		msg.Read(src[:]) // TODO(ivucica): handle err. handle n.
+		var dst [8]byte
+
+		// The following two lines are disgusting. We are converting not just [8]arrays
+		// into []slices. We are also converting 2x uint32 from little endian into big endian.
+		// Because this is what Go's XTEA implementation expects within a particular 8-byte
+		// block. ¯\_(ツ)_/¯
+		cipher.Decrypt(dst[:], []byte{src[3], src[2], src[1], src[0], src[7], src[6], src[5], src[4]})
+		newMsg.Write([]byte{dst[3], dst[2], dst[1], dst[0], dst[7], dst[6], dst[5], dst[4]}) // TODO(ivucica): handle err. handle n.
+		glog.V(3).Infof("%02x %02x %02x %02x   %02x %02x %02x %02x", dst[3], dst[2], dst[1], dst[0], dst[7], dst[6], dst[5], dst[4])
+	}
+	glog.V(3).Infoln("crypted message size: ", newMsg.Len())
+	newMsg, err = ReadMessage(newMsg)
+	if err == nil {
+		glog.V(3).Infoln("decrypted message size: ", newMsg.Len())
+	}
+	return newMsg, err
 }
 
 // Finalize correctly adds the message length and checksum, as well as performs the
