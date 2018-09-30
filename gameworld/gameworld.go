@@ -91,17 +91,29 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 		key[i] = keyB.Bytes()[i]
 	}
 
+	isGM := byte(0)
+	r = io.LimitReader(msg, 1)
+	err = binary.Read(r, binary.LittleEndian, &isGM)
+	if err != nil {
+		return fmt.Errorf("could not read isGM: %v", err)
+	}
+
 	acc, err := msg.ReadTibiaString()
 	if err != nil {
 		return fmt.Errorf("account read error: %s", err)
 	}
 
-	//pwd, err := msg.ReadTibiaString()
-	//if err != nil {
-	//	return fmt.Errorf("pwd read error: %s", err)
-	//}
-	pwd := "?"
-	glog.Infof("acc:%s len(pwd):%d\n", acc, len(pwd))
+	char, err := msg.ReadTibiaString()
+	if err != nil {
+		return fmt.Errorf("character read error: %s", err)
+	}
+
+	pwd, err := msg.ReadTibiaString()
+	if err != nil {
+		return fmt.Errorf("pwd read error: %s", err)
+	}
+	//pwd := "?"
+	glog.Infof("acc:%s char:%s len(pwd):%d isGM:%d\n", acc, char, len(pwd), isGM)
 
 	c.initialAppear(conn, key)
 
