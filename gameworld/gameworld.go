@@ -169,6 +169,8 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 		glog.Infof("received message: %x", msgType)
 		switch msgType {
+		case 0x14: // logout
+			return nil
 		case 0x65: // move north
 			c.playerCancelMove(conn, key, 0)
 			break
