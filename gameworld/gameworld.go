@@ -13,15 +13,44 @@ import (
 	"time"
 )
 
+type Creature interface {
+	GetPos() (x, y, z int)
+	GetID() uint32
+}
+type creature struct {
+	x, y, z int
+	id uint32
+}
+
+func (c *creature) GetPos() (int, int, int) {
+	return c.x, c.y, c.z
+}
+func (c *creature) GetID() (uint32) {
+	return c.id
+}
+
 type GameworldServer struct {
 	pk     *rsa.PrivateKey
 	things *things.Things
+
+	mapDataSource MapDataSource
+
 }
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
+	ds := NewMapDataSource()
+	ds.AddCreature(&creature{
+		x: 32768 + 18 / 2,
+		y: 32768 + 14 / 2,
+		z: 7,
+		id: 0xAA + 0xBB >> 8 + 0xCC >> 16 + 0xDD >> 24,
+	})
+
 	return &GameworldServer{
 		pk: pk,
+
+		mapDataSource: ds,
 	}, nil
 }
 

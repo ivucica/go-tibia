@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "gameworld.go",
+        "map.go",
         "stubs.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/gameworld",

@@ -4,6 +4,7 @@ package gameworld
 
 import (
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"fmt"
 	"net"
 )
 
@@ -24,46 +25,20 @@ func (c *GameworldServer) initialAppearMap(outMap *tnet.Message, conn net.Conn, 
 		0x07, // floor
 	})
 
-	c.floorDescription(outMap, 32768, 32768, 7, 18, 14, 0)
-
-	for skip := 7 * 18 * 14; skip > 0; { // floors 0 through 6 will be empty
-		if skip >= 0xFF {
-			outMap.Write([]byte{0xFF, 0xFF})
-			skip -= 0xFF
-		} else {
-			outMap.Write([]byte{byte(skip), 0xFF})
-			break
+	for floor := 7; floor >= 0; floor-- {
+		if err := c.floorDescription(outMap, 32768+(7-floor), 32768+(7-floor), floor, 18, 14); err != nil {
+			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
 	}
+
 	return nil
-}
-
-func (c *GameworldServer) floorDescription(outMap *tnet.Message, x, y, z, width, height, offset int) {
-	for nx := 0; nx < width; nx++ {
-		for ny := 0; ny < height; ny++ {
-			outMap.Write([]byte{
-				103, 0, // ground
-			})
-
-			if nx == width/2 && ny == height/2 {
-				c.creatureDescription(outMap)
-			}
-
-			// mark tile as done.
-			// skip to next tile.
-			// little endian of 0xFF00 & skiptiles
-			if nx != width-1 || ny != height-1 {
-				outMap.Write([]byte{0x0, 0xFF})
-			}
-		}
-	}
 }
 
 func (c *GameworldServer) creatureDescription(outMap *tnet.Message) {
 	outMap.Write([]byte{
-		0x61, 0x00, // not know n creature thingid
+		0x61, 0x00, // not known creature thingid
 		0x00, 0x00, 0x00, 0x00, // remove
-		0xAA, 0xBB, 0xCC, 0xDD,
+		0xAA, 0xBB, 0xCC, 0xDD, // creature id (this is, currently, player's id)
 		0x05, 0x00, 'B', 'o', 'o', '!', '!',
 		100,             // health
 		0,               // dir,
