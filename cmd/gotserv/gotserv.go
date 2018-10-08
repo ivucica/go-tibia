@@ -8,7 +8,13 @@ import (
 	"os"
 	"time"
 
+	"fmt"
+	"net/http"
+	"runtime"
+
 	"github.com/golang/glog"
+
+	_ "golang.org/x/net/trace"
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/gameworld"
@@ -24,6 +30,8 @@ var (
 
 	itemsOTBPath string
 	tibiaDatPath string
+
+	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
 )
 
 func setupFilePathFlags() {
@@ -61,6 +69,13 @@ func main() {
 	go logins()
 	go games()
 
+	if *debugWebServer != "" {
+		http.HandleFunc("/debug/minimetrics", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "runtime.NumGoroutine(): %d\n", runtime.NumGoroutine())
+		})
+		go http.ListenAndServe(*debugWebServer, nil)
+	}
+	
 	for {
 		select {
 		case <-quitChan:

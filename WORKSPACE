@@ -25,7 +25,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_repository")
 go_repository(
     name = "org_golang_x_crypto",
     importpath = "golang.org/x/crypto",
-    commit = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8",
+    commit = "e3636079e1a4c1f337f212cc5cd2aca108f6c900",
+)
+go_repository(
+    name = "org_golang_x_net",
+    importpath = "golang.org/x/net",
+    commit = "146acd28ed5894421fb5aac80ca93bc1b1f46f87",
 )
 
 
