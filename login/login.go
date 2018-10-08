@@ -119,13 +119,25 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	glog.V(2).Infof("written %d bytes", wr)
 
 	///////
+	localAddr := conn.LocalAddr()
+	if localAddr == nil {
+		glog.Errorln("could not get local addr")
+		return fmt.Errorf("error getting local addr")
+	}
+	glog.Infof("connection accepted via %v", localAddr)
+	localTCPAddr := localAddr.(*net.TCPAddr)
+	if localTCPAddr == nil {
+		glog.Errorln("could not get local TCP addr")
+		return fmt.Errorf("error getting local TCP addr")
+	}
+	
 	resp = tnet.NewMessage()
 	err = CharacterList(resp, []CharacterListEntry{
 		CharacterListEntry{
 			CharacterName:  "Demo Character",
 			CharacterWorld: "Demo World",
 			GameFrontend: net.TCPAddr{
-				IP:   net.IPv4(127, 0, 0, 1),
+				IP:   localTCPAddr.IP,
 				Port: 7172,
 			},
 		},
