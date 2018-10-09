@@ -17,6 +17,8 @@ func init() {
 	CreatureNotFound = fmt.Errorf("creature not found")
 }
 
+////// Interfaces //////
+
 type MapDataSource interface {
 	GetMapTile(x, y, z int) (MapTile, error)
 	GetCreatureByIDBytes(id [4]byte) (Creature, error)
@@ -31,6 +33,8 @@ type MapItem interface {
 	GetType() int
 }
 
+/////// Concrete implementations ///////
+
 func NewMapDataSource() MapDataSource {
 	return &mapDataSource{
 		creatures: map[uint32]Creature{},
@@ -41,28 +45,33 @@ type mapDataSource struct {
 	creatures map[uint32]Creature
 }
 type mapTile struct {
-	ground mapItem
+	ground    MapItem
+	creatures []Creature
 }
 type mapItem int
+func mapItemOfType(t int) MapItem {
+	mi := mapItem(t)
+	return &mi
+}
 
 func (*mapDataSource) GetMapTile(x, y, z int) (MapTile, error) {
 	if z == 7 {
 		switch ((y + 3) / 2) % 4 {
 		case 0:
-			return &mapTile{ground: mapItem(103)}, nil
+			return &mapTile{ground: mapItemOfType(103)}, nil
 		case 1:
-			return &mapTile{ground: mapItem(104)}, nil
+			return &mapTile{ground: mapItemOfType(104)}, nil
 		case 2:
-			return &mapTile{ground: mapItem(101)}, nil
+			return &mapTile{ground: mapItemOfType(101)}, nil
 		case 3:
-			return &mapTile{ground: mapItem(100)}, nil
+			return &mapTile{ground: mapItemOfType(100)}, nil
 		default:
 			return &mapTile{}, nil
 		}
 	} else {
 		if z == 6 && x == 32768+(18/2)-4 && y == 32768+(14/2) {
 			glog.Infof("sending 104 at %d %d %d", x, y, z)
-			return &mapTile{ground: mapItem(103)}, nil
+			return &mapTile{ground: mapItemOfType(103)}, nil
 		}
 		return &mapTile{}, nil
 	}
@@ -87,8 +96,8 @@ func (ds *mapDataSource) AddCreature(c Creature) error {
 }
 
 func (t *mapTile) GetItem(idx int) (MapItem, error) {
-	if idx == 0 && int(t.ground) != 0 {
-		return &t.ground, nil
+	if idx == 0 && t.ground != nil && t.ground.GetType() != 0 {
+		return t.ground, nil
 	}
 	return nil, nil
 }

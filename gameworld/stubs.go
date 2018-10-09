@@ -5,10 +5,9 @@ package gameworld
 import (
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"fmt"
-	"net"
 )
 
-func (c *GameworldServer) initialAppearSelfAppear(outMap *tnet.Message, conn net.Conn, key [16]byte) error {
+func (c *GameworldServer) initialAppearSelfAppear(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x0A}) // self appear
 	outMap.Write([]byte{
 		0xAA, 0xBB, 0xCC, 0xDD, // own id
@@ -17,7 +16,7 @@ func (c *GameworldServer) initialAppearSelfAppear(outMap *tnet.Message, conn net
 	})
 	return nil
 }
-func (c *GameworldServer) initialAppearMap(outMap *tnet.Message, conn net.Conn, key [16]byte) error {
+func (c *GameworldServer) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 	outMap.Write([]byte{
 		0x00, 0x7F, // x

@@ -35,6 +35,11 @@ type GameworldServer struct {
 
 	mapDataSource MapDataSource
 
+	// TODO: all these must be per connection
+	senderChan   chan *tnet.Message
+	receiverChan chan *tnet.Message
+	senderQuit   chan struct{}
+	mainLoopQuit chan struct{}
 }
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
@@ -144,83 +149,123 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	//pwd := "?"
 	glog.Infof("acc:%s char:%s len(pwd):%d isGM:%d\n", acc, char, len(pwd), isGM)
 
-	c.initialAppear(conn, key)
+	c.senderQuit = make(chan struct{})
+	c.senderChan = make(chan *tnet.Message)
+	// TODO: how to clean up and close channels safely?
+	//defer func() { close(c.senderChan) ; close(c.senderQuit) }()
+	go c.networkSender(conn, key)
 
+	c.initialAppear()
 	conn.SetDeadline(time.Time{}) // Disable deadline
 
+	c.mainLoopQuit = make(chan struct{})
+	c.receiverChan = make(chan *tnet.Message)
+	go c.networkReceiver(conn)
+
+mainLoop:
+	for {
+		glog.Infof("pending event on e.g. receiver chan")
+		select {
+		case encryptedMsg := <-c.receiverChan:
+			glog.Infof("received message on receiver chan")
+			msg, err := encryptedMsg.Decrypt(key)
+			if err != nil {
+				glog.Errorf("failed to decrypt message: %v", err)
+				return err
+			}
+			glog.Infof("decrypted message: %d", msg.Len())
+
+			msgType, err := msg.ReadByte()
+			if err != nil {
+				glog.Errorf("error reading msg type: %v", err)
+				return err
+			}
+
+			glog.Infof("received message: %x", msgType)
+			switch msgType {
+			case 0x14: // logout
+				return nil
+			case 0x65: // move north
+				c.playerCancelMove(conn, key, 0)
+				break
+			case 0x66: // move east
+				c.playerCancelMove(conn, key, 1)
+				break
+			case 0x67: // move south
+				c.playerCancelMove(conn, key, 2)
+				break
+			case 0x68: // move west
+				c.playerCancelMove(conn, key, 3)
+				break
+			// case 0x69: // stop autowalk
+			case 0x6A: // move northeast
+				c.playerCancelMove(conn, key, 1)
+				break
+			case 0x6B: // move southeast
+				c.playerCancelMove(conn, key, 2)
+				break
+			case 0x6C: // move southwest
+				c.playerCancelMove(conn, key, 3)
+				break
+			case 0x6D: // move northwest
+				c.playerCancelMove(conn, key, 0)
+				break
+			}
+		case <-c.mainLoopQuit:
+			break mainLoop
+		}
+	}
+	// TODO: how to safely tell netsender to quit?
+	return nil
+}
+func (c *GameworldServer) networkReceiver(conn net.Conn) error {
+	// TODO: how to safely tell main loop to quit?
 	for {
 		msg, err := tnet.ReadMessage(conn)
 		if err != nil {
 			glog.Errorf("failed to read message: %v", err)
+			// TODO: c.quitChan <- struct{} so we close the connection
 			return err
 		}
-		msg, err = msg.Decrypt(key)
-		if err != nil {
-			glog.Errorf("failed to decrypt message: %v", err)
-			return err
-		}
-		glog.Infof("decrypted message: %d", msg.Len())
+		glog.Infof("dispatching message to receiver chan")
+		c.receiverChan <- msg
+		glog.Infof("dispatched message to receiver chan")
+	}
+}
+func (c *GameworldServer) networkSender(conn net.Conn, key [16]byte) error {
+	// TODO: how to safely tell main loop to quit?
+	for {
+		select {
+		case rawMsg := <-c.senderChan:
+			glog.Infof("sending a message")
+			// add checksum and size headers wherever appropriate, and perform
+			// XTEA crypto.
+			msg, err := rawMsg.Finalize(key)
+			if err != nil {
+				glog.Errorf("error finalizing message: %s", err)
+				// TODO: c.quitChan <- struct{} so we close the connection
+				return err
+			}
 
-		msgType, err := msg.ReadByte()
-		if err != nil {
-			glog.Errorf("error reading msg type: %v", err)
-			return err
-		}
-
-		glog.Infof("received message: %x", msgType)
-		switch msgType {
-		case 0x14: // logout
+			// transmit the response
+			wr, err := io.Copy(conn, msg)
+			if err != nil {
+				glog.Errorf("error writing message: %s", err)
+				// TODO: c.quitChan <- struct{} so we close the connection
+				return err
+			}
+			glog.V(2).Infof("written %d bytes", wr)
+		case <-c.senderQuit:
 			return nil
-		case 0x65: // move north
-			c.playerCancelMove(conn, key, 0)
-			break
-		case 0x66: // move east
-			c.playerCancelMove(conn, key, 1)
-			break
-		case 0x67: // move south
-			c.playerCancelMove(conn, key, 2)
-			break
-		case 0x68: // move west
-			c.playerCancelMove(conn, key, 3)
-			break
-		// case 0x69: // stop autowalk
-		case 0x6A: // move northeast
-			c.playerCancelMove(conn, key, 1)
-			break
-		case 0x6B: // move southeast
-			c.playerCancelMove(conn, key, 2)
-			break
-		case 0x6C: // move southwest
-			c.playerCancelMove(conn, key, 3)
-			break
-		case 0x6D: // move northwest
-			c.playerCancelMove(conn, key, 0)
-			break
 		}
 	}
-
-	return nil
 }
 
-func (c *GameworldServer) initialAppear(conn net.Conn, key [16]byte) error {
+func (c *GameworldServer) initialAppear() error {
 	outMap := tnet.NewMessage()
-	c.initialAppearSelfAppear(outMap, conn, key)
-	c.initialAppearMap(outMap, conn, key)
-	// add checksum and size headers wherever appropriate, and perform
-	// XTEA crypto.
-	outMap, err := outMap.Finalize(key)
-	if err != nil {
-		glog.Errorf("error finalizing map response: %s", err)
-		return err
-	}
-
-	// transmit the response
-	wr, err := io.Copy(conn, outMap)
-	if err != nil {
-		glog.Errorf("error writing map response: %s", err)
-		return err
-	}
-	glog.V(2).Infof("written %d bytes", wr)
+	c.initialAppearSelfAppear(outMap)
+	c.initialAppearMap(outMap)
+	c.senderChan <- outMap
 	return nil
 }
 
@@ -230,18 +275,6 @@ func (c *GameworldServer) playerCancelMove(conn net.Conn, key [16]byte, dir byte
 	out.Write([]byte{
 		dir, // direction
 	})
-	out, err := out.Finalize(key)
-	if err != nil {
-		glog.Errorf("error finalizing player cancel move: %s", err)
-		return err
-	}
-
-	// transmit the response
-	wr, err := io.Copy(conn, out)
-	if err != nil {
-		glog.Errorf("error writing map response: %s", err)
-		return err
-	}
-	glog.V(2).Infof("written %d bytes", wr)
+	c.senderChan <- out
 	return nil
 }
