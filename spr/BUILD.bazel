@@ -16,6 +16,7 @@ go_test(
     name = "go_default_test",
     size = "small",
     srcs = [
+        "examples_test.go",
         "spr_test.go",
     ],
     data = ["@tibia854//:Tibia.spr"],
