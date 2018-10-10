@@ -210,6 +210,37 @@ mainLoop:
 			case 0x6D: // move northwest
 				c.playerCancelMove(conn, key, 0)
 				break
+			case 0x96: // say
+				chatType, err := msg.ReadByte()
+				if err != nil {
+					glog.Errorf("error reading chat type: %v", err)
+					continue mainLoop
+				}
+				switch chatType {
+				case 0x01: // say
+					chatText, err := msg.ReadTibiaString()
+					if err != nil {
+						glog.Errorf("error reading chat text: %v", err)
+						continue mainLoop
+					}
+					glog.Infof("%v: %v", "Demo Character", chatText)
+					out := tnet.NewMessage()
+					out.Write([]byte{0xAA})
+					out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
+					out.WriteTibiaString("Demo Character")
+					out.Write([]byte{0x01, 0x00}) // level
+					out.Write([]byte{0x01}) // type - i.e. 'say' in this case
+					_ = binary.Write(out, binary.LittleEndian, struct{
+						X, Y uint16
+						Floor byte
+					}{
+						X: 32768 + 18 / 2,
+						Y: 32768 + 14 / 2,
+						Floor: 7,
+					})
+					out.WriteTibiaString(chatText)
+					c.senderChan <- out
+				}
 			}
 		case <-c.mainLoopQuit:
 			break mainLoop
