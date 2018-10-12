@@ -141,6 +141,30 @@ func (msg *Message) WriteTibiaString(s string) error {
 	return nil
 }
 
+// ReadTibiaPosition is a helper function to decode Tibia-style position on the
+// tiled map.
+func (msg *Message) ReadTibiaPosition() (Position, error) {
+	var pos Position
+	err := binary.Read(msg, binary.LittleEndian, &pos)
+	if err != nil {
+		return pos, fmt.Errorf("reading tibia position: %s", err)
+	}
+	return pos, nil
+}
+
+// WriteTibiaPosition is a helper function to encode Tibia-style position on the
+// tiled map.
+func (msg *Message) WriteTibiaPosition(pos Position) error {
+	if pos.Floor > 14 {
+		return fmt.Errorf("invalid position: floors cannot be deeper than level 14")
+	}
+	err := binary.Write(msg, binary.LittleEndian, pos)
+	if err != nil {
+		return fmt.Errorf("writing tibia position: %s", err)
+	}
+	return nil
+}
+
 // Encrypt reads through the entire message buffer (moving the read cursor),
 // and returns a new Message containing the encrypted buffer.
 func (msg *Message) Encrypt(xteaKey [16]byte) (*Message, error) {
@@ -269,4 +293,12 @@ func (msg *Message) finalize(includeChecksum bool) (*Message, error) {
 	}
 
 	return newMsg, nil
+}
+
+
+// Position defines the network representation of a character or creature
+// position in the tiled world.
+type Position struct{
+	X, Y uint16
+	Floor uint8
 }
