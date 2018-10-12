@@ -26,8 +26,8 @@ func (c *GameworldConnection) initialAppearSelfAppear(outMap *tnet.Message) erro
 func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 	outMap.Write([]byte{
-		0x00, 0x7F, // x
-		0x00, 0x7F, // y
+		0x00 + 18/2 - 1, 0x80, // x
+		0x00 + 14/2 - 1, 0x80, // y
 		0x07, // floor
 	})
 
