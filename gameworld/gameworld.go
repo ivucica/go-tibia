@@ -15,19 +15,27 @@ import (
 
 type CreatureID uint32
 type Creature interface {
-	GetPos() (x, y, z int)
+	GetPos() tnet.Position
 	GetID() CreatureID
+	GetName() string
 }
 type creature struct {
 	x, y, z int
 	id      CreatureID
 }
 
-func (c *creature) GetPos() (int, int, int) {
-	return c.x, c.y, c.z
+func (c *creature) GetPos() tnet.Position {
+	return tnet.Position{
+		X: uint16(c.x),
+		Y: uint16(c.y),
+		Floor: uint8(c.z),
+	}
 }
 func (c *creature) GetID() CreatureID {
 	return c.id
+}
+func (c *creature) GetName() string {
+	return "Demo Character"
 }
 
 var (
