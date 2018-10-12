@@ -60,6 +60,10 @@ type GameworldConnection struct {
 	senderQuit   chan struct{}
 	mainLoopQuit chan struct{}
 }
+func (c *GameworldConnection) PlayerID() (CreatureID, error) {
+	// TODO(ivucica): connection ID does not need to be player ID
+	return CreatureID(c.id), nil
+}
 
 type GameworldServer struct {
 	pk     *rsa.PrivateKey
