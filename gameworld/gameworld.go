@@ -13,20 +13,44 @@ import (
 	"time"
 )
 
+type CreatureID uint32
 type Creature interface {
 	GetPos() (x, y, z int)
-	GetID() uint32
+	GetID() CreatureID
 }
 type creature struct {
 	x, y, z int
-	id      uint32
+	id      CreatureID
 }
 
 func (c *creature) GetPos() (int, int, int) {
 	return c.x, c.y, c.z
 }
-func (c *creature) GetID() uint32 {
+func (c *creature) GetID() CreatureID {
 	return c.id
+}
+
+var (
+	maxCreatureID CreatureID
+)
+
+// TODO(ivucica): Move this to map data source
+func NewCreatureID() CreatureID {
+	maxCreatureID++
+	return maxCreatureID
+}
+
+type GameworldConnectionID CreatureID
+type GameworldConnection struct {
+	id GameworldConnectionID
+
+	server       *GameworldServer
+	key          [16]byte
+	conn         net.Conn
+	senderChan   chan *tnet.Message
+	receiverChan chan *tnet.Message
+	senderQuit   chan struct{}
+	mainLoopQuit chan struct{}
 }
 
 type GameworldServer struct {
@@ -36,21 +60,12 @@ type GameworldServer struct {
 	mapDataSource MapDataSource
 
 	// TODO: all these must be per connection
-	senderChan   chan *tnet.Message
-	receiverChan chan *tnet.Message
-	senderQuit   chan struct{}
-	mainLoopQuit chan struct{}
+	connections map[GameworldConnectionID]GameworldConnection
 }
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 	ds := NewMapDataSource()
-	ds.AddCreature(&creature{
-		x:  32768 + 18/2,
-		y:  32768 + 14/2,
-		z:  7,
-		id: 0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
-	})
 
 	return &GameworldServer{
 		pk: pk,
@@ -149,24 +164,38 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	//pwd := "?"
 	glog.Infof("acc:%s char:%s len(pwd):%d isGM:%d\n", acc, char, len(pwd), isGM)
 
-	c.senderQuit = make(chan struct{})
-	c.senderChan = make(chan *tnet.Message)
+	playerID := NewCreatureID()
+	gwConn := &GameworldConnection{}
+	gwConn.server = c
+	gwConn.conn = conn
+	gwConn.key = key
+	gwConn.id = GameworldConnectionID(playerID)
+
+	c.mapDataSource.AddCreature(&creature{
+		x:  32768 + 18/2,
+		y:  32768 + 14/2,
+		z:  7,
+		id: playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
+	})
+
+	gwConn.senderQuit = make(chan struct{})
+	gwConn.senderChan = make(chan *tnet.Message)
 	// TODO: how to clean up and close channels safely?
 	//defer func() { close(c.senderChan) ; close(c.senderQuit) }()
-	go c.networkSender(conn, key)
+	go gwConn.networkSender()
 
-	c.initialAppear()
+	gwConn.initialAppear()
 	conn.SetDeadline(time.Time{}) // Disable deadline
 
-	c.mainLoopQuit = make(chan struct{})
-	c.receiverChan = make(chan *tnet.Message)
-	go c.networkReceiver(conn)
+	gwConn.mainLoopQuit = make(chan struct{})
+	gwConn.receiverChan = make(chan *tnet.Message)
+	go gwConn.networkReceiver()
 
 mainLoop:
 	for {
 		glog.Infof("pending event on e.g. receiver chan")
 		select {
-		case encryptedMsg := <-c.receiverChan:
+		case encryptedMsg := <-gwConn.receiverChan:
 			glog.Infof("received message on receiver chan")
 			msg, err := encryptedMsg.Decrypt(key)
 			if err != nil {
@@ -186,29 +215,29 @@ mainLoop:
 			case 0x14: // logout
 				return nil
 			case 0x65: // move north
-				c.playerCancelMove(conn, key, 0)
+				gwConn.playerCancelMove(0)
 				break
 			case 0x66: // move east
-				c.playerCancelMove(conn, key, 1)
+				gwConn.playerCancelMove(1)
 				break
 			case 0x67: // move south
-				c.playerCancelMove(conn, key, 2)
+				gwConn.playerCancelMove(2)
 				break
 			case 0x68: // move west
-				c.playerCancelMove(conn, key, 3)
+				gwConn.playerCancelMove(3)
 				break
 			// case 0x69: // stop autowalk
 			case 0x6A: // move northeast
-				c.playerCancelMove(conn, key, 1)
+				gwConn.playerCancelMove(1)
 				break
 			case 0x6B: // move southeast
-				c.playerCancelMove(conn, key, 2)
+				gwConn.playerCancelMove(2)
 				break
 			case 0x6C: // move southwest
-				c.playerCancelMove(conn, key, 3)
+				gwConn.playerCancelMove(3)
 				break
 			case 0x6D: // move northwest
-				c.playerCancelMove(conn, key, 0)
+				gwConn.playerCancelMove(0)
 				break
 			case 0x96: // say
 				chatType, err := msg.ReadByte()
@@ -229,30 +258,30 @@ mainLoop:
 					out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
 					out.WriteTibiaString("Demo Character")
 					out.Write([]byte{0x01, 0x00}) // level
-					out.Write([]byte{0x01}) // type - i.e. 'say' in this case
-					_ = binary.Write(out, binary.LittleEndian, struct{
-						X, Y uint16
+					out.Write([]byte{0x01})       // type - i.e. 'say' in this case
+					_ = binary.Write(out, binary.LittleEndian, struct {
+						X, Y  uint16
 						Floor byte
 					}{
-						X: 32768 + 18 / 2,
-						Y: 32768 + 14 / 2,
+						X:     32768 + 18/2,
+						Y:     32768 + 14/2,
 						Floor: 7,
 					})
 					out.WriteTibiaString(chatText)
-					c.senderChan <- out
+					gwConn.senderChan <- out
 				}
 			}
-		case <-c.mainLoopQuit:
+		case <-gwConn.mainLoopQuit:
 			break mainLoop
 		}
 	}
 	// TODO: how to safely tell netsender to quit?
 	return nil
 }
-func (c *GameworldServer) networkReceiver(conn net.Conn) error {
+func (c *GameworldConnection) networkReceiver() error {
 	// TODO: how to safely tell main loop to quit?
 	for {
-		msg, err := tnet.ReadMessage(conn)
+		msg, err := tnet.ReadMessage(c.conn)
 		if err != nil {
 			glog.Errorf("failed to read message: %v", err)
 			// TODO: c.quitChan <- struct{} so we close the connection
@@ -263,7 +292,7 @@ func (c *GameworldServer) networkReceiver(conn net.Conn) error {
 		glog.Infof("dispatched message to receiver chan")
 	}
 }
-func (c *GameworldServer) networkSender(conn net.Conn, key [16]byte) error {
+func (c *GameworldConnection) networkSender() error {
 	// TODO: how to safely tell main loop to quit?
 	for {
 		select {
@@ -271,7 +300,7 @@ func (c *GameworldServer) networkSender(conn net.Conn, key [16]byte) error {
 			glog.Infof("sending a message")
 			// add checksum and size headers wherever appropriate, and perform
 			// XTEA crypto.
-			msg, err := rawMsg.Finalize(key)
+			msg, err := rawMsg.Finalize(c.key)
 			if err != nil {
 				glog.Errorf("error finalizing message: %s", err)
 				// TODO: c.quitChan <- struct{} so we close the connection
@@ -279,7 +308,7 @@ func (c *GameworldServer) networkSender(conn net.Conn, key [16]byte) error {
 			}
 
 			// transmit the response
-			wr, err := io.Copy(conn, msg)
+			wr, err := io.Copy(c.conn, msg)
 			if err != nil {
 				glog.Errorf("error writing message: %s", err)
 				// TODO: c.quitChan <- struct{} so we close the connection
@@ -292,7 +321,7 @@ func (c *GameworldServer) networkSender(conn net.Conn, key [16]byte) error {
 	}
 }
 
-func (c *GameworldServer) initialAppear() error {
+func (c *GameworldConnection) initialAppear() error {
 	outMap := tnet.NewMessage()
 	c.initialAppearSelfAppear(outMap)
 	c.initialAppearMap(outMap)
@@ -300,7 +329,7 @@ func (c *GameworldServer) initialAppear() error {
 	return nil
 }
 
-func (c *GameworldServer) playerCancelMove(conn net.Conn, key [16]byte, dir byte) error {
+func (c *GameworldConnection) playerCancelMove(dir byte) error {
 	out := tnet.NewMessage()
 	out.Write([]byte{0xB5})
 	out.Write([]byte{

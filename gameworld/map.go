@@ -37,18 +37,19 @@ type MapItem interface {
 
 func NewMapDataSource() MapDataSource {
 	return &mapDataSource{
-		creatures: map[uint32]Creature{},
+		creatures: map[CreatureID]Creature{},
 	}
 }
 
 type mapDataSource struct {
-	creatures map[uint32]Creature
+	creatures map[CreatureID]Creature
 }
 type mapTile struct {
 	ground    MapItem
 	creatures []Creature
 }
 type mapItem int
+
 func mapItemOfType(t int) MapItem {
 	mi := mapItem(t)
 	return &mi
@@ -78,7 +79,7 @@ func (*mapDataSource) GetMapTile(x, y, z int) (MapTile, error) {
 }
 func (ds *mapDataSource) GetCreatureByIDBytes(idBytes [4]byte) (Creature, error) {
 	buf := bytes.NewBuffer(idBytes[:])
-	var id uint32
+	var id CreatureID
 	err := binary.Read(buf, binary.LittleEndian, &id)
 	if err != nil {
 		return nil, fmt.Errorf("could not decode creature ID from bytes: %v", err)
@@ -108,12 +109,12 @@ func (i *mapItem) GetType() int {
 
 ////////////////////////
 
-func (c *GameworldServer) floorDescription(outMap *tnet.Message, x, y, z, width, height int) error {
+func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y, z, width, height int) error {
 	var skip int
 	for nx := x; nx < x+width; nx++ {
 		for ny := y; ny < y+height; ny++ {
 
-			tile, err := c.mapDataSource.GetMapTile(nx, ny, z)
+			tile, err := c.server.mapDataSource.GetMapTile(nx, ny, z)
 			if err != nil {
 				return fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
 			}
@@ -138,7 +139,9 @@ func (c *GameworldServer) floorDescription(outMap *tnet.Message, x, y, z, width,
 
 			// HACK: Spawn player at middle of the maptd
 			if nx == x+width/2 && ny == y+height/2 && z == 7 {
-				c.creatureDescription(outMap)
+				if err := c.creatureDescription(outMap); err != nil {
+					return err
+				}
 			}
 
 			// mark tile as done.

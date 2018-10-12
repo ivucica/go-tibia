@@ -3,20 +3,27 @@ package gameworld
 // This file contains temporary, development-only implementations of some chunks of the game protocol.
 
 import (
+	"encoding/binary"
+
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"fmt"
 )
 
-func (c *GameworldServer) initialAppearSelfAppear(outMap *tnet.Message) error {
+func (c *GameworldConnection) initialAppearSelfAppear(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x0A}) // self appear
+
+	// 0xAA, 0xBB, 0xCC, 0xDD, // own id
+	if err := binary.Write(outMap, binary.LittleEndian, c.id); err != nil { // TODO(ivucica): instead of connection ID, send player creature ID (currently the same, not necessarily in the future)
+		return err
+	}
+
 	outMap.Write([]byte{
-		0xAA, 0xBB, 0xCC, 0xDD, // own id
 		0x00, 0x00, // unkDrawSpeed
 		0x00, // canReportBugs
 	})
 	return nil
 }
-func (c *GameworldServer) initialAppearMap(outMap *tnet.Message) error {
+func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 	outMap.Write([]byte{
 		0x00, 0x7F, // x
@@ -33,11 +40,18 @@ func (c *GameworldServer) initialAppearMap(outMap *tnet.Message) error {
 	return nil
 }
 
-func (c *GameworldServer) creatureDescription(outMap *tnet.Message) {
+func (c *GameworldConnection) creatureDescription(outMap *tnet.Message) error {
 	outMap.Write([]byte{
 		0x61, 0x00, // not known creature thingid
 		0x00, 0x00, 0x00, 0x00, // remove
-		0xAA, 0xBB, 0xCC, 0xDD, // creature id (this is, currently, player's id)
+	})
+
+	// 0xAA, 0xBB, 0xCC, 0xDD, // creature id (this is, currently, player's id)
+	if err := binary.Write(outMap, binary.LittleEndian, c.id); err != nil { // TODO(ivucica): instead of connection ID, send player creature ID (currently the same, not necessarily in the future)
+		return err
+	}
+
+	outMap.Write([]byte{
 		0x05, 0x00, 'B', 'o', 'o', '!', '!',
 		100,             // health
 		0,               // dir,
@@ -50,4 +64,6 @@ func (c *GameworldServer) creatureDescription(outMap *tnet.Message) {
 		0, // 0x61, therefore send war emblem
 		0, // player can walk through
 	})
+
+	return nil
 }
