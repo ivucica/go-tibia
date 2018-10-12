@@ -271,14 +271,12 @@ mainLoop:
 					out.WriteTibiaString("Demo Character")
 					out.Write([]byte{0x01, 0x00}) // level
 					out.Write([]byte{0x01})       // type - i.e. 'say' in this case
-					_ = binary.Write(out, binary.LittleEndian, struct {
-						X, Y  uint16
-						Floor byte
-					}{
-						X:     32768 + 18/2,
-						Y:     32768 + 14/2,
-						Floor: 7,
-					})
+					playerCr, err := c.mapDataSource.GetCreatureByID(playerID)
+					if err != nil {
+						glog.Errorf("error getting player creature by id: %v", err)
+						continue mainLoop
+					}
+					out.WriteTibiaPosition(playerCr.GetPos())
 					out.WriteTibiaString(chatText)
 					gwConn.senderChan <- out
 				}
