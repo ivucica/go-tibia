@@ -26,8 +26,8 @@ type creature struct {
 
 func (c *creature) GetPos() tnet.Position {
 	return tnet.Position{
-		X: uint16(c.x),
-		Y: uint16(c.y),
+		X:     uint16(c.x),
+		Y:     uint16(c.y),
 		Floor: uint8(c.z),
 	}
 }
@@ -60,6 +60,7 @@ type GameworldConnection struct {
 	senderQuit   chan struct{}
 	mainLoopQuit chan struct{}
 }
+
 func (c *GameworldConnection) PlayerID() (CreatureID, error) {
 	// TODO(ivucica): connection ID does not need to be player ID
 	return CreatureID(c.id), nil
@@ -184,7 +185,7 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	gwConn.id = GameworldConnectionID(playerID)
 
 	c.mapDataSource.AddCreature(&creature{
-		x:  32768 + 18/2,
+		x:  32768 + 18/2 + int(playerID),
 		y:  32768 + 14/2,
 		z:  7,
 		id: playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
@@ -202,6 +203,8 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	gwConn.mainLoopQuit = make(chan struct{})
 	gwConn.receiverChan = make(chan *tnet.Message)
 	go gwConn.networkReceiver()
+
+	defer c.mapDataSource.RemoveCreatureByID(playerID)
 
 mainLoop:
 	for {

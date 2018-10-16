@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ItemNotFound error
+	ItemNotFound     error
 	CreatureNotFound error
 )
 
@@ -26,12 +26,14 @@ type MapDataSource interface {
 	GetCreatureByIDBytes(id [4]byte) (Creature, error)
 	GetCreatureByID(CreatureID) (Creature, error)
 	AddCreature(creature Creature) error
+	RemoveCreatureByID(CreatureID) error
 }
 
 type MapTile interface {
 	GetItem(idx int) (MapItem, error)
 	AddCreature(creature Creature) error
 	GetCreature(idx int) (Creature, error)
+	RemoveCreature(Creature) error
 }
 
 type MapItem interface {
@@ -42,7 +44,7 @@ type MapItem interface {
 
 func NewMapDataSource() MapDataSource {
 	return &mapDataSource{
-		creatures: map[CreatureID]Creature{},
+		creatures:         map[CreatureID]Creature{},
 		generatedMapTiles: map[tnet.Position]MapTile{},
 	}
 }
@@ -74,11 +76,11 @@ func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	}
 	ds.generatedMapTiles[tnet.Position{x, y, z}] = generatedMapTile
 	return generatedMapTile, nil
-	
+
 }
 func (*mapDataSource) generateMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if z == 7 {
-		if y == 32768 + 14 / 2 {
+		if y == 32768+14/2 {
 			switch x % 2 {
 			case 0:
 				return &mapTile{ground: mapItemOfType(104)}, nil
@@ -131,6 +133,23 @@ func (ds *mapDataSource) AddCreature(c Creature) error {
 		return t.AddCreature(c)
 	}
 }
+func (ds *mapDataSource) RemoveCreatureByID(id CreatureID) error {
+	c, err := ds.GetCreatureByID(id)
+	if err != nil {
+		if err == CreatureNotFound {
+			return nil
+		}
+	}
+
+	delete(ds.creatures, id)
+
+	if t, err := ds.GetMapTile(c.GetPos().X, c.GetPos().Y, c.GetPos().Floor); err != nil {
+		return err
+	} else {
+		glog.Infof("deleting creature from %d %d %d", c.GetPos().X, c.GetPos().Y, c.GetPos().Floor)
+		return t.RemoveCreature(c)
+	}
+}
 
 func (t *mapTile) GetCreature(idx int) (Creature, error) {
 	if idx >= len(t.creatures) {
@@ -147,6 +166,22 @@ func (t *mapTile) GetItem(idx int) (MapItem, error) {
 }
 func (t *mapTile) AddCreature(c Creature) error {
 	t.creatures = append(t.creatures, c)
+	return nil
+}
+
+func (t *mapTile) RemoveCreature(cr Creature) error {
+	// not t.creatures - 1, in case the creature is not in fact stored on the tile.
+	newCs := make([]Creature, 0, len(t.creatures))
+	seen := false
+	for _, c := range t.creatures {
+		if c.GetID() != cr.GetID() {
+			seen = true
+			newCs = append(newCs, c)
+		}
+	}
+	if !seen {
+		glog.Warningf("removing creature %d from tile %d %d %d where it's actually not present", cr.GetID(), cr.GetPos().X, cr.GetPos().Y, cr.GetPos().Floor)
+	}
 	return nil
 }
 
@@ -225,7 +260,7 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	if err != nil {
 		return err
 	}
-	
+
 	creature, err := c.server.mapDataSource.GetCreatureByID(playerID)
 	if err != nil {
 		return err
@@ -239,7 +274,7 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	}
 
 	for floor := 7; floor >= 0; floor-- {
-		if err := c.floorDescription(outMap, pos.X+uint16(7-floor - (18 / 2-1)), pos.Y+uint16(7-floor - (14 / 2-1)), uint8(floor), 18, 14); err != nil {
+		if err := c.floorDescription(outMap, pos.X+uint16(7-floor-(18/2-1)), pos.Y+uint16(7-floor-(14/2-1)), uint8(floor), 18, 14); err != nil {
 			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
 	}
@@ -260,7 +295,7 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 	}
 
 	outMap.WriteTibiaString(cr.GetName())
-	
+
 	outMap.Write([]byte{
 		100,             // health
 		0,               // dir,
