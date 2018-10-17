@@ -73,7 +73,7 @@ type GameworldServer struct {
 	mapDataSource MapDataSource
 
 	// TODO: all these must be per connection
-	connections map[GameworldConnectionID]GameworldConnection
+	connections map[GameworldConnectionID]*GameworldConnection
 }
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
@@ -84,6 +84,7 @@ func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 		pk: pk,
 
 		mapDataSource: ds,
+		connections:   make(map[GameworldConnectionID]*GameworldConnection),
 	}, nil
 }
 
@@ -206,6 +207,8 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 	defer c.mapDataSource.RemoveCreatureByID(playerID)
 
+	c.connections[gwConn.id] = gwConn
+
 mainLoop:
 	for {
 		glog.Infof("pending event on e.g. receiver chan")
@@ -268,20 +271,26 @@ mainLoop:
 						continue mainLoop
 					}
 					glog.Infof("%v: %v", "Demo Character", chatText)
-					out := tnet.NewMessage()
-					out.Write([]byte{0xAA})
-					out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
-					out.WriteTibiaString("Demo Character")
-					out.Write([]byte{0x01, 0x00}) // level
-					out.Write([]byte{0x01})       // type - i.e. 'say' in this case
 					playerCr, err := c.mapDataSource.GetCreatureByID(playerID)
 					if err != nil {
 						glog.Errorf("error getting player creature by id: %v", err)
 						continue mainLoop
 					}
-					out.WriteTibiaPosition(playerCr.GetPos())
-					out.WriteTibiaString(chatText)
-					gwConn.senderChan <- out
+
+					for _, otherGwConn := range c.connections {
+						out := tnet.NewMessage()
+						out.Write([]byte{0xAA})
+						out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
+						out.WriteTibiaString("Demo Character")
+						out.Write([]byte{0x01, 0x00}) // level
+						out.Write([]byte{0x01})       // type - i.e. 'say' in this case
+						out.WriteTibiaPosition(playerCr.GetPos())
+						out.WriteTibiaString(chatText)
+						//gwConn.senderChan <- out
+						go func(otherGwConn *GameworldConnection, msg *tnet.Message) {
+							otherGwConn.senderChan <- out
+						}(otherGwConn, out)
+					}
 				}
 			}
 		case <-gwConn.mainLoopQuit:
