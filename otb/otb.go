@@ -55,6 +55,7 @@ func NewOTB(r io.ReadSeeker) (*OTB, error) {
 	if err := binary.Read(r, binary.LittleEndian, &byt); err != nil {
 		return nil, fmt.Errorf("error starting reading otb node: %v", err)
 	}
+
 	if byt == NODE_START {
 		root, err := otb.parseNode()
 		if err != nil {
@@ -140,6 +141,8 @@ func (n *OTBNode) PropsBuffer() *bytes.Buffer {
 //
 // It expects that NODE_START byte has already been read.
 func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
+	// glog.V(3).Infof("parsing at depth %d", depth)
+	// defer glog.V(3).Infof("end parsing at depth %d", depth)
 	currentNode := n
 	for {
 		var nodeType uint8
@@ -152,7 +155,7 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 			}
 			return fmt.Errorf("error reading otb node type: %v", err)
 		}
-		glog.V(3).Infof("%stype 0x%02X", strings.Repeat(" ", depth), nodeType)
+		glog.V(4).Infof("%snode type 0x%02X", strings.Repeat(" ", depth), nodeType)
 		currentNode.nodeType = nodeType
 
 		for {
@@ -178,18 +181,26 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 			case NODE_END:
 				var byt uint8
 				if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
+					if err == io.EOF {
+						if depth != 0 {
+							glog.Warning("warning: abrupt end to an OTB.")
+						}
+						return nil
+					}
 					return fmt.Errorf("error reading otb byte: %v", err)
 				}
 				switch byt {
 				case NODE_START:
-					// glog.Infof("props: %+v", currentNode.props)
+					// glog.V(3).Infof("props: %+v", currentNode.props)
 					node := OTBNode{}
 					currentNode.next = &node
 					currentNode = &node
 					shouldBreakFor = true
 					// TODO(ivucica): why not just parse the subnode here?
 				case NODE_END:
-					// glog.Infof("props: %+v", currentNode.props)
+					// go one byte back
+					reader.Seek(-1, io.SeekCurrent)
+					// glog.V(3).Infof("props: %+v", currentNode.props)
 					return nil
 				default:
 					return fmt.Errorf("expected NODE_START or NODE_END, got %x", byt)
@@ -200,7 +211,6 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 				if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
 					return fmt.Errorf("error reading otb byte: %v", err)
 				}
-				byt = byt
 
 				currentNode.props = append(currentNode.props, byt)
 			default:
