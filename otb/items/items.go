@@ -63,8 +63,9 @@ const (
 // Enumeration containing which overarching item group this item belongs to.
 //
 // Useful primarily for editors.
+type ItemGroup int
 const (
-	ITEM_GROUP_NONE = iota
+	ITEM_GROUP_NONE ItemGroup = iota
 	ITEM_GROUP_GROUND
 	ITEM_GROUP_CONTAINER
 	ITEM_GROUP_WEAPON     // deprecated
@@ -112,8 +113,8 @@ const (
 
 // Enumeration containing recognized attributes in the items.otb file.
 const (
-	ITEM_ATTR_FIRST    = 0x10
-	ITEM_ATTR_SERVERID = iota + 0x10 - 1
+	ITEM_ATTR_FIRST    ItemsAttribute = 0x10
+	ITEM_ATTR_SERVERID ItemsAttribute = iota + 0x10 - 1
 	ITEM_ATTR_CLIENTID
 	ITEM_ATTR_NAME  // deprecated
 	ITEM_ATTR_DESCR // deprecated
@@ -270,7 +271,7 @@ func (*Items) readChildNode(node *otb.OTBNode) (*Item, error) {
 	}
 
 	item := Item{
-		Group:      int(node.NodeType()),
+		Group:      ItemGroup(node.NodeType()),
 		Flags:      flags,
 		Attributes: make(map[ItemsAttribute]interface{}),
 	}
@@ -345,7 +346,7 @@ func (otb *Items) ItemByClientID(clientID uint16) (*Item, error) {
 
 // Item represents a single item stored in the items.otb file.
 type Item struct {
-	Group      int // enum type
+	Group      ItemGroup
 	Flags      ItemsFlags
 	Attributes map[ItemsAttribute]interface{}
 }

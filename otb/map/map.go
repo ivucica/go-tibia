@@ -38,23 +38,27 @@ type mapTile struct {
 	gameworld.MapTile
 }
 
+// Implementation detail: iota is not used primarily for easier referencing in
+// case of an error.
+type MapNodeType uint8
 const (
-	OTBM_ROOTV1      = 0x01
-	OTBM_MAP_DATA    = 0x02
-	OTBM_ITEM_DEF    = 0x03
-	OTBM_TILE_AREA   = 0x04
-	OTBM_TILE        = 0x05
-	OTBM_ITEM        = 0x06
-	OTBM_TILE_SQUARE = 0x07
-	OTBM_TILE_REF    = 0x08
-	OTBM_SPAWNS      = 0x09
-	OTBM_SPAWN_AREA  = 0x0A
-	OTBM_MONSTER     = 0x0B
-	OTBM_TOWNS       = 0x0C
-	OTBM_TOWN        = 0x0D
-	OTBM_HOUSETILE   = 0x0E
-	OTBM_WAYPOINTS   = 0x0F
-	OTBM_WAYPOINT    = 0x10
+	OTBM_ROOT        MapNodeType = 0x00
+	OTBM_ROOTV1      MapNodeType = 0x01
+	OTBM_MAP_DATA    MapNodeType = 0x02
+	OTBM_ITEM_DEF    MapNodeType = 0x03
+	OTBM_TILE_AREA   MapNodeType = 0x04
+	OTBM_TILE        MapNodeType = 0x05
+	OTBM_ITEM        MapNodeType = 0x06
+	OTBM_TILE_SQUARE MapNodeType = 0x07
+	OTBM_TILE_REF    MapNodeType = 0x08
+	OTBM_SPAWNS      MapNodeType = 0x09
+	OTBM_SPAWN_AREA  MapNodeType = 0x0A
+	OTBM_MONSTER     MapNodeType = 0x0B
+	OTBM_TOWNS       MapNodeType = 0x0C
+	OTBM_TOWN        MapNodeType = 0x0D
+	OTBM_HOUSETILE   MapNodeType = 0x0E
+	OTBM_WAYPOINTS   MapNodeType = 0x0F
+	OTBM_WAYPOINT    MapNodeType = 0x10
 )
 
 type rootHeader struct {
@@ -84,10 +88,8 @@ func New(r io.ReadSeeker) (*Map, error) {
 	//if err := binary.Read(props, binary.LittleEndian, &attr); err != nil {
 	//	return nil, fmt.Errorf("error reading otbm root node attr: %v", err)
 	//}
-	switch root.NodeType() {
-	case 0x00: // Unclear why this is not OTBM_ROOTV1 in many of the files.
-		fallthrough
-	case OTBM_ROOTV1:
+	switch MapNodeType(root.NodeType()) {
+	case OTBM_ROOT:
 		var head rootHeader
 		if err := binary.Read(props, binary.LittleEndian, &head); err != nil {
 			return nil, fmt.Errorf("error reading otbm root node header attrs: %v", err)
@@ -95,6 +97,8 @@ func New(r io.ReadSeeker) (*Map, error) {
 
 		glog.V(2).Infof("otbm header: %+v", head)
 		// TODO: store version and ensure items.otb is applicable enough
+	case OTBM_ROOTV1:
+		return nil, fmt.Errorf("otbm with rootv1 header is not supported at this time")
 	default:
 		glog.Errorf("unknown root node 0x%02x", root.NodeType())
 		return nil, fmt.Errorf("unknown root node 0x%02x", root.NodeType())
@@ -119,7 +123,7 @@ type MapData interface{}
 // readRootChildNode reads a single "OTB node", as read from an OTB file.
 func (m *Map) readRootChildNode(node *otb.OTBNode) (MapData, error) {
 
-	switch node.NodeType() {
+	switch MapNodeType(node.NodeType()) {
 	case OTBM_MAP_DATA:
 		return m.readMapDataNode(node)
 	default:
@@ -140,7 +144,7 @@ func (m *Map) readMapDataNode(node *otb.OTBNode) (MapData, error) {
 }
 
 func (m *Map) readMapDataChildNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
-	switch node.NodeType() {
+	switch MapNodeType(node.NodeType()) {
 	case OTBM_ITEM_DEF:
 		glog.V(2).Infof("item definition")
 	case OTBM_TILE_AREA:
