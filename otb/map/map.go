@@ -149,8 +149,7 @@ func (m *Map) readMapDataChildNode(node *otb.OTBNode) (MapData, error) { // TODO
 		glog.V(2).Infof("item definition")
 	case OTBM_TILE_AREA:
 		glog.V(2).Infof("tile area")
-	case OTBM_TILE:
-		glog.V(2).Infof("tile")
+		m.readTileAreaNode(node)
 	case OTBM_TOWNS:
 		glog.V(2).Infof("towns")
 	case OTBM_WAYPOINTS:
@@ -159,5 +158,40 @@ func (m *Map) readMapDataChildNode(node *otb.OTBNode) (MapData, error) { // TODO
 		return nil, fmt.Errorf("readMapDataChildNode: unsupported node type 0x%02x", node.NodeType())
 	}
 	return nil, nil
+}
 
+func (m *Map) readTileAreaNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	propBuf := node.PropsBuffer()
+
+	type propType struct {
+		X, Y  uint16
+		Floor uint8
+	}
+
+	props := propType{}
+
+	if err := binary.Read(propBuf, binary.LittleEndian, &props); err != nil {
+		return nil, fmt.Errorf("error reading coordinates of tile area node: %v", err)
+	}
+
+	glog.V(2).Infof(" at %d,%d,%d", props.X, props.Y, props.Floor)
+
+	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+		if mapData, err := m.readTileAreaChildNode(node); err == nil {
+			mapData = mapData
+		} else {
+			return nil, fmt.Errorf("error reading tile area child node: %v", err)
+		}
+	}
+	return nil, nil
+}
+
+func (m *Map) readTileAreaChildNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	switch MapNodeType(node.NodeType()) {
+	case OTBM_TILE:
+		glog.V(2).Infof(" tile")
+	default:
+		return nil, fmt.Errorf("readTileAreaChildNode: unsupported node type 0x%02x", node.NodeType())
+	}
+	return nil, nil
 }
