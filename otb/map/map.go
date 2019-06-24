@@ -1,3 +1,4 @@
+// Package otbm implements an OTBM map file format reader and a gameworld map data source.
 package otbm
 
 import (
