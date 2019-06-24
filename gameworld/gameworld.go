@@ -59,6 +59,8 @@ type GameworldConnection struct {
 	receiverChan chan *tnet.Message
 	senderQuit   chan struct{}
 	mainLoopQuit chan struct{}
+
+	clientVersion uint16
 }
 
 func (c *GameworldConnection) PlayerID() (CreatureID, error) {
@@ -180,6 +182,7 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 
 	playerID := NewCreatureID()
 	gwConn := &GameworldConnection{}
+	gwConn.clientVersion = connHeader.Version
 	gwConn.server = c
 	gwConn.conn = conn
 	gwConn.key = key

@@ -36,7 +36,7 @@ type MapTile interface {
 }
 
 type MapItem interface {
-	GetType() int
+	GetClientType(version uint16) int
 }
 
 type MapTileEventSubscriber interface {
@@ -70,7 +70,7 @@ func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16
 			}
 
 			outMap.Write([]byte{
-				byte(ground.GetType() % 256), byte(ground.GetType() / 256), // ground
+				byte(ground.GetClientType(c.clientVersion) % 256), byte(ground.GetClientType(c.clientVersion) / 256), // ground
 			})
 
 			// add any creatures on this tile

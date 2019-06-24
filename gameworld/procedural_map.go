@@ -128,7 +128,7 @@ func (t *mapTile) GetCreature(idx int) (Creature, error) {
 	return t.creatures[idx], nil
 }
 func (t *mapTile) GetItem(idx int) (MapItem, error) {
-	if idx == 0 && t.ground != nil && t.ground.GetType() != 0 {
+	if idx == 0 && t.ground != nil && t.ground.GetClientType(0) != 0 {
 		return t.ground, nil
 	}
 	return nil, ItemNotFound
@@ -154,6 +154,10 @@ func (t *mapTile) RemoveCreature(cr Creature) error {
 	return nil
 }
 
-func (i *mapItem) GetType() int {
+// GetClientType returns the protocol specific ID of the item.
+//
+// If the clientVersion is 0, a non-zero value will be returned anyway,
+// but it may not correspond to a sensible client-side version.
+func (i *mapItem) GetClientType(clientVersion uint16) int {
 	return int(*i)
 }
