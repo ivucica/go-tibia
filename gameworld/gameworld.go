@@ -19,25 +19,6 @@ type Creature interface {
 	GetID() CreatureID
 	GetName() string
 }
-type creature struct {
-	x, y, z int
-	id      CreatureID
-}
-
-func (c *creature) GetPos() tnet.Position {
-	return tnet.Position{
-		X:     uint16(c.x),
-		Y:     uint16(c.y),
-		Floor: uint8(c.z),
-	}
-}
-func (c *creature) GetID() CreatureID {
-	return c.id
-}
-func (c *creature) GetName() string {
-	return "Demo Character"
-}
-
 var (
 	maxCreatureID CreatureID
 )

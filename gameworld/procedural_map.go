@@ -16,6 +16,30 @@ func NewMapDataSource() MapDataSource {
 	}
 }
 
+//////////////////////////////
+
+type creature struct {
+	x, y, z int
+	id      CreatureID
+}
+
+func (c *creature) GetPos() tnet.Position {
+	return tnet.Position{
+		X:     uint16(c.x),
+		Y:     uint16(c.y),
+		Floor: uint8(c.z),
+	}
+}
+func (c *creature) GetID() CreatureID {
+	return c.id
+}
+func (c *creature) GetName() string {
+	return "Demo Character"
+}
+
+
+////////////////////////////
+
 type mapDataSource struct {
 	creatures map[CreatureID]Creature
 
@@ -34,6 +58,9 @@ func mapItemOfType(t int) MapItem {
 	mi := mapItem(t)
 	return &mi
 }
+
+///////////////////////////
+
 
 func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if t, ok := ds.generatedMapTiles[tnet.Position{x, y, z}]; ok {
