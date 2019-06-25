@@ -61,15 +61,20 @@ type GameworldServer struct {
 
 // NewServer creates a new GameworldServer which decodes the initial login message using the passed private key.
 func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
-	ds := NewMapDataSource()
-
 	return &GameworldServer{
 		pk: pk,
 
-		mapDataSource: ds,
 		connections:   make(map[GameworldConnectionID]*GameworldConnection),
 	}, nil
 }
+
+// SetMapDataSource sets the data source for map information such as tiles, items
+// on tiles, creatures present, etc.
+func (c *GameworldServer) SetMapDataSource(ds MapDataSource) error {
+	c.mapDataSource = ds
+	return nil
+}
+
 
 // SetThings sets the thing registry to the passed value. It's used to refer to a
 // combination of items.otb, Tibia.dat and Tibia.spr from the gameworld.

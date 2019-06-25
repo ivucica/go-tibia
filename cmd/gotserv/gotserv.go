@@ -21,6 +21,7 @@ import (
 	"badc0de.net/pkg/go-tibia/login"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/otb/map"
 	"badc0de.net/pkg/go-tibia/secrets"
 	"badc0de.net/pkg/go-tibia/things"
 )
@@ -29,6 +30,7 @@ var (
 	quitChan = make(chan int)
 
 	itemsOTBPath string
+	mapPath string
 	tibiaDatPath string
 
 	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
@@ -37,6 +39,7 @@ var (
 func setupFilePathFlags() {
 	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+	setupFilePathFlag("map.otbm", "map_path", &mapPath)
 }
 
 func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
@@ -159,7 +162,7 @@ func games() {
 		glog.Errorln(err)
 		return
 	}
-	gameworld, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
+	gw, err := gameworld.NewServer(&secrets.OpenTibiaPrivateKey)
 	if err != nil {
 		glog.Errorln(err)
 		return
@@ -197,7 +200,25 @@ func games() {
 	}
 	t.AddTibiaDataset(dataset)
 
-	gameworld.SetThings(t)
+	gw.SetThings(t)
+
+	if mapPath == ":test:" {
+		m := gameworld.NewMapDataSource()
+		gw.SetMapDataSource(m)
+	} else {
+		f, err := os.Open(mapPath)
+		if err != nil {
+			glog.Errorln("opening map file", err)
+			return
+		}
+		m, err := otbm.New(f)
+		if err != nil {
+			glog.Errorln("reading map file", err)
+			return
+		}
+		
+		gw.SetMapDataSource(m)
+	}
 	///
 
 
@@ -238,7 +259,7 @@ func games() {
 				return
 			}
 			glog.V(2).Infof("written %d bytes", wr)
-			connection(login, gameworld, conn.(*net.TCPConn))
+			connection(login, gw, conn.(*net.TCPConn))
 		}()
 	}
 }
