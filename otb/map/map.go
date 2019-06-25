@@ -38,10 +38,58 @@ type Map struct {
 
 type mapTile struct {
 	gameworld.MapTile
+
+	ground *mapItem
+	creatures []gameworld.Creature
+
+	subscribers []gameworld.MapTileEventSubscriber
+}
+
+func (t *mapTile) GetItem(idx int) (gameworld.MapItem, error) {
+	if t.ground == nil {
+		return nil, nil
+	}
+	return t.ground, nil
+}
+
+func (t *mapTile) AddCreature(c gameworld.Creature) error {
+	t.creatures = append(t.creatures, c)
+	return nil
+}
+
+func (t *mapTile) RemoveCreature(cr gameworld.Creature) error {
+	// not t.creatures - 1, in case the creature is not in fact stored on the tile.
+	newCs := make([]gameworld.Creature, 0, len(t.creatures))
+	seen := false
+	for _, c := range t.creatures {
+		if c.GetID() != cr.GetID() {
+			seen = true
+			newCs = append(newCs, c)
+		}
+	}
+	if !seen {
+		glog.Warningf("removing creature %d from tile %d %d %d where it's actually not present", cr.GetID(), cr.GetPos().X, cr.GetPos().Y, cr.GetPos().Floor)
+	}
+	return nil
 }
 
 type mapTileArea struct {
 	base pos
+}
+
+type mapItem struct{
+	gameworld.MapItem
+
+	parentTile *mapTile
+	parentItem *mapItem
+	ancestorMap *Map
+
+	otbItemTypeID uint32
+}
+
+func (t *mapItem) GetClientType(version uint16) int {
+	// TODO: actually return client type for version
+	return int(t.otbItemTypeID)
 }
 
 // Implementation detail: iota is not used primarily for easier referencing in
@@ -246,12 +294,14 @@ func (m *Map) readTileChildNode(node *otb.OTBNode, tile *mapTile) (MapData, erro
 	return nil, nil
 }
 
-type mapItem struct{} // TODO
-
 func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *mapItem, depth int) (MapData, error) { // TODO: this won't return mapdata.
 	glog.V(2).Infof("%sitem", strings.Repeat(" ", depth))
 
-	item := &mapItem{}
+	item := &mapItem{
+		ancestorMap: m,
+		parentTile: parentTile,
+		parentItem: parentItem,
+	}
 
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
 		if mapData, err := m.readItemChildNode(node, parentTile, item, depth+1); err == nil {
@@ -260,6 +310,16 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 			return nil, fmt.Errorf("error reading tile child node: %v", err)
 		}
 	}
+
+	if parentItem != nil {
+		// TODO: parentItem.AddChild(...)
+	} else if parentTile != nil {
+		// TODO: support more than one item
+		if parentTile.ground == nil {
+			parentTile.ground = item
+		}
+	}
+
 	return nil, nil
 }
 
