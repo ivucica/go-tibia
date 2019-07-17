@@ -19,6 +19,7 @@ type Creature interface {
 	GetID() CreatureID
 	GetName() string
 }
+
 var (
 	maxCreatureID CreatureID
 )
@@ -64,7 +65,7 @@ func NewServer(pk *rsa.PrivateKey) (*GameworldServer, error) {
 	return &GameworldServer{
 		pk: pk,
 
-		connections:   make(map[GameworldConnectionID]*GameworldConnection),
+		connections: make(map[GameworldConnectionID]*GameworldConnection),
 	}, nil
 }
 
@@ -74,7 +75,6 @@ func (c *GameworldServer) SetMapDataSource(ds MapDataSource) error {
 	c.mapDataSource = ds
 	return nil
 }
-
 
 // SetThings sets the thing registry to the passed value. It's used to refer to a
 // combination of items.otb, Tibia.dat and Tibia.spr from the gameworld.

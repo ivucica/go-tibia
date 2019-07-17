@@ -39,7 +39,7 @@ type Map struct {
 type mapTile struct {
 	gameworld.MapTile
 
-	ground *mapItem
+	ground    *mapItem
 	creatures []gameworld.Creature
 
 	subscribers []gameworld.MapTileEventSubscriber
@@ -77,11 +77,11 @@ type mapTileArea struct {
 	base pos
 }
 
-type mapItem struct{
+type mapItem struct {
 	gameworld.MapItem
 
-	parentTile *mapTile
-	parentItem *mapItem
+	parentTile  *mapTile
+	parentItem  *mapItem
 	ancestorMap *Map
 
 	otbItemTypeID uint32
@@ -299,8 +299,8 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 
 	item := &mapItem{
 		ancestorMap: m,
-		parentTile: parentTile,
-		parentItem: parentItem,
+		parentTile:  parentTile,
+		parentItem:  parentItem,
 	}
 
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {

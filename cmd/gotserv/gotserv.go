@@ -30,7 +30,7 @@ var (
 	quitChan = make(chan int)
 
 	itemsOTBPath string
-	mapPath string
+	mapPath      string
 	tibiaDatPath string
 
 	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
@@ -78,7 +78,7 @@ func main() {
 		})
 		go http.ListenAndServe(*debugWebServer, nil)
 	}
-	
+
 	for {
 		select {
 		case <-quitChan:
@@ -216,11 +216,10 @@ func games() {
 			glog.Errorln("reading map file", err)
 			return
 		}
-		
+
 		gw.SetMapDataSource(m)
 	}
 	///
-
 
 	l, err := net.Listen("tcp", ":7172")
 	if err != nil {

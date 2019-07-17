@@ -57,5 +57,3 @@ func testNew(t testOrBenchmark, baseName string) {
 
 	otbm = otbm
 }
-
-

@@ -37,7 +37,6 @@ func (c *creature) GetName() string {
 	return "Demo Character"
 }
 
-
 ////////////////////////////
 
 type mapDataSource struct {
@@ -60,7 +59,6 @@ func mapItemOfType(t int) MapItem {
 }
 
 ///////////////////////////
-
 
 func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if t, ok := ds.generatedMapTiles[tnet.Position{x, y, z}]; ok {
