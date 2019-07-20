@@ -174,10 +174,12 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	gwConn.key = key
 	gwConn.id = GameworldConnectionID(playerID)
 
+	defPos := c.mapDataSource.Private_And_Temp__DefaultPlayerSpawnPoint(playerID)
+
 	c.mapDataSource.AddCreature(&creature{
-		x:  32768 + 18/2 + int(playerID),
-		y:  32768 + 14/2,
-		z:  7,
+		x:  int(defPos.X),
+		y:  int(defPos.Y),
+		z:  int(defPos.Floor),
 		id: playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
 	})
 
@@ -187,7 +189,9 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	//defer func() { close(c.senderChan) ; close(c.senderQuit) }()
 	go gwConn.networkSender()
 
-	gwConn.initialAppear()
+	if err := gwConn.initialAppear(); err != nil {
+		return fmt.Errorf("failed to send initial appear: %v", err)
+	}
 	conn.SetDeadline(time.Time{}) // Disable deadline
 
 	gwConn.mainLoopQuit = make(chan struct{})
@@ -335,7 +339,10 @@ func (c *GameworldConnection) networkSender() error {
 func (c *GameworldConnection) initialAppear() error {
 	outMap := tnet.NewMessage()
 	c.initialAppearSelfAppear(outMap)
-	c.initialAppearMap(outMap)
+	err := c.initialAppearMap(outMap)
+	if err != nil {
+		return fmt.Errorf("initialAppear(): %v", err)
+	}
 	c.senderChan <- outMap
 	return nil
 }

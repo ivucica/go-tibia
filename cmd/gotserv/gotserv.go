@@ -211,7 +211,7 @@ func games() {
 			glog.Errorln("opening map file", err)
 			return
 		}
-		m, err := otbm.New(f)
+		m, err := otbm.New(f, t)
 		if err != nil {
 			glog.Errorln("reading map file", err)
 			return

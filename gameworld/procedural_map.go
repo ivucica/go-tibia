@@ -60,6 +60,14 @@ func mapItemOfType(t int) MapItem {
 
 ///////////////////////////
 
+func (ds *mapDataSource) Private_And_Temp__DefaultPlayerSpawnPoint(c CreatureID) tnet.Position {
+	return tnet.Position{
+		X:     uint16(32768 + 18/2 + int(c)),
+		Y:     32768 + 14/2,
+		Floor: 7,
+	}
+}
+
 func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if t, ok := ds.generatedMapTiles[tnet.Position{x, y, z}]; ok {
 		return t, nil
@@ -153,7 +161,7 @@ func (t *mapTile) GetCreature(idx int) (Creature, error) {
 	return t.creatures[idx], nil
 }
 func (t *mapTile) GetItem(idx int) (MapItem, error) {
-	if idx == 0 && t.ground != nil && t.ground.GetClientType(0) != 0 {
+	if idx == 0 && t.ground != nil && t.ground.GetServerType() != 0 {
 		return t.ground, nil
 	}
 	return nil, ItemNotFound
@@ -179,10 +187,7 @@ func (t *mapTile) RemoveCreature(cr Creature) error {
 	return nil
 }
 
-// GetClientType returns the protocol specific ID of the item.
-//
-// If the clientVersion is 0, a non-zero value will be returned anyway,
-// but it may not correspond to a sensible client-side version.
-func (i *mapItem) GetClientType(clientVersion uint16) int {
-	return int(*i)
+// GetServerType returns the server-side ID of the item.
+func (i *mapItem) GetServerType() uint16 {
+	return uint16(*i)
 }

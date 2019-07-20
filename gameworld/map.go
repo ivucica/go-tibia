@@ -2,6 +2,7 @@ package gameworld
 
 import (
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
 	"encoding/binary"
 	"fmt"
 
@@ -26,6 +27,8 @@ type MapDataSource interface {
 	GetCreatureByID(CreatureID) (Creature, error)
 	AddCreature(creature Creature) error
 	RemoveCreatureByID(CreatureID) error
+
+	Private_And_Temp__DefaultPlayerSpawnPoint(CreatureID) tnet.Position
 }
 
 type MapTile interface {
@@ -36,7 +39,7 @@ type MapTile interface {
 }
 
 type MapItem interface {
-	GetClientType(version uint16) int
+	GetServerType() uint16
 }
 
 type MapTileEventSubscriber interface {
@@ -48,62 +51,91 @@ func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16
 	var skip int
 	for nx := x; nx < x+width; nx++ {
 		for ny := y; ny < y+height; ny++ {
-
 			tile, err := c.server.mapDataSource.GetMapTile(nx, ny, z)
 			if err != nil {
 				return fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
 			}
-			ground, err := tile.GetItem(0)
-			// TODO(ivucica): support tiles with only non-ground items or creatures (although, does that make sense?)
-			if ground == nil {
-				if skip >= 0xFF {
-					outMap.Write([]byte{0xFF, 0xFF})
-					skip -= 0xFF
-				} else {
-					skip++
-				}
-				continue
-			}
-			if skip > 0 {
-				outMap.Write([]byte{byte(skip), 0xFF})
-				skip = 0
-			}
-
-			outMap.Write([]byte{
-				byte(ground.GetClientType(c.clientVersion) % 256), byte(ground.GetClientType(c.clientVersion) / 256), // ground
-			})
-
-			// add any creatures on this tile
-			for idx := 0; ; idx++ {
-				if cr, err := tile.GetCreature(idx); err != CreatureNotFound {
-					if err != nil {
-						return err
-					}
-					glog.Infof("sending creature (%d %d %d) at idx %d", nx, ny, z, idx)
-					if err := c.creatureDescription(outMap, cr); err != nil {
-						return err
-					}
-				} else {
-					// err == CreatureNotFound
-					glog.Infof("done with creatures (%d %d %d) at idx %d", nx, ny, z, idx)
-					break
-				}
-			}
-
-			// mark tile as done.
-			// skip to next tile.
-			// little endian of 0xFF00 & skiptiles
-			if nx != width-1 || ny != height-1 {
-				outMap.Write([]byte{0x0, 0xFF})
+			skip, err = c.tileDescription(outMap, tile, skip)
+			if err != nil {
+				return fmt.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, err)
 			}
 		}
 	}
 	if skip > 0 {
+		// little endian of 0xFF00 & skiptiles
 		outMap.Write([]byte{byte(skip), 0xFF})
 		skip = 0
 	}
 
 	return nil
+}
+
+func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile, skip int) (int, error) {
+	emptyTile := func() (int, error) {
+		if skip >= 0xFF {
+			// little endian of 0xFF00 & skiptiles
+			outMap.Write([]byte{0xFF, 0xFF})
+			skip -= 0xFF
+		} else {
+			skip++
+		}
+		return skip, nil
+	}
+
+	ground, err := tile.GetItem(0)
+	if err != nil {
+		if err == ItemNotFound {
+			return emptyTile()
+		}
+
+		return skip, err
+	}
+	if ground == nil {
+		glog.Warningf("Bug in map data source: returned item is nil, but error is not ItemNotFound")
+		return emptyTile()
+	}
+	groundOTBItem := c.server.things.Temp__GetItemFromOTB(ground.GetServerType(), c.clientVersion)
+	if groundOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
+		// TODO(ivucica): support tiles with only non-ground items or with only creatures (although, does that make sense?)
+		return emptyTile()
+	}
+
+	groundClientID := c.server.things.Temp__GetClientIDForServerID(ground.GetServerType(), c.clientVersion)
+	if groundClientID == 0 {
+		// some error getting client ID
+		return emptyTile()
+	}
+
+	// little endian of 0xFF00 & skiptiles
+	outMap.Write([]byte{byte(skip), 0xFF})
+	skip = 0
+	outMap.Write([]byte{
+		byte(groundClientID % 256), byte(groundClientID / 256), // ground
+	})
+
+	if groundOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 || groundOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || groundOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH {
+		// either count or fluid color
+		outMap.Write([]byte{
+			byte(1),
+		})
+	}
+
+	// add any creatures on this tile
+	for idx := 0; ; idx++ {
+		if cr, err := tile.GetCreature(idx); err != CreatureNotFound {
+			if err != nil {
+				return skip, err
+			}
+			if err := c.creatureDescription(outMap, cr); err != nil {
+				return skip, err
+			}
+		} else {
+			// We know err == CreatureNotFound or nil
+			break
+		}
+	}
+
+	return skip, nil
 }
 
 func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
@@ -122,15 +154,19 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	pos := creature.GetPos()
 	outMap.WriteTibiaPosition(pos)
 
+	glog.V(2).Infof("initialAppearMap for player %d at %d %d %d", playerID, pos.X, pos.Y, pos.Floor)
+
 	if pos.Floor != 7 {
 		return fmt.Errorf("TEMPORARILY unsupported initial location. Floor currently must be 7.")
 	}
 
 	for floor := 7; floor >= 0; floor-- {
+		glog.V(2).Infof("sending floor %d", floor)
 		if err := c.floorDescription(outMap, pos.X+uint16(7-floor-(18/2-1)), pos.Y+uint16(7-floor-(14/2-1)), uint8(floor), 18, 14); err != nil {
 			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
 	}
+	glog.V(2).Infof("initial map sent")
 
 	return nil
 }
