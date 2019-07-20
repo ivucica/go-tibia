@@ -234,6 +234,13 @@ func games() {
 			continue
 		}
 		go func() {
+			localAddr := conn.LocalAddr()
+			if localAddr == nil {
+				glog.Errorln("could not get local addr")
+				return
+			}
+			glog.Infof("connection accepted via %v", localAddr)
+
 			msg := tnet.NewMessage()
 			msg.WriteByte(0x1F)
 
