@@ -47,6 +47,19 @@ type MapTileEventSubscriber interface {
 
 ////////////////////////
 
+func (c *GameworldConnection) viewportSizeW() int8 {
+	return 18
+}
+func (c *GameworldConnection) viewportSizeH() int8 {
+	return 14
+}
+func (c *GameworldConnection) floorGroundLevel() int8 {
+	return 7
+}
+func (c *GameworldConnection) floorBedrockLevel() int8 {
+	return 14
+}	
+
 func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16, z uint8, width, height uint16) error {
 	var skip int
 	for nx := x; nx < x+width; nx++ {
@@ -156,17 +169,41 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 
 	glog.V(2).Infof("initialAppearMap for player %d at %d %d %d", playerID, pos.X, pos.Y, pos.Floor)
 
-	if pos.Floor != 7 {
-		return fmt.Errorf("TEMPORARILY unsupported initial location. Floor currently must be 7.")
+	startX := pos.X - uint16(c.viewportSizeW()/2 - 1)
+	startY := pos.Y - uint16(c.viewportSizeH()/2 - 1)
+
+	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor))
+	glog.V(2).Infof("initial map sent")
+
+	return err
+}
+
+func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8) error {
+	start := int8(c.floorGroundLevel())
+	end := int8(0)
+	step := int8(-1)
+	
+	if startFloor > c.floorGroundLevel() {
+		start = startFloor - 2
+		end = c.floorBedrockLevel()
+		if int8(startFloor) + 2 < end {
+			end = int8(startFloor) + 2
+		}
+		step = 1
 	}
 
-	for floor := 7; floor >= 0; floor-- {
+	for floor := start; floor != end+step; floor+=step {
 		glog.V(2).Infof("sending floor %d", floor)
-		if err := c.floorDescription(outMap, pos.X+uint16(7-floor-(18/2-1)), pos.Y+uint16(7-floor-(14/2-1)), uint8(floor), 18, 14); err != nil {
+		if err := c.floorDescription(
+			outMap,
+			startX+uint16(7-floor),
+			startY+uint16(7-floor),
+			uint8(floor),
+			uint16(c.viewportSizeW()),
+			uint16(c.viewportSizeH())); err != nil {
 			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
 	}
-	glog.V(2).Infof("initial map sent")
 
 	return nil
 }
