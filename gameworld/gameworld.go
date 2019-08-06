@@ -56,6 +56,8 @@ type GameworldServer struct {
 
 	mapDataSource MapDataSource
 
+	LameDuckText string // error to serve during lame duck mode
+
 	// TODO: all these must be per connection
 	connections map[GameworldConnectionID]*GameworldConnection
 }
@@ -174,6 +176,40 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	gwConn.key = key
 	gwConn.id = GameworldConnectionID(playerID)
 
+	if c.LameDuckText != "" {
+		out := tnet.NewMessage()
+
+		glog.Infof("rejection: sending %s", c.LameDuckText)
+		
+		out.Write([]byte{0x14}) // there's also 0x0A
+		out.WriteTibiaString(c.LameDuckText)
+
+		msg, err := out.Finalize(gwConn.key)
+		if err != nil {
+			glog.Errorf("error finalizing message: %s", err)
+			// TODO: c.quitChan <- struct{} so we close the connection
+			return err
+		}
+
+		// transmit the response
+		wr, err := io.Copy(gwConn.conn, msg)
+		if err != nil {
+			glog.Errorf("error writing message: %s", err)
+			// TODO: c.quitChan <- struct{} so we close the connection
+			return err
+		}
+		glog.Infof("rejection: written %d bytes", wr)
+		
+		gwConn.conn.Close() // actually close more nicely
+		
+		return nil
+	}
+	
+	return c.serveGame(conn, initialMessage, gwConn, playerID)
+}
+
+func (c *GameworldServer) serveGame(conn net.Conn, initialMessage *tnet.Message, gwConn *GameworldConnection, playerID CreatureID) error {
+
 	defPos := c.mapDataSource.Private_And_Temp__DefaultPlayerSpawnPoint(playerID)
 
 	c.mapDataSource.AddCreature(&creature{
@@ -208,7 +244,7 @@ mainLoop:
 		select {
 		case encryptedMsg := <-gwConn.receiverChan:
 			glog.Infof("received message on receiver chan")
-			msg, err := encryptedMsg.Decrypt(key)
+			msg, err := encryptedMsg.Decrypt(gwConn.key)
 			if err != nil {
 				glog.Errorf("failed to decrypt message: %v", err)
 				return err

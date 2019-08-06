@@ -156,7 +156,79 @@ func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net
 	}
 
 }
+
+func serveLameDuck(l *net.TCPListener, stop chan bool, lgn *login.LoginServer, gw *gameworld.GameworldServer ) {
+	// This is a dirty hack to temporarily accept connection even while setting up the
+	// actual server, but abort ~approximately when told to stop.
+	//
+	// It would be much nicer to properly integrate the cancellation of attempts to
+	// Accept() as soon as stop happens. But this hack will do for now.
+	
+	gw.LameDuckText = "Server still starting up. Try again soon."
+	defer func() {
+		gw.LameDuckText = ""
+	}()
+
+	for {
+		select {
+		case <-stop:
+			l.SetDeadline(time.Time{}) // zero value = no deadline = default
+			return
+		default:
+			// do nothing, just go on even if stop is not received
+		}
+
+		l.SetDeadline(time.Now().Add(1 * time.Second))
+		conn, err := l.Accept()
+		if err != nil {
+			glog.Errorln(err)
+			continue
+		}
+
+		go func() {
+			localAddr := conn.LocalAddr()
+			if localAddr == nil {
+				glog.Errorln("could not get local addr")
+				return
+			}
+			glog.Infof("connection accepted via %v", localAddr)
+
+			msg := tnet.NewMessage()
+			msg.WriteByte(0x1F)
+
+			// timestamp
+			msg.WriteByte(0x00)
+			msg.WriteByte(0x00)
+			msg.WriteByte(0x00)
+			msg.WriteByte(0x00)
+
+			// random byte
+			msg.WriteByte(0x00)
+
+			// we are supposed to receive the same in the initial packet
+			// i.e. we should memorize the above and check later, for this connection...
+
+			// the initial message is unencrypted. prepend size only.
+			msg, err := msg.PrependSize()
+
+			wr, err := io.Copy(conn, msg)
+			if err != nil {
+				glog.Errorf("error writing login message response: %s", err)
+				return
+			}
+			glog.V(2).Infof("written %d bytes", wr)
+			connection(lgn, gw, conn.(*net.TCPConn))
+		}()
+	}
+}
+
 func games() {
+	l, err := net.Listen("tcp", ":7172")
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
+	
 	login, err := login.NewServer(&secrets.OpenTibiaPrivateKey)
 	if err != nil {
 		glog.Errorln(err)
@@ -167,6 +239,9 @@ func games() {
 		glog.Errorln(err)
 		return
 	}
+
+	lameDuckStop := make(chan bool)
+	go serveLameDuck(l.(*net.TCPListener), lameDuckStop, login, gw)
 
 	///
 	t, err := things.New()
@@ -221,11 +296,7 @@ func games() {
 	}
 	///
 
-	l, err := net.Listen("tcp", ":7172")
-	if err != nil {
-		glog.Errorln(err)
-		return
-	}
+	lameDuckStop <- true
 	glog.Infoln("gotserv gameserver now listening")
 	for {
 		conn, err := l.Accept()
