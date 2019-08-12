@@ -37,6 +37,12 @@ func (c *creature) GetName() string {
 	return "Demo Character"
 }
 
+func (c *creature) SetPos(p tnet.Position) error {
+	c.x = p.X
+	c.y = p.Y
+	c.z = p.Floor
+}
+
 ////////////////////////////
 
 type mapDataSource struct {

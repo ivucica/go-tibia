@@ -16,6 +16,7 @@ import (
 type CreatureID uint32
 type Creature interface {
 	GetPos() tnet.Position
+	SetPos(tnet.Position) error
 	GetID() CreatureID
 	GetName() string
 }
@@ -262,7 +263,7 @@ mainLoop:
 			case 0x14: // logout
 				return nil
 			case 0x65: // move north
-				gwConn.playerCancelMove(0)
+				gwConn.playerMoveNorth()
 				break
 			case 0x66: // move east
 				gwConn.playerCancelMove(1)
@@ -390,5 +391,21 @@ func (c *GameworldConnection) playerCancelMove(dir byte) error {
 		dir, // direction
 	})
 	c.senderChan <- out
+	return nil
+}
+
+func (c *GameworldConnection) playerMoveNorth() error {
+	pid, err := c.PlayerID()
+	if err != nil {
+		return err
+	}
+	player, err := c.server.mapDataSource.GetCreatureByID(pid)
+	if err != nil {
+		return err
+	}
+	p := player.GetPos()
+	if err := player.SetPos(tnet.Position{X: p.X, Y: p.Y-1, Floor: p.Floor}); err != nil {
+		return err
+	}
 	return nil
 }
