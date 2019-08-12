@@ -38,9 +38,10 @@ func (c *creature) GetName() string {
 }
 
 func (c *creature) SetPos(p tnet.Position) error {
-	c.x = p.X
-	c.y = p.Y
-	c.z = p.Floor
+	c.x = int(p.X)
+	c.y = int(p.Y)
+	c.z = int(p.Floor)
+	return nil
 }
 
 ////////////////////////////
