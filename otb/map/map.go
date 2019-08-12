@@ -61,19 +61,77 @@ func (m *Map) Private_And_Temp__DefaultPlayerSpawnPoint(c gameworld.CreatureID) 
 type mapTile struct {
 	gameworld.MapTile
 
+	parent *Map
+
 	ownPos pos
 
 	ground    *mapItem
+	layers    [][]*mapItem
 	creatures []gameworld.Creature
 
 	subscribers []gameworld.MapTileEventSubscriber
 }
 
+func (t *mapTile) String() string {
+	return fmt.Sprintf("<tile at %s>", t.ownPos)
+}
+
 func (t *mapTile) GetItem(idx int) (gameworld.MapItem, error) {
-	if t.ground == nil {
-		return nil, gameworld.ItemNotFound
+	if t.ground != nil {
+		if idx == 0 {
+			return t.ground, nil
+		} else {
+			idx--
+		}
 	}
-	return t.ground, nil
+	for _, layer := range t.layers {
+		if idx < len(layer) {
+			return layer[idx], nil
+		} else {
+			idx -= len(layer)
+		}
+	}
+
+	return nil, gameworld.ItemNotFound
+}
+
+func (t *mapTile) addItem(item *mapItem) error {
+	// TODO notify of item updates (e.g. replacement)
+	// for now, private method because it's used only during map load
+	// maybe the public method will be a wrapper?
+
+	m := t.parent
+
+	otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
+	if otbItem.Group == itemsotb.ITEM_GROUP_GROUND {
+		if t.ground != nil {
+			// maybe tell t.ground it is being replaced?
+			// definitely notification will be different
+			t.ground = item
+		} else {
+			t.ground = item
+		}
+		return nil
+	}
+	if len(t.layers) < 4 {
+		// obviously an uninitialized tile.
+		// TODO move to a 'makeTile' function on the map.
+		t.layers = make([][]*mapItem, 4) // 0, 1, 2, 3
+	}
+
+	var ord uint8 // 0 by default
+	if ordI, ok := otbItem.Attributes[itemsotb.ITEM_ATTR_TOPORDER]; ok {
+		// 1: borders
+		// 2: ladders, signs, splashes
+		// 3: doors etc
+		// beyond that, nonitems such as creatures which we don't store in layers
+
+		ord = ordI.(uint8)
+	}
+
+	t.layers[ord] = append(t.layers[ord], item)
+
+	return nil
 }
 
 func (t *mapTile) AddCreature(c gameworld.Creature) error {
@@ -116,11 +174,17 @@ type mapItem struct {
 	ancestorMap *Map
 
 	otbItemTypeID uint16
+
+	count int
 }
 
 // GetServerType returns the server-side ID of the item.
 func (i *mapItem) GetServerType() uint16 {
 	return uint16(i.otbItemTypeID)
+}
+
+func (i *mapItem) String() string {
+	return fmt.Sprintf("<mapItem %d>", i.otbItemTypeID)
 }
 
 // Implementation detail: iota is not used primarily for easier referencing in
@@ -332,7 +396,7 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 	}
 
 	p := posFromCoord(area.base.X()+uint16(props.X), area.base.Y()+uint16(props.Y), area.base.Floor())
-	tile := mapTile{ownPos: p}
+	tile := mapTile{ownPos: p, parent: m}
 	m.tiles[p] = &tile
 
 	glog.V(2).Infof(" tile at %d,%d,%d (%d+%d,%d+%d,%d)", p.X(), p.Y(), p.Floor(), area.base.X(), props.X, area.base.Y(), props.Y, area.base.Floor())
@@ -349,6 +413,7 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			item := &mapItem{
 				ancestorMap: m,
 				parentTile:  &tile,
+				count:       1,
 			}
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.otbItemTypeID); err != nil {
 				return nil, fmt.Errorf("readTileNode: error reading item prop of tile: %v", err)
@@ -358,15 +423,15 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			// TODO: check for otbm_1
 			otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
 			if otbItem.Group == itemsotb.ITEM_GROUP_SPLASH || otbItem.Group == itemsotb.ITEM_GROUP_FLUID || otbItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
-				cnt, err := propBuf.ReadByte()
+				cntB, err := propBuf.ReadByte()
 				if err != nil {
 					return nil, fmt.Errorf("readTileNode: countable item error: %v", err)
 				}
-				glog.V(2).Infof("    -> count %d", cnt)
+				glog.V(2).Infof("    -> count %d", cntB)
+				item.count = int(cntB)
 			}
 
-			// TODO: it might not be ground
-			tile.ground = item
+			tile.addItem(item)
 			glog.V(2).Infof("  tileitem: %04x", item.otbItemTypeID)
 		default:
 			return nil, fmt.Errorf("readTileNode: unsupported attr type 0x%02x", attr)
@@ -420,14 +485,10 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 	if parentItem != nil {
 		// TODO: parentItem.AddChild(...)
 	} else if parentTile != nil {
-		// TODO: support more than one item
-		if parentTile.ground == nil {
-			otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
-			if otbItem.Group == itemsotb.ITEM_GROUP_GROUND {
-				parentTile.ground = item
-			}
-			parentTile.ground = item
-		}
+		//otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
+		//if otbItem.Group == itemsotb.ITEM_GROUP_GROUND {
+		//}
+		parentTile.addItem(item)
 	}
 
 	return nil, nil
@@ -542,7 +603,7 @@ func (m *Map) GetMapTile(x, y uint16, z uint8) (gameworld.MapTile, error) {
 		return t, nil
 	}
 	//return nil, fmt.Errorf("tile not found")
-	return &mapTile{}, nil
+	return &mapTile{parent: m}, nil
 }
 
 func (m *Map) GetCreatureByIDBytes(idBytes [4]byte) (gameworld.Creature, error) {

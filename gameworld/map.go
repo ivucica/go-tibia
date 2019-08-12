@@ -95,42 +95,58 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 		return skip, nil
 	}
 
-	ground, err := tile.GetItem(0)
-	if err != nil {
-		if err == ItemNotFound {
+	idx := 0
+	for {
+
+		// FIXME: this counts on server order of items matching the client order of items.
+		item, err := tile.GetItem(idx)
+		if err != nil {
+			if err == ItemNotFound {
+				if idx == 0 {
+					return emptyTile()
+				} else {
+					break
+				}
+			}
+
+			// any other error is an actual error
+			return skip, err
+		}
+		if item == nil {
+			glog.Warningf("Bug in map data source: returned item is nil, but error is not ItemNotFound")
+			return emptyTile()
+		}
+		glog.Infof("sending %s idx %d : %s", tile, idx, item)
+		itemOTBItem := c.server.things.Temp__GetItemFromOTB(item.GetServerType(), c.clientVersion)
+		//if itemOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
+			// TODO(ivucica): support tiles with only non-item items or with only creatures (although, does that make sense?)
+		//	return emptyTile()
+		//}
+
+		itemClientID := c.server.things.Temp__GetClientIDForServerID(item.GetServerType(), c.clientVersion)
+		if itemClientID == 0 {
+			// some error getting client ID
 			return emptyTile()
 		}
 
-		return skip, err
-	}
-	if ground == nil {
-		glog.Warningf("Bug in map data source: returned item is nil, but error is not ItemNotFound")
-		return emptyTile()
-	}
-	groundOTBItem := c.server.things.Temp__GetItemFromOTB(ground.GetServerType(), c.clientVersion)
-	if groundOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
-		// TODO(ivucica): support tiles with only non-ground items or with only creatures (although, does that make sense?)
-		return emptyTile()
-	}
+		if idx == 0 {
+			// little endian of 0xFF00 & skiptiles
+			outMap.Write([]byte{byte(skip), 0xFF})
+			skip = 0
+		}
 
-	groundClientID := c.server.things.Temp__GetClientIDForServerID(ground.GetServerType(), c.clientVersion)
-	if groundClientID == 0 {
-		// some error getting client ID
-		return emptyTile()
-	}
-
-	// little endian of 0xFF00 & skiptiles
-	outMap.Write([]byte{byte(skip), 0xFF})
-	skip = 0
-	outMap.Write([]byte{
-		byte(groundClientID % 256), byte(groundClientID / 256), // ground
-	})
-
-	if groundOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 || groundOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || groundOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH {
-		// either count or fluid color
 		outMap.Write([]byte{
-			byte(1),
+			byte(itemClientID % 256), byte(itemClientID / 256), // item
 		})
+
+		if itemOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 || itemOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || itemOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH {
+			// either count or fluid color
+		//	outMap.Write([]byte{
+		//		byte(1),
+		//	})
+		}
+
+		idx++
 	}
 
 	// add any creatures on this tile
@@ -237,3 +253,4 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 
 	return nil
 }
+
