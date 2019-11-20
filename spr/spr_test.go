@@ -34,6 +34,7 @@ func TestDecodeOne(t *testing.T) {
 	png.Encode(f2, img)
 	f2.Close()
 
-	printImage(img)
+	printImage256color(img, true)
+	printImage24bit(img, true)
 	printImageITerm(img, "423.png")
 }

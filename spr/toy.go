@@ -5,33 +5,79 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
+	ic "image/color"
 	"image/png"
+
+	"github.com/gookit/color"
 )
 
+type dumper interface {
+	Printf(s string, arg ...interface{})
+}
+type fmtDumperT struct{}
+
+func (fmtDumperT) Printf(s string, arg ...interface{}) {
+	fmt.Printf(s, arg...)
+}
+
+var fmtDumper fmtDumperT
+
+func shade(col ic.Color, escapesTrueColor, blanks bool) {
+	cR, cG, cB, cA := col.RGBA()
+	if cA > 0 {
+		//fmt.Printf("\x1b[38;5;%dm", a) // TODO(ivucica): Map color to closest entry in xterm 256color palette.
+		var d dumper
+
+		if escapesTrueColor {
+			fmt.Printf("\x1b[48;2;%d;%d;%dm", uint8(cR), uint8(cG), uint8(cB))
+			d = &fmtDumper
+		} else {
+			d = color.RGB(uint8(cR), uint8(cG), uint8(cB), true)
+		}
+		if blanks {
+			d.Printf("  ")
+		} else {
+			a := cR + cG + cB
+			switch {
+			case a < 64:
+				d.Printf("..")
+			case a < 128:
+				d.Printf("--")
+			case a < 192:
+				d.Printf("==")
+			default:
+				d.Printf("##")
+			}
+		}
+
+		if escapesTrueColor {
+			fmt.Printf("\x1b[0m")
+		}
+	} else {
+		fmt.Printf("\x1b[0m  ")
+	}
+}
+
 // printImage draws an image using 256color'd ascii art.
-func printImage(i image.Image) {
+func printImage256color(i image.Image, blanks bool) {
 	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			col := i.At(x, y)
-			cR, cG, cB, cA := col.RGBA()
-			if cA > 0 {
-				fmt.Printf("\x1b[38;2;%d;%d;%dm", cR, cG, cB)
-				a := cR + cG + cB
-				switch {
-				case a < 64:
-					fmt.Printf(".")
-				case a < 128:
-					fmt.Printf("-")
-				case a < 192:
-					fmt.Printf("=")
-				default:
-					fmt.Printf("#")
-				}
-				fmt.Printf("\x1b[0m")
-			} else {
-				fmt.Printf(" ")
-			}
+			shade(col, false, blanks)
 		}
+		fmt.Printf("\x1b[0m")
+		fmt.Printf("\n")
+	}
+}
+
+// printImage24bit draws an image using 24bit color by changing background.
+func printImage24bit(i image.Image, blanks bool) {
+	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
+		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
+			col := i.At(x, y)
+			shade(col, true, blanks)
+		}
+		fmt.Printf("\x1b[0m")
 		fmt.Printf("\n")
 	}
 }
