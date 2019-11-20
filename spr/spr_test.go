@@ -1,10 +1,11 @@
 package spr
 
 import (
+	"image/png"
 	"os"
 	"testing"
 
-	"image/png"
+	"badc0de.net/pkg/go-tibia/imageprint"
 )
 
 func TestDecodeOne(t *testing.T) {
@@ -26,7 +27,7 @@ func TestDecodeOne(t *testing.T) {
 	}
 	defer f.Close()
 
-	img, err := DecodeOne(f, 423) //1231)
+	img, err := DecodeOne(f, 423) // 1231)
 	if err != nil {
 		t.Fatalf("failed to decode spr: %s", err)
 	}
@@ -34,7 +35,7 @@ func TestDecodeOne(t *testing.T) {
 	png.Encode(f2, img)
 	f2.Close()
 
-	printImage256color(img, true)
-	printImage24bit(img, true)
-	printImageITerm(img, "423.png")
+	imageprint.Print256Color(img, true)
+	imageprint.Print24bit(img, true)
+	imageprint.PrintITerm(img, "423.png")
 }

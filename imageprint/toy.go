@@ -1,4 +1,7 @@
-package spr
+// Package imageprint prints images on terminal. UNSUPPORTED debug package.
+//
+// This package has an API with no stability guarantees.
+package imageprint
 
 import (
 	"bytes"
@@ -58,8 +61,8 @@ func shade(col ic.Color, escapesTrueColor, blanks bool) {
 	}
 }
 
-// printImage draws an image using 256color'd ascii art.
-func printImage256color(i image.Image, blanks bool) {
+// Print256Color draws an image using 256color'd ascii art.
+func Print256Color(i image.Image, blanks bool) {
 	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			col := i.At(x, y)
@@ -70,8 +73,8 @@ func printImage256color(i image.Image, blanks bool) {
 	}
 }
 
-// printImage24bit draws an image using 24bit color by changing background.
-func printImage24bit(i image.Image, blanks bool) {
+// Print24bit draws an image using 24bit color escape sequences by changing background.
+func Print24bit(i image.Image, blanks bool) {
 	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			col := i.At(x, y)
@@ -82,13 +85,13 @@ func printImage24bit(i image.Image, blanks bool) {
 	}
 }
 
-// printImageITerm draws an image using iTerm2's escape sequences.
+// PrintITerm draws an image using iTerm2's escape sequences.
 //
 // https://www.iterm2.com/documentation-images.html
-func printImageITerm(i image.Image, fn string) {
+func PrintITerm(i image.Image, fn string) {
 	name := base64.StdEncoding.EncodeToString([]byte(fn))
 	b := &bytes.Buffer{}
 	bEnc := base64.NewEncoder(base64.StdEncoding, b)
 	png.Encode(bEnc, i)
-	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=32px;height=32px:%s\a\n", name, len(b.String()), b.String())
+	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=%dpx;height=%dpx:%s\a\n", name, len(b.String()), i.Bounds().Size().X, i.Bounds().Size().Y, b.String())
 }
