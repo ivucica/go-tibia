@@ -205,7 +205,15 @@ func (i *mapItem) GetCount() uint16 {
 }
 
 func (i *mapItem) String() string {
-	return fmt.Sprintf("<mapItem %d>", i.otbItemTypeID)
+	name := "unnamed"
+	if i.GetServerType() != 0 {
+		otbItem := i.ancestorMap.things.Temp__GetItemFromOTB(i.GetServerType(), 0)
+		if otbItem != nil {
+			name = otbItem.Name()
+		}
+	}
+		
+	return fmt.Sprintf("<mapItem %d : %s>", i.otbItemTypeID, name)
 }
 
 // Implementation detail: iota is not used primarily for easier referencing in
