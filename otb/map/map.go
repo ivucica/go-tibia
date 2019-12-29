@@ -253,6 +253,61 @@ const (
 	OTBM_ATTR_ATTRIBUTE_MAP ItemAttribute = 128
 )
 
+func (a ItemAttribute) String() string {
+	switch a {
+	case OTBM_ATTR_DESCRIPTION:
+		return "description"
+	case OTBM_ATTR_EXT_FILE:
+		return "ext_file"
+	case OTBM_ATTR_TILE_FLAGS:
+		return "tile_flags"
+	case OTBM_ATTR_ACTION_ID:
+		return "action_id"
+	case OTBM_ATTR_UNIQUE_ID:
+		return "unique_id"
+	case OTBM_ATTR_TEXT:
+		return "text"
+	case OTBM_ATTR_DESC:
+		return "desc"
+	case OTBM_ATTR_TELE_DEST:
+		return "tele_dest"
+	case OTBM_ATTR_ITEM:
+		return "item"
+	case OTBM_ATTR_DEPOT_ID:
+		return "depot_id"
+	case OTBM_ATTR_EXT_SPAWN_FILE:
+		return "ext_spawn_file"
+	case OTBM_ATTR_RUNE_CHARGES:
+		return "rune_charges"
+	case OTBM_ATTR_EXT_HOUSE_FILE:
+		return "ext_house_file"
+	case OTBM_ATTR_HOUSEDOORID:
+		return "housedoorid"
+	case OTBM_ATTR_COUNT:
+		return "count"
+	case OTBM_ATTR_DURATION:
+		return "duration"
+	case OTBM_ATTR_DECAYING_STATE:
+		return "decaying_state"
+	case OTBM_ATTR_WRITTENDATE:
+		return "writtendate"
+	case OTBM_ATTR_WRITTENBY:
+		return "writtenby"
+	case OTBM_ATTR_SLEEPERGUID:
+		return "sleeperguid"
+	case OTBM_ATTR_SLEEPSTART:
+		return "sleepstart"
+	case OTBM_ATTR_CHARGES:
+		return "charges"
+
+	case OTBM_ATTR_ATTRIBUTE_MAP:
+		return "attribute_map"
+
+	default:
+		return fmt.Sprintf("unknown otbm attribute %02x", int(a))
+	}
+}
+
 type rootHeader struct {
 	Ver                          uint32
 	Width, Height                uint16

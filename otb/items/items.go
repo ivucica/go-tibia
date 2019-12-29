@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 
 	"badc0de.net/pkg/go-tibia/otb"
 	"github.com/golang/glog"
@@ -64,6 +65,7 @@ const (
 //
 // Useful primarily for editors.
 type ItemGroup int
+
 const (
 	ITEM_GROUP_NONE ItemGroup = iota
 	ITEM_GROUP_GROUND
@@ -83,9 +85,48 @@ const (
 	ITEM_GROUP_LAST
 )
 
+func (g ItemGroup) String() string {
+	switch g {
+	case ITEM_GROUP_NONE:
+		return "none"
+	case ITEM_GROUP_GROUND:
+		return "ground"
+	case ITEM_GROUP_CONTAINER:
+		return "container"
+	case ITEM_GROUP_WEAPON:
+		return "weapon"
+	case ITEM_GROUP_AMMUNITION:
+		return "ammunition"
+	case ITEM_GROUP_ARMOR:
+		return "armor"
+	case ITEM_GROUP_CHARGES:
+		return "charges"
+	case ITEM_GROUP_TELEPORT:
+		return "teleport"
+	case ITEM_GROUP_MAGICFIELD:
+		return "magic field"
+	case ITEM_GROUP_WRITEABLE:
+		return "writeable"
+	case ITEM_GROUP_KEY:
+		return "key"
+	case ITEM_GROUP_SPLASH:
+		return "splash"
+	case ITEM_GROUP_FLUID:
+		return "fluid"
+	case ITEM_GROUP_DOOR:
+		return "door"
+	case ITEM_GROUP_DEPRECATED:
+		return "deprecated"
+	case ITEM_GROUP_LAST:
+		return "last (invalid value)"
+	default:
+		return "invalid item group"
+	}
+}
+
 // Enumeration containing possible bits in the `flags` bitmask of an item.
 const (
-	FLAG_BLOCK_SOLID = 1 << iota
+	FLAG_BLOCK_SOLID ItemsFlags = 1 << iota
 	FLAG_BLOCK_PROJECTILE
 	FLAG_BLOCK_PATHFIND
 	FLAG_HAS_HEIGHT
@@ -109,7 +150,77 @@ const (
 	FLAG_UNUSED
 	FLAG_CLIENTCHARGES // deprecated
 	FLAG_LOOKTHROUGH
+	FLAG_ANIMATION
+	FLAG_WALKSTACK
+
+	FLAG_LAST
 )
+
+func (f ItemsFlags) String() string {
+	out := make([]string, 0, 32)
+	for bit := FLAG_BLOCK_SOLID; bit < FLAG_LAST; bit <<= 1 {
+		if f&bit == 0 {
+			continue
+		}
+		var desc string
+		switch bit {
+		case FLAG_BLOCK_SOLID:
+			desc = "block solid"
+		case FLAG_BLOCK_PROJECTILE:
+			desc = "block projectile"
+		case FLAG_BLOCK_PATHFIND:
+			desc = "block pathfind"
+		case FLAG_HAS_HEIGHT:
+			desc = "has height"
+		case FLAG_USEABLE:
+			desc = "useable"
+		case FLAG_PICKUPABLE:
+			desc = "pickupable"
+		case FLAG_MOVEABLE:
+			desc = "moveable"
+		case FLAG_FLOORCHANGEDOWN:
+			desc = "floor change down"
+		case FLAG_FLOORCHANGENORTH:
+			desc = "floor change north"
+		case FLAG_FLOORCHANGEEAST:
+			desc = "floor change east"
+		case FLAG_FLOORCHANGESOUTH:
+			desc = "floor change south"
+		case FLAG_FLOORCHANGEWEST:
+			desc = "floor change west"
+		case FLAG_ALWAYSONTOP:
+			desc = "always on top"
+		case FLAG_READABLE:
+			desc = "readable"
+		case FLAG_ROTABLE:
+			desc = "rotable"
+		case FLAG_HANGABLE:
+			desc = "hangable"
+		case FLAG_VERTICAL:
+			desc = "vertical"
+		case FLAG_HORIZONTAL:
+			desc = "horizontal"
+		case FLAG_CANNOTDECAY:
+			desc = "cannot decay"
+		case FLAG_ALLOWDISTREAD:
+			desc = "allow dist read"
+		case FLAG_UNUSED:
+			desc = "unused"
+		case FLAG_CLIENTCHARGES:
+			desc = "client charges"
+		case FLAG_LOOKTHROUGH:
+			desc = "lookthrough"
+		case FLAG_ANIMATION:
+			desc = "animation"
+		case FLAG_WALKSTACK:
+			desc = "walk stack"
+		}
+		if desc != "" {
+			out = append(out, desc)
+		}
+	}
+	return strings.Join(out, ", ")
+}
 
 // Enumeration containing recognized attributes in the items.otb file.
 const (
@@ -147,6 +258,75 @@ const (
 	ITEM_ATTR_WRITEABLE3 // deprecated
 	ITEM_ATTR_LAST
 )
+
+func (a ItemsAttribute) String() string {
+	switch a {
+	case ITEM_ATTR_SERVERID:
+		return "server id"
+	case ITEM_ATTR_CLIENTID:
+		return "client id"
+	case ITEM_ATTR_NAME:
+		return "name"
+	case ITEM_ATTR_DESCR:
+		return "description"
+	case ITEM_ATTR_SPEED:
+		return "speed"
+	case ITEM_ATTR_SLOT:
+		return "slot"
+	case ITEM_ATTR_MAXITEMS:
+		return "max items"
+	case ITEM_ATTR_WEIGHT:
+		return "weight"
+	case ITEM_ATTR_WEAPON:
+		return "weapon"
+	case ITEM_ATTR_AMU:
+		return "amu"
+	case ITEM_ATTR_ARMOR:
+		return "armor"
+	case ITEM_ATTR_MAGLEVEL:
+		return "magic level"
+	case ITEM_ATTR_MAGFIELDTYPE:
+		return "magic field type"
+	case ITEM_ATTR_WRITEABLE:
+		return "writeable"
+	case ITEM_ATTR_ROTATETO:
+		return "rotate to"
+	case ITEM_ATTR_DECAY:
+		return "decay"
+	case ITEM_ATTR_SPRITEHASH:
+		return "spritehash"
+	case ITEM_ATTR_MINIMAPCOLOR:
+		return "minimap color"
+	case ITEM_ATTR_07:
+		return "attr 07"
+	case ITEM_ATTR_08:
+		return "attr 08"
+	case ITEM_ATTR_LIGHT:
+		return "light"
+
+	// 1byte aligned
+	case ITEM_ATTR_DECAY2:
+		return "decay2"
+	case ITEM_ATTR_WEAPON2:
+		return "weapon2"
+	case ITEM_ATTR_AMU2:
+		return "amu2"
+	case ITEM_ATTR_ARMOR2:
+		return "armor2"
+	case ITEM_ATTR_WRITEABLE2:
+		return "writeable2"
+	case ITEM_ATTR_LIGHT2:
+		return "light2"
+	case ITEM_ATTR_TOPORDER:
+		return "toporder"
+	case ITEM_ATTR_WRITEABLE3:
+		return "writeable3"
+	case ITEM_ATTR_LAST:
+		return "last (invalid value)"
+	default:
+		return "invalid attribute"
+	}
+}
 
 type rootNodeVersion struct {
 	DataSize ItemsDataSize
