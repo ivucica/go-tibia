@@ -486,7 +486,8 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 	glog.V(2).Infof(" tile at %d,%d,%d (%d+%d,%d+%d,%d)", p.X(), p.Y(), p.Floor(), area.base.X(), props.X, area.base.Y(), props.Y, area.base.Floor())
 
 	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
-		switch ItemAttribute(attr) {
+		attr := ItemAttribute(attr)
+		switch attr {
 		case OTBM_ATTR_TILE_FLAGS:
 			var tileFlags uint32
 			if err := binary.Read(propBuf, binary.LittleEndian, &tileFlags); err != nil {
@@ -502,10 +503,14 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.otbItemTypeID); err != nil {
 				return nil, fmt.Errorf("readTileNode: error reading item prop of tile: %v", err)
 			}
+			glog.V(2).Infof("  tileitem: %02d %04x", item.otbItemTypeID, item.otbItemTypeID)
 
 			// if otbm version is MAP_OTBM_1 and item is stackable, or splash, or fluid container, read one more byte
 			// TODO: check for otbm_1
 			otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
+			// n.b. Item group is supposed to be ground here!
+			glog.V(2).Infof("  item group: %s", otbItem.Group)
+			glog.V(2).Infof("  item flags: %s", otbItem.Flags)
 			if otbItem.Group == itemsotb.ITEM_GROUP_SPLASH || otbItem.Group == itemsotb.ITEM_GROUP_FLUID || otbItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
 				cntB, err := propBuf.ReadByte()
 				if err != nil {
@@ -516,9 +521,8 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			}
 
 			tile.addItem(item)
-			glog.V(2).Infof("  tileitem: %04x", item.otbItemTypeID)
 		default:
-			return nil, fmt.Errorf("readTileNode: unsupported attr type 0x%02x", attr)
+			return nil, fmt.Errorf("readTileNode: unsupported attr type 0x%02x (%s)", attr, attr)
 		}
 	}
 
@@ -555,8 +559,89 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 	if err := binary.Read(propBuf, binary.LittleEndian, &item.otbItemTypeID); err != nil {
 		return nil, fmt.Errorf("error reading prop otbItemTypeID of item node: %v", err)
 	}
+	glog.V(2).Infof("%sitem id: %d", strings.Repeat(" ", depth+1), item.otbItemTypeID)
+	if item.otbItemTypeID != 0 {
+		otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
+		if otbItem != nil {
+			glog.V(2).Infof("%sitem name: %s", strings.Repeat(" ", depth+1), otbItem.Name())
+			glog.V(2).Infof("%sitem group: %s", strings.Repeat(" ", depth+1), otbItem.Group)
+			glog.V(2).Infof("%sitem flags: %s", strings.Repeat(" ", depth+1), otbItem.Flags)
+			// if otbm version is MAP_OTBM_1 and item is stackable, or splash, or fluid container, read one more byte
+			// TODO: check for otbm_1
+			if otbItem.Group == itemsotb.ITEM_GROUP_SPLASH || otbItem.Group == itemsotb.ITEM_GROUP_FLUID || otbItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
+			}
+		} else {
+			glog.V(2).Infof("%s[n.b. item nil in items.otb]", strings.Repeat(" ", depth+1))
+		}
+	} else {
+		glog.V(2).Infof("%s[n.b. item not found in items.otb]", strings.Repeat(" ", depth+1))
+	}
 
-	// TODO: read other props
+	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
+		attr := ItemAttribute(attr)
+		switch attr {
+		case OTBM_ATTR_COUNT:
+			cntB, err := propBuf.ReadByte()
+			if err != nil {
+				return nil, fmt.Errorf("readItemNode: countable item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem count: %d", strings.Repeat(" ", depth+1), cntB)
+			item.count = int(cntB)
+		case OTBM_ATTR_RUNE_CHARGES:
+			if err := binary.Read(propBuf, binary.LittleEndian, &item.runeCharges); err != nil {
+				return nil, fmt.Errorf("readItemNode: rune item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem rune charges: %d", strings.Repeat(" ", depth+1), item.runeCharges)
+		case OTBM_ATTR_CHARGES:
+			if err := binary.Read(propBuf, binary.LittleEndian, &item.charges); err != nil {
+				return nil, fmt.Errorf("readItemNode: chargable item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem charges: %d", strings.Repeat(" ", depth+1), item.charges)
+		case OTBM_ATTR_ACTION_ID:
+			if err := binary.Read(propBuf, binary.LittleEndian, &item.actionID); err != nil {
+				return nil, fmt.Errorf("readItemNode: actionable item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem action ID: %d", strings.Repeat(" ", depth+1), item.actionID)
+		case OTBM_ATTR_UNIQUE_ID:
+			if err := binary.Read(propBuf, binary.LittleEndian, &item.uniqueID); err != nil {
+				return nil, fmt.Errorf("readItemNode: unique item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem unique ID: %d", strings.Repeat(" ", depth+1), item.uniqueID)
+		case OTBM_ATTR_DEPOT_ID:
+			if err := binary.Read(propBuf, binary.LittleEndian, &item.depotID); err != nil {
+				return nil, fmt.Errorf("readItemNode: depotid item error: %v", err)
+			}
+			glog.V(2).Infof("%sitem depot ID: %d", strings.Repeat(" ", depth+1), item.depotID)
+		case OTBM_ATTR_TELE_DEST:
+			var teleDest struct {
+				X, Y  uint16
+				Floor uint8
+			}
+			if err := binary.Read(propBuf, binary.LittleEndian, &teleDest); err != nil {
+				return nil, fmt.Errorf("readItemNode: teledest item error: %v", err)
+			}
+			item.teleDest = posFromCoord(teleDest.X, teleDest.Y, teleDest.Floor)
+			glog.V(2).Infof("%sitem teledest: %s", strings.Repeat(" ", depth+1), item.teleDest)
+		case OTBM_ATTR_TEXT:
+			var textSize uint16
+			if err := binary.Read(propBuf, binary.LittleEndian, &textSize); err != nil {
+				return nil, fmt.Errorf("readItemNode: texted item error: %v", err)
+			}
+			textB := make([]byte, textSize)
+			n, err := propBuf.Read(textB)
+			if err != nil {
+				return nil, fmt.Errorf("error reading prop text of item node: %v", err)
+			}
+			if n != int(textSize) {
+				return nil, fmt.Errorf("did not read entire text in item node: got %d, want %d", n, textSize)
+			}
+			item.text = string(textB) // assume utf8, I suppose
+
+			glog.V(2).Infof("%sitem text[%d]: %s", strings.Repeat(" ", depth+1), textSize, item.text)
+		default:
+			return nil, fmt.Errorf("readItemNode: unsupported attr type: %s", attr)
+		}
+	}
 
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
 		if mapData, err := m.readItemChildNode(node, parentTile, item, depth+1); err == nil {
