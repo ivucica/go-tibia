@@ -674,6 +674,7 @@ func (m *Map) readItemChildNode(node *otb.OTBNode, parentTile *mapTile, parentIt
 }
 
 func (m *Map) readTownsNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	glog.V(2).Infof("towns")
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
 		if mapData, err := m.readTownsChildNode(node); err == nil {
 			mapData = mapData
