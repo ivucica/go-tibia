@@ -20,7 +20,7 @@ func init() {
 func BenchmarkNew(b *testing.B) {
 	th := setupThings(b)
 
-	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm"}
+	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm", "map.Inconcessus-OTMapGen.generated.otbm"}
 	for _, file := range files {
 		b.Run(file, func(b *testing.B) {
 			testNew(b, file, th)
@@ -31,7 +31,7 @@ func BenchmarkNew(b *testing.B) {
 func TestNew(t *testing.T) {
 	th := setupThings(t)
 
-	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm"}
+	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm", "map.Inconcessus-OTMapGen.generated.otbm"}
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
 			testNew(t, file, th)
