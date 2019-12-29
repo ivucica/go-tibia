@@ -30,6 +30,7 @@ var (
 	quitChan = make(chan int)
 
 	itemsOTBPath string
+	itemsXMLPath string
 	mapPath      string
 	tibiaDatPath string
 
@@ -38,6 +39,7 @@ var (
 
 func setupFilePathFlags() {
 	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
+	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
 	setupFilePathFlag("map.otbm", "map_path", &mapPath)
 }
@@ -256,6 +258,15 @@ func games() {
 	}
 	itemsOTB, err := itemsotb.New(f)
 	f.Close()
+
+	f, err = os.Open(itemsXMLPath)
+	if err != nil {
+		glog.Errorln("opening items xml file for add", err)
+		return
+	}
+	itemsOTB.AddXMLInfo(f)
+	f.Close()
+	
 	if err != nil {
 		glog.Errorln("parsing items otb for add", err)
 		return
