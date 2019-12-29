@@ -349,6 +349,20 @@ type Item struct {
 	Group      ItemGroup
 	Flags      ItemsFlags
 	Attributes map[ItemsAttribute]interface{}
+
+	// TODO(ivucica): Consider making XML data public or merging it into OTB data.
+	xml *xmlItem
+}
+
+// Name returns the name of the item. This may be sourced from XML, if loaded.
+func (i *Item) Name() string {
+	if i.xml != nil {
+		return i.xml.Name
+	}
+	if name, ok := i.Attributes[ITEM_ATTR_NAME]; ok {
+		return name.(string)
+	}
+	return "unnamed item"
 }
 
 // Light represents the data structure describing a lit-up item's light attribute
