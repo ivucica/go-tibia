@@ -144,7 +144,7 @@ func (t *mapTile) RemoveCreature(cr gameworld.Creature) error {
 	newCs := make([]gameworld.Creature, 0, len(t.creatures))
 	seen := false
 	for _, c := range t.creatures {
-		if c.GetID() != cr.GetID() {
+		if c.GetID() == cr.GetID() {
 			seen = true
 			newCs = append(newCs, c)
 		}
