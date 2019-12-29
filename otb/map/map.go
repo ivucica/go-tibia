@@ -175,12 +175,25 @@ type mapItem struct {
 
 	otbItemTypeID uint16
 
-	count int
+	count                int
+	charges, runeCharges uint16
+	actionID             uint16
+	uniqueID             uint16
+	depotID              uint16
+	teleDest             pos
+	text                 string
 }
 
 // GetServerType returns the server-side ID of the item.
 func (i *mapItem) GetServerType() uint16 {
 	return uint16(i.otbItemTypeID)
+}
+
+// GetCount returns the number of instances of this item (e.g. for coins).
+//
+// If item is unstackable, this will most likely be zero.
+func (i *mapItem) GetCount() uint16 {
+	return uint16(i.count)
 }
 
 func (i *mapItem) String() string {

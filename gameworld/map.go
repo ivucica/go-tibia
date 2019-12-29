@@ -40,6 +40,7 @@ type MapTile interface {
 
 type MapItem interface {
 	GetServerType() uint16
+	GetCount() uint16
 }
 
 type MapTileEventSubscriber interface {
@@ -139,11 +140,16 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			byte(itemClientID % 256), byte(itemClientID / 256), // item
 		})
 
-		if itemOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 || itemOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || itemOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH {
+		if itemOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
+			outMap.Write([]byte{
+				byte(item.GetCount()),
+			})
+		}
+		if itemOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || itemOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH || itemOTBItem.Flags&itemsotb.FLAG_CLIENTCHARGES != 0 {
 			// either count or fluid color
-		//	outMap.Write([]byte{
-		//		byte(1),
-		//	})
+			outMap.Write([]byte{
+				byte(4),
+			})
 		}
 
 		idx++

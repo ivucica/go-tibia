@@ -198,3 +198,10 @@ func (t *mapTile) RemoveCreature(cr Creature) error {
 func (i *mapItem) GetServerType() uint16 {
 	return uint16(*i)
 }
+
+// GetCount returns the number of items in this stackable item.
+//
+// (This may also be zero in other implementations for nonstackable items.)
+func (i *mapItem) GetCount() uint16 {
+	return 1
+}
