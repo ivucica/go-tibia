@@ -421,7 +421,7 @@ func (m *Map) readMapDataChildNode(node *otb.OTBNode) (MapData, error) { // TODO
 	case OTBM_TOWNS:
 		return m.readTownsNode(node)
 	case OTBM_WAYPOINTS:
-		glog.V(2).Infof("waypoints")
+		return m.readWaypointsNode(node)
 	default:
 		return nil, fmt.Errorf("readMapDataChildNode: unsupported node type 0x%02x", node.NodeType())
 	}
@@ -649,6 +649,70 @@ func (m *Map) readTownNode(node *otb.OTBNode) (MapData, error) { // TODO: this w
 	if m.defaultPlayerSpawnPoint == 0 {
 		m.defaultPlayerSpawnPoint = posFromCoord(props.templePos.TempleX, props.templePos.TempleY, props.templePos.TempleFloor)
 		glog.V(2).Infof("  this town is now the default spawn point %v", m.defaultPlayerSpawnPoint)
+	}
+
+	// skipping child nodes
+
+	return nil, nil
+}
+
+func (m *Map) readWaypointsNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	glog.V(2).Infof("waypoints")
+	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+		if mapData, err := m.readWaypointsChildNode(node); err == nil {
+			mapData = mapData
+		} else {
+			return nil, fmt.Errorf("error reading waypoints child node: %v", err)
+		}
+	}
+	return nil, nil
+}
+
+func (m *Map) readWaypointsChildNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	switch MapNodeType(node.NodeType()) {
+	case OTBM_WAYPOINT:
+		return m.readWaypointNode(node)
+	default:
+		return nil, fmt.Errorf("readWaypointNode: unsupported node type 0x%02x", node.NodeType())
+	}
+	return nil, nil
+}
+
+func (m *Map) readWaypointNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
+	propBuf := node.PropsBuffer()
+	type propType struct {
+		name string
+		pos  struct {
+			X, Y  uint16
+			Floor uint8
+		}
+	}
+	props := propType{}
+
+	var nameSize uint16
+	if err := binary.Read(propBuf, binary.LittleEndian, &nameSize); err != nil {
+		return nil, fmt.Errorf("error reading prop name's size in waypoint node: %v", err)
+	}
+
+	nameB := make([]byte, nameSize)
+	n, err := propBuf.Read(nameB)
+	if err != nil {
+		return nil, fmt.Errorf("error reading prop name of waypoint node: %v", err)
+	}
+	if n != int(nameSize) {
+		return nil, fmt.Errorf("did not read entire name in waypoint node: got %d, want %d", n, nameSize)
+	}
+	props.name = string(nameB) // assume utf8, I suppose
+
+	if err := binary.Read(propBuf, binary.LittleEndian, &props.pos); err != nil {
+		return nil, fmt.Errorf("error reading prop pos of waypoint node: %v", err)
+	}
+
+	glog.V(2).Infof(" waypoint %s with pos at %d,%d,%d", props.name, props.pos.X, props.pos.Y, props.pos.Floor)
+
+	if m.defaultPlayerSpawnPoint == 0 {
+		m.defaultPlayerSpawnPoint = posFromCoord(props.pos.X, props.pos.Y, props.pos.Floor)
+		glog.V(2).Infof("  this waypoint is now the default spawn point %v", m.defaultPlayerSpawnPoint)
 	}
 
 	// skipping child nodes
