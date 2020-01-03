@@ -102,7 +102,15 @@ func (t *mapTile) addItem(item *mapItem) error {
 
 	m := t.parent
 
+	if item.GetServerType() == 0 {
+		glog.Warningf("   attempting to add item with server ID 0 to map; skipping")
+		return nil
+	}
 	otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
+	if otbItem == nil {
+		glog.Warningf("   OTB item %d cannot be found in the OTB items file.", item.GetServerType())
+		return fmt.Errorf("otbm item %d not found in otb items", item.GetServerType())
+	}
 	if otbItem.Group == itemsotb.ITEM_GROUP_GROUND {
 		if t.ground != nil {
 			// maybe tell t.ground it is being replaced?
