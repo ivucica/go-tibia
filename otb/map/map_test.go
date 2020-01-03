@@ -40,18 +40,40 @@ func TestNew(t *testing.T) {
 }
 
 func setupThings(t testOrBenchmark) *things.Things {
+	var f, xmlf *os.File
 	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.otb")
 	if err != nil {
 		var err2 error
 		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.otb")
 		if err2 != nil {
 			t.Fatalf("failed to open items.otb: %s & %s", err, err2)
+		} else {
+			xmlf, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.xml")
+			if err2 == nil {
+				defer xmlf.Close()
+		} else {
+			t.Fatalf("failed to open items.xml: %s", err2)
+		}
+		}
+	} else {
+		xmlf, err = os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.xml")
+		if err == nil {
+			defer xmlf.Close()
+		} else {
+			t.Fatalf("failed to open items.xml: %s", err)
 		}
 	}
+	defer f.Close()
+
 	i, err := itemsotb.New(f)
 	if err != nil {
 		t.Fatalf("failed to load items.otb: %s", err)
 	}
+	err = i.AddXMLInfo(xmlf)
+	if err != nil {
+		t.Fatalf("failed to load items.xml: %s", err)
+	}
+	
 	th, err := things.New()
 	if err != nil {
 		t.Fatalf("failed to create things registry: %s", err)
