@@ -188,13 +188,13 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	startX := pos.X - uint16(c.viewportSizeW()/2 - 1)
 	startY := pos.Y - uint16(c.viewportSizeH()/2 - 1)
 
-	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor))
+	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor), uint16(c.viewportSizeW()), uint16(c.viewportSizeH()))
 	glog.V(2).Infof("initial map sent")
 
 	return err
 }
 
-func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8) error {
+func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8, width, height uint16) error {
 	start := int8(c.floorGroundLevel())
 	end := int8(0)
 	step := int8(-1)
@@ -212,11 +212,11 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		glog.V(2).Infof("sending floor %d", floor)
 		if err := c.floorDescription(
 			outMap,
-			startX+uint16(7-floor),
-			startY+uint16(7-floor),
+			startX+uint16(7-floor+(startFloor-7)), // TODO(ivucica): fix this calculation; (startFloor-7) is a hack
+			startY+uint16(7-floor+(startFloor-7)),
 			uint8(floor),
-			uint16(c.viewportSizeW()),
-			uint16(c.viewportSizeH())); err != nil {
+			width,
+			height); err != nil {
 			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
 	}

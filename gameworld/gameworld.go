@@ -181,7 +181,7 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 		out := tnet.NewMessage()
 
 		glog.Infof("rejection: sending %s", c.LameDuckText)
-		
+
 		out.Write([]byte{0x14}) // there's also 0x0A
 		out.WriteTibiaString(c.LameDuckText)
 
@@ -200,12 +200,12 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 			return err
 		}
 		glog.Infof("rejection: written %d bytes", wr)
-		
+
 		gwConn.conn.Close() // actually close more nicely
-		
+
 		return nil
 	}
-	
+
 	return c.serveGame(conn, initialMessage, gwConn, playerID)
 }
 
@@ -263,7 +263,10 @@ mainLoop:
 			case 0x14: // logout
 				return nil
 			case 0x65: // move north
-				gwConn.playerMoveNorth()
+				if err := gwConn.playerMoveNorth(); err != nil {
+					glog.Errorf("error moving player to the north: %v", err)
+					continue mainLoop
+				}
 				break
 			case 0x66: // move east
 				gwConn.playerCancelMove(1)
@@ -404,8 +407,87 @@ func (c *GameworldConnection) playerMoveNorth() error {
 		return err
 	}
 	p := player.GetPos()
-	if err := player.SetPos(tnet.Position{X: p.X, Y: p.Y-1, Floor: p.Floor}); err != nil {
+
+	outMove := tnet.NewMessage()
+	outMove.Write([]byte{0x6D})
+
+	if err := binary.Write(outMove, binary.LittleEndian, p); err != nil {
 		return err
 	}
-	return nil
+	if t, err := c.server.mapDataSource.GetMapTile(p.X, p.Y, p.Floor); err != nil {
+		return err
+	} else {
+		// find source index for creature.
+		var itemCount int
+		for itemCount = 0; ; itemCount++ {
+			// TODO(ivucica): this loop is really silly; expose item count in tile interface
+			_, err := t.GetItem(itemCount)
+			if err == ItemNotFound {
+				break
+			}
+			if err != nil {
+				return err
+			}
+		}
+		for i := 0; ; i++ {
+			// TODO(ivucica): allow fetching item stackindex using tile interface
+			c, err := t.GetCreature(i)
+			if err == CreatureNotFound {
+				return fmt.Errorf("creature not found at expected tile (%v / %v)", p, t)
+			}
+			if err != nil {
+				return err
+			}
+			if c.GetID() == pid {
+				outMove.Write([]byte{byte(i + itemCount)})
+				glog.Infof("moving from stackpos %d", i+itemCount)
+				break
+			}
+		}
+
+		if err := t.RemoveCreature(player); err != nil {
+			return err
+		}
+	}
+
+	newP := tnet.Position{X: p.X, Y: p.Y - 1, Floor: p.Floor}
+	if err := player.SetPos(newP); err != nil {
+		return err
+	}
+	if err := binary.Write(outMove, binary.LittleEndian, newP); err != nil {
+		return err
+	}
+
+	if t, err := c.server.mapDataSource.GetMapTile(newP.X, newP.Y, newP.Floor); err != nil {
+		return err
+	} else {
+		if err := t.AddCreature(player); err != nil {
+			return err
+		}
+	}
+
+	glog.Infof("oldpos is %v", p)
+	glog.Infof("newpos is %v", newP)
+
+	///////////////////////////
+
+	//outMap := tnet.NewMessage()
+	outMap := outMove
+	outMap.Write([]byte{0x65}) // move north desc
+
+	pos := p
+
+	glog.V(2).Infof("playerMoveNorth for player %d at %d %d %d", pid, pos.X, pos.Y, pos.Floor)
+
+	startX := pos.X - uint16(c.viewportSizeW()/2-1)
+	startY := pos.Y - uint16(c.viewportSizeH()/2-1)
+
+	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor), uint16(c.viewportSizeW()), 1)
+
+	////////////////////////////
+
+	c.senderChan <- outMove
+	//c.senderChan <- outMap
+
+	return err
 }
