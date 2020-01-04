@@ -447,7 +447,191 @@ func (c *GameworldConnection) initialAppear() error {
 	if err != nil {
 		return fmt.Errorf("initialAppear(): %v", err)
 	}
+
+	for slot := InventorySlotFirst; slot <= InventorySlotLast; slot++ {
+		if slot == InventorySlotHead {
+			c.slotItem(outMap, slot, mapItemOfType(104))
+			continue
+		}
+		if err := c.slotEmpty(outMap, slot); err != nil {
+			return fmt.Errorf("initialAppear(): slot %v: %s", slot, err.Error())
+		}
+	}
+
+	if err := c.playerStats(outMap); err != nil {
+		return err
+	}
+	if err := c.playerSkills(outMap); err != nil {
+		return err
+	}
+	if err := c.worldLight(outMap); err != nil {
+		return err
+	}
+	
+	var playerID CreatureID
+	if playerIDI, err := c.PlayerID(); err != nil {
+		return err
+	} else {
+		playerID = playerIDI
+	}
+	
+	if err := c.creatureLight(outMap, playerID ); err != nil {
+		return err
+	}
+
+	// TODO: send vip list
+
+	if err := c.playerIcons(outMap); err != nil {
+		return err
+	}
+
 	c.senderChan <- outMap
+	return nil
+}
+
+type InventorySlot byte
+
+const (
+	InventorySlotUnknown  InventorySlot = iota // 0
+	InventorySlotHead                          // 1
+	InventorySlotNecklace                      // 2
+	InventorySlotBackpack                      // 3
+	InventorySlotArmor                         // 4
+	InventorySlotRight                         // 5
+	InventorySlotLeft                          // 6
+	InventorySlotLegs                          // 7
+	InventorySlotFeet                          // 8
+	InventorySlotRing                          // 9
+	InventorySlotAmmo                          // A
+
+	InventorySlotFirst = InventorySlotHead
+	InventorySlotLast  = InventorySlotAmmo
+)
+
+func (c *GameworldConnection) slotEmpty(out *tnet.Message, slot InventorySlot) error {
+	out.Write([]byte{0x79, byte(slot)})
+	return nil
+}
+func (c *GameworldConnection) slotItem(out *tnet.Message, slot InventorySlot, item MapItem) error {
+	out.Write([]byte{0x78, byte(slot)})
+	c.itemDescription(out, item)
+	return nil
+}
+
+func (c *GameworldConnection) playerStats(out *tnet.Message) error {
+	out.Write([]byte{0xA0})
+	stats := struct {
+		Health, MaxHealth uint16
+		Capacity          uint32 // capacity * 100
+		Experience        int32  // if negative, send zero
+		Level             uint16
+		LevelPercent      uint8
+		Mana, MaxMana     uint16
+		MagicLevel        uint8
+		MagicLevelPercent uint8
+		Soul              uint8
+		StaminaMinutes    uint16
+	}{
+		Health:            100,
+		MaxHealth:         100,
+		Capacity:          500 * 100,
+		Level:             1,
+		LevelPercent:      5,
+		Mana:              50,
+		MaxMana:           100,
+		MagicLevel:        2,
+		MagicLevelPercent: 15,
+		Soul:              48,
+		StaminaMinutes:    500,
+	}
+
+	if stats.Experience < 0 {
+		stats.Experience = 0
+	}
+
+	if err := binary.Write(out, binary.LittleEndian, stats); err != nil {
+		return err
+	}
+	return nil
+}
+
+type Skill byte
+
+const (
+	SkillFist Skill = iota // 0
+	SkillClub
+	SkillSword
+	SkillAxe
+	SkillDistance
+	SkillShield
+	SkillFishing
+
+	SkillFirst = SkillFist
+	SkillLast  = SkillFishing
+)
+
+func (c *GameworldConnection) playerSkills(out *tnet.Message) error {
+	out.Write([]byte{0xA1})
+	skillSet := struct {
+		FistLevel, FistPercent         uint8
+		ClubLevel, ClubPercent         uint8
+		SwordLevel, SwordPercent       uint8
+		AxeLevel, AxePercent           uint8
+		DistanceLevel, DistancePercent uint8
+		ShieldLevel, ShieldPercent     uint8
+		FishingLevel, FishingPercent   uint8
+	}{
+		FistLevel:     1,
+		FistPercent:   95,
+		ClubLevel:     1,
+		SwordLevel:    1,
+		AxeLevel:      1,
+		DistanceLevel: 1,
+		ShieldLevel:   1,
+		FishingLevel:  1,
+	}
+
+	if err := binary.Write(out, binary.LittleEndian, skillSet); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *GameworldConnection) worldLight(out *tnet.Message) error {
+	out.Write([]byte{0x82})
+	light := struct {
+		Level uint8
+		Color uint8
+	}{
+		Level: 45,
+		Color: 45,
+	}
+	if err := binary.Write(out, binary.LittleEndian, light); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *GameworldConnection) creatureLight(out *tnet.Message, creature CreatureID) error {
+	out.Write([]byte{0x8D})
+	light := struct {
+		Creature uint32
+		Level uint8
+		Color uint8
+	}{
+		Creature: uint32(creature),
+		Level: 45,
+		Color: 45,
+	}
+	if err := binary.Write(out, binary.LittleEndian, light); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *GameworldConnection) playerIcons(out *tnet.Message) error {
+	// TODO: send actual flags for various icons
+	out.Write([]byte{0xA2, 0x00, 0x00})
 	return nil
 }
 

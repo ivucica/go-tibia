@@ -59,7 +59,7 @@ func (c *GameworldConnection) floorGroundLevel() int8 {
 }
 func (c *GameworldConnection) floorBedrockLevel() int8 {
 	return 14
-}	
+}
 
 func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16, z uint8, width, height uint16) error {
 	var skip int
@@ -118,17 +118,6 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			return emptyTile()
 		}
 		glog.Infof("sending %s idx %d : %s", tile, idx, item)
-		itemOTBItem := c.server.things.Temp__GetItemFromOTB(item.GetServerType(), c.clientVersion)
-		//if itemOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
-			// TODO(ivucica): support tiles with only non-item items or with only creatures (although, does that make sense?)
-		//	return emptyTile()
-		//}
-
-		itemClientID := c.server.things.Temp__GetClientIDForServerID(item.GetServerType(), c.clientVersion)
-		if itemClientID == 0 {
-			// some error getting client ID
-			return emptyTile()
-		}
 
 		if idx == 0 {
 			// little endian of 0xFF00 & skiptiles
@@ -136,20 +125,8 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			skip = 0
 		}
 
-		outMap.Write([]byte{
-			byte(itemClientID % 256), byte(itemClientID / 256), // item
-		})
-
-		if itemOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
-			outMap.Write([]byte{
-				byte(item.GetCount()),
-			})
-		}
-		if itemOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || itemOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH || itemOTBItem.Flags&itemsotb.FLAG_CLIENTCHARGES != 0 {
-			// either count or fluid color
-			outMap.Write([]byte{
-				byte(4),
-			})
+		if err := c.itemDescription(outMap, item); err != nil {
+			return emptyTile()
 		}
 
 		idx++
@@ -173,6 +150,37 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 	return skip, nil
 }
 
+func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) error {
+	itemOTBItem := c.server.things.Temp__GetItemFromOTB(item.GetServerType(), c.clientVersion)
+	//if itemOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
+	// TODO(ivucica): support tiles with only non-item items or with only creatures (although, does that make sense?)
+	//	return emptyTile()
+	//}
+
+	itemClientID := c.server.things.Temp__GetClientIDForServerID(item.GetServerType(), c.clientVersion)
+	if itemClientID == 0 {
+		// some error getting client ID
+		return fmt.Errorf("error getting client id for item %d", item.GetServerType())
+	}
+
+	out.Write([]byte{
+		byte(itemClientID % 256), byte(itemClientID / 256), // item
+	})
+
+	if itemOTBItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
+		out.Write([]byte{
+			byte(item.GetCount()),
+		})
+	}
+	if itemOTBItem.Group == itemsotb.ITEM_GROUP_FLUID || itemOTBItem.Group == itemsotb.ITEM_GROUP_SPLASH || itemOTBItem.Flags&itemsotb.FLAG_CLIENTCHARGES != 0 {
+		// either count or fluid color
+		out.Write([]byte{
+			byte(4),
+		})
+	}
+	return nil
+}
+
 func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 
@@ -191,8 +199,8 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 
 	glog.V(2).Infof("initialAppearMap for player %d at %d %d %d", playerID, pos.X, pos.Y, pos.Floor)
 
-	startX := pos.X - uint16(c.viewportSizeW()/2 - 1)
-	startY := pos.Y - uint16(c.viewportSizeH()/2 - 1)
+	startX := pos.X - uint16(c.viewportSizeW()/2-1)
+	startY := pos.Y - uint16(c.viewportSizeH()/2-1)
 
 	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor), uint16(c.viewportSizeW()), uint16(c.viewportSizeH()))
 	glog.V(2).Infof("initial map sent")
@@ -204,17 +212,17 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	start := int8(c.floorGroundLevel())
 	end := int8(0)
 	step := int8(-1)
-	
+
 	if startFloor > c.floorGroundLevel() {
 		start = startFloor - 2
 		end = c.floorBedrockLevel()
-		if int8(startFloor) + 2 < end {
+		if int8(startFloor)+2 < end {
 			end = int8(startFloor) + 2
 		}
 		step = 1
 	}
 
-	for floor := start; floor != end+step; floor+=step {
+	for floor := start; floor != end+step; floor += step {
 		glog.V(2).Infof("sending floor %d", floor)
 		if err := c.floorDescription(
 			outMap,
@@ -259,4 +267,3 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 
 	return nil
 }
-
