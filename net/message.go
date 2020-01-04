@@ -254,11 +254,16 @@ func (msg *Message) Finalize(xteaKey [16]byte) (*Message, error) {
 	return resp, nil
 }
 
-// PrependSize only prepends the size to the message. Used only to send
-// initial 0x1F packet.
+// PrependSize only prepends the size+checksum+innert size to the message.
+// Used only to send initial 0x1F packet.
 func (msg *Message) PrependSize() (*Message, error) {
 	// add size
-	return msg.finalize(false)
+	resp, err := msg.finalize(false)
+	if err != nil {
+		return nil, err
+	}
+	// include checksum+inner size, too.
+	return resp.finalize(true)
 }
 
 // finalize prepends the message length and checksum, making it ready for io.Readers
