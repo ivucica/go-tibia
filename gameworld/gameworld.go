@@ -325,6 +325,29 @@ mainLoop:
 						}(otherGwConn, out)
 					}
 				}
+			case 0xA0: // set fight modes
+				var fightMode FightMode
+				var chaseMode ChaseMode
+				var safeMode uint8 // ?
+				if fightModeB, err := msg.ReadByte(); err != nil {
+					return err
+				} else {
+					fightMode = FightMode(fightModeB)
+				}
+
+				if chaseModeB, err := msg.ReadByte(); err != nil {
+					return err
+				} else {
+					chaseMode = ChaseMode(chaseModeB)
+				}
+
+				if safeModeB, err := msg.ReadByte(); err != nil {
+					return err
+				} else {
+					safeMode = safeModeB
+				}
+
+				glog.Infof("fight mode: %v; chase mode: %v; safe mode: %02x", fightMode, chaseMode, safeMode)
 			}
 		case <-gwConn.mainLoopQuit:
 			break mainLoop
@@ -333,6 +356,47 @@ mainLoop:
 	// TODO: how to safely tell netsender to quit?
 	return nil
 }
+
+type FightMode uint8
+
+const (
+	FightModeUnknown FightMode = iota
+	FightModeOffensive
+	FightModeBalanced
+	FightModeDefensive
+)
+
+func (m FightMode) String() string {
+	switch m {
+	case FightModeOffensive:
+		return "FightModeOffensive"
+	case FightModeBalanced:
+		return "FightModeBalanced"
+	case FightModeDefensive:
+		return "FightModeDefensive"
+	default:
+		return fmt.Sprintf("invalid fight mode %02x", uint8(m))
+	}
+}
+
+type ChaseMode uint8
+
+const (
+	ChaseModeStand ChaseMode = iota
+	ChaseModeChase
+)
+
+func (m ChaseMode) String() string {
+	switch m {
+	case ChaseModeStand:
+		return "ChaseModeStand"
+	case ChaseModeChase:
+		return "ChaseModeChase"
+	default:
+		return fmt.Sprintf("invalid chase mode %02x", uint8(m))
+	}
+}
+
 func (c *GameworldConnection) networkReceiver() error {
 	// TODO: how to safely tell main loop to quit?
 	for {
