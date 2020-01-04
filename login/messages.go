@@ -51,7 +51,7 @@ func FYI(w *net.Message, fyiText string) error {
 // set of characters (ascii 13+10, \r\n). The number is used by the client
 // to avoid bothering the user with the same message that was already seen.
 func MOTD(w *net.Message, motdText string) error {
-	if err := w.WriteByte(0x0B); err != nil {
+	if err := w.WriteByte(0x14); err != nil {
 		return err
 	}
 	if err := w.WriteTibiaString(motdText); err != nil {
