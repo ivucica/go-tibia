@@ -62,28 +62,21 @@ func (c *GameworldConnection) floorBedrockLevel() int8 {
 	return 14
 }
 
-func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16, z uint8, width, height uint16) error {
-	var skip int
+func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16, z uint8, width, height uint16, skip int) (int, error) {
 	for nx := x; nx < x+width; nx++ {
 		for ny := y; ny < y+height; ny++ {
 			tile, err := c.server.mapDataSource.GetMapTile(nx, ny, z)
 			if err != nil {
-				return fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
+				return skip, fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
 			}
 			skip, err = c.tileDescription(outMap, tile, skip)
 			if err != nil {
-				return fmt.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, err)
+				return skip, fmt.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, err)
 			}
 		}
 	}
-	if skip > 0 {
-		// little endian of 0xFF00 & skiptiles
-		glog.Infof("[skip %d]", skip)
-		outMap.Write([]byte{byte(skip), 0xFF})
-		skip = 0
-	}
 
-	return nil
+	return skip, nil
 }
 
 func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile, skip int) (int, error) {
@@ -152,13 +145,22 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			}
 		} else {
 			// We know err == CreatureNotFound or nil
+			//_, err := tile.GetItem(0)
+			//if err == ItemNotFound {
+			//	return emptyTile()
+			//}
+
+			// BUG: this needs to be sent BEFORE the tile EXCEPT the first one (this is correct even if the first tile is empty with length zero), and then just AFTER final tile.
+			// POSSIBLE REPLACEMENT ALGORITHM:
+			// - tileDescription provides a []byte + position (maybe over a channels so we can efficiently use GetTile as an RPC in the future)
+			// - when joining tileDescriptions into a single stream (possibly as they are being generated), positions are compared
+			// - just when tile is being added to msg, its bytes are prepended with how many tiles have been skipped (a subtraction of positions, which is a well-defined operation if we know startX, startY, startZ, x, y, z, updateW, updateH).
 			glog.Infof("[skip %d]", skip)
 			outMap.Write([]byte{byte(skip), 0xFF})
 			skip = 0
 			break
 		}
 	}
-
 	return skip, nil
 }
 
@@ -234,17 +236,25 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		step = 1
 	}
 
+	var skip int
 	for floor := start; floor != end+step; floor += step {
 		glog.V(2).Infof("sending floor %d", floor)
-		if err := c.floorDescription(
+		var err error
+		if skip, err = c.floorDescription(
 			outMap,
 			startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
 			startY-uint16(floor-startFloor),
 			uint8(floor),
 			width,
-			height); err != nil {
+			height, skip); err != nil {
 			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
 		}
+	}
+	if skip > 0 {
+		// little endian of 0xFF00 & skiptiles
+		glog.Infof("[skip %d]", skip)
+		outMap.Write([]byte{byte(skip), 0xFF})
+		skip = 0
 	}
 
 	return nil
