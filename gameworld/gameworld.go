@@ -723,9 +723,9 @@ func (c *GameworldConnection) playerMoveNorth() error {
 	outMap := outMove
 	outMap.Write([]byte{0x65}) // move north desc
 
-	pos := p
+	pos := newP
 
-	glog.V(2).Infof("playerMoveNorth for player %d at %d %d %d", pid, pos.X, pos.Y, pos.Floor)
+	glog.Infof("playerMoveNorth for player %d at %d %d %d", pid, pos.X, pos.Y, pos.Floor)
 
 	startX := pos.X - uint16(c.viewportSizeW()/2-1)
 	startY := pos.Y - uint16(c.viewportSizeH()/2-1)

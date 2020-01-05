@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -77,6 +78,7 @@ func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16
 	}
 	if skip > 0 {
 		// little endian of 0xFF00 & skiptiles
+		glog.Infof("[skip %d]", skip)
 		outMap.Write([]byte{byte(skip), 0xFF})
 		skip = 0
 	}
@@ -88,6 +90,7 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 	emptyTile := func() (int, error) {
 		if skip >= 0xFF {
 			// little endian of 0xFF00 & skiptiles
+			glog.Infof("[skip %d]", skip)
 			outMap.Write([]byte{0xFF, 0xFF})
 			skip -= 0xFF
 		} else {
@@ -98,14 +101,19 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 
 	idx := 0
 	for {
-
 		// FIXME: this counts on server order of items matching the client order of items.
 		item, err := tile.GetItem(idx)
 		if err != nil {
+			//_, crErr := tile.GetCreature(0)
 			if err == ItemNotFound {
 				if idx == 0 {
+					glog.Infof("empty tile %s", tile)
 					return emptyTile()
 				} else {
+					// little endian of 0xFF00 & skiptiles
+					//glog.Infof("[skip %d]", skip)
+					//outMap.Write([]byte{byte(skip), 0xFF})
+					//skip = 0
 					break
 				}
 			}
@@ -119,11 +127,11 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 		}
 		glog.Infof("sending %s idx %d : %s", tile, idx, item)
 
-		if idx == 0 {
-			// little endian of 0xFF00 & skiptiles
-			outMap.Write([]byte{byte(skip), 0xFF})
-			skip = 0
-		}
+		//if idx == 0 {
+		//	// little endian of 0xFF00 & skiptiles
+		//	outMap.Write([]byte{byte(skip), 0xFF})
+		//	skip = 0
+		//}
 
 		if err := c.itemDescription(outMap, item); err != nil {
 			return emptyTile()
@@ -138,11 +146,15 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			if err != nil {
 				return skip, err
 			}
+			glog.Infof("sending %s idx %d : %s", tile, idx, cr)
 			if err := c.creatureDescription(outMap, cr); err != nil {
 				return skip, err
 			}
 		} else {
 			// We know err == CreatureNotFound or nil
+			glog.Infof("[skip %d]", skip)
+			outMap.Write([]byte{byte(skip), 0xFF})
+			skip = 0
 			break
 		}
 	}
