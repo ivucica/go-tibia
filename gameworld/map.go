@@ -255,14 +255,14 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 	outMap.Write([]byte{
 		100,             // health
 		0,               // dir,
-		128, 0, 5, 2, 0, // outfit
-		0, 0, // looktype ex u16
+		0x88, 0x00, 0x0a, 0x0a, 0x0a, // 128, 0, 5, 2, 0, // outfit
+		0x0a, 0x00, //0, 0, // looktype ex u16
 		0, 0, // light level and color
-		100, 0, // step speed
+		0x84, 0x03, //100, 0, // step speed
 		0, //skull
 		0, // party shield
 		0, // 0x61, therefore send war emblem
-		0, // player can walk through
+		0x01, //0, // player can walk through
 	})
 
 	return nil

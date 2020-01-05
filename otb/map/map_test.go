@@ -9,6 +9,7 @@ import (
 	//"badc0de.net/pkg/go-tibia/ttesting"
 
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/things"
 )
 
@@ -133,4 +134,32 @@ func testNew(t testOrBenchmark, baseName string, th *things.Things) {
 	}
 
 	otbm = otbm
+}
+
+/////////////////
+
+func TestMapDescriptionCorrectness(t *testing.T) {
+	gameworld.MapDescriptionEncoding_Test(t, loadOTBM(t, "range-test-map.otbm"))
+}
+
+func loadOTBM(t *testing.T, fn string) *Map {
+	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fn)
+	if err != nil {
+		var err2 error
+		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/external/itemsotb854/file/" + fn)
+		if err2 != nil {
+			var err3 error
+			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/" + fn)
+			if err3 != nil {
+				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
+			}
+		}
+	}
+
+	th := setupThings(t)
+	otbm, err := New(f, th)
+	if err != nil {
+		t.Fatalf("failed to parse otbm: %s", err)
+	}
+	return otbm
 }

@@ -50,12 +50,18 @@ type mapDataSource struct {
 	creatures map[CreatureID]Creature
 
 	generatedMapTiles map[tnet.Position]MapTile
+
+	mapTileGenerator func(x, y uint16, z uint8) (MapTile, error)
 }
 type mapTile struct {
 	ground    MapItem
 	creatures []Creature
 
 	subscribers []MapTileEventSubscriber
+}
+
+func (*mapTile) String() string {
+	return "<procedural map tile>"
 }
 
 type mapItem int
@@ -79,7 +85,7 @@ func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if t, ok := ds.generatedMapTiles[tnet.Position{x, y, z}]; ok {
 		return t, nil
 	}
-	generatedMapTile, err := ds.generateMapTile(x, y, z)
+	generatedMapTile, err := ds.mapTileGenerator(x, y, z)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +93,11 @@ func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	return generatedMapTile, nil
 
 }
-func (*mapDataSource) generateMapTile(x, y uint16, z uint8) (MapTile, error) {
-	if z == 7 {
+func generateMapTileImpl(x, y uint16, z uint8) (MapTile, error) {
+	switch z {
+	default:
+		return &mapTile{}, nil
+	case 7:
 		if y == 32768+14/2 {
 			switch x % 2 {
 			case 0:
@@ -109,11 +118,16 @@ func (*mapDataSource) generateMapTile(x, y uint16, z uint8) (MapTile, error) {
 		default:
 			return &mapTile{}, nil
 		}
-	} else {
-		if z == 6 && x == 32768+(18/2)-4 && y == 32768+(14/2) {
+	case 6:
+		if x == 32768+(18/2)-4 && y == 32768+(14/2) {
 			glog.Infof("sending 104 at %d %d %d", x, y, z)
 			return &mapTile{ground: mapItemOfType(103)}, nil
 		}
+		if x > 90 && x < 97 && y > 91 && y < 97 {
+			// for unit test of mapInitialAppear
+			return &mapTile{ground: mapItemOfType(105)}, nil
+		}
+
 		return &mapTile{}, nil
 	}
 }

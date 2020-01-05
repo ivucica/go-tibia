@@ -206,14 +206,16 @@ func (i *mapItem) GetCount() uint16 {
 
 func (i *mapItem) String() string {
 	name := "unnamed"
+	clientID := uint16(0)
 	if i.GetServerType() != 0 {
 		otbItem := i.ancestorMap.things.Temp__GetItemFromOTB(i.GetServerType(), 0)
 		if otbItem != nil {
 			name = otbItem.Name()
+			clientID = i.ancestorMap.things.Temp__GetClientIDForServerID(i.GetServerType(), 0)
 		}
 	}
 		
-	return fmt.Sprintf("<mapItem %d : %s>", i.otbItemTypeID, name)
+	return fmt.Sprintf("<mapItem %d : %02x %s>", i.otbItemTypeID, clientID, name)
 }
 
 // Implementation detail: iota is not used primarily for easier referencing in
@@ -843,7 +845,7 @@ func (m *Map) GetMapTile(x, y uint16, z uint8) (gameworld.MapTile, error) {
 		return t, nil
 	}
 	//return nil, fmt.Errorf("tile not found")
-	return &mapTile{parent: m}, nil
+	return &mapTile{parent: m,  ownPos: pos}, nil
 }
 
 func (m *Map) GetCreatureByIDBytes(idBytes [4]byte) (gameworld.Creature, error) {
