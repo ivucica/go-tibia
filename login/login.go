@@ -101,7 +101,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		glog.Errorln("error generating the motd message: ", err)
 		return err
 	}
-
+/*
 	// add checksum and size headers wherever appropriate, and perform
 	// XTEA crypto.
 	resp, err = resp.Finalize(key)
@@ -117,7 +117,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		return err
 	}
 	glog.V(2).Infof("written %d bytes", wr)
-
+*/
 	///////
 	localAddr := conn.LocalAddr()
 	if localAddr == nil {
@@ -131,7 +131,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		return fmt.Errorf("error getting local TCP addr")
 	}
 	
-	resp = tnet.NewMessage()
+//	resp = tnet.NewMessage()
 	err = CharacterList(resp, []CharacterListEntry{
 		CharacterListEntry{
 			CharacterName:  "Demo Character",
@@ -156,7 +156,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 	}
 
 	// transmit the response
-	wr, err = io.Copy(conn, resp)
+	wr, err := io.Copy(conn, resp)
 	if err != nil {
 		glog.Errorf("error writing login message response: %s", err)
 		return err
