@@ -17,7 +17,7 @@ func (c *GameworldConnection) initialAppearSelfAppear(outMap *tnet.Message) erro
 	}
 
 	outMap.Write([]byte{
-		0x00, 0x00, // unkDrawSpeed
+		0x32, 0x00, // unkDrawSpeed
 		0x00, // canReportBugs
 	})
 	return nil
