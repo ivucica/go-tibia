@@ -203,7 +203,7 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 
 	creature, err := c.server.mapDataSource.GetCreatureByID(playerID)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "initialAppearMap: getting player creature")
 	}
 
 	pos := creature.GetPos()
@@ -238,8 +238,8 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		glog.V(2).Infof("sending floor %d", floor)
 		if err := c.floorDescription(
 			outMap,
-			startX+uint16(7-floor+(startFloor-7)), // TODO(ivucica): fix this calculation; (startFloor-7) is a hack
-			startY+uint16(7-floor+(startFloor-7)),
+			startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
+			startY-uint16(floor-startFloor),
 			uint8(floor),
 			width,
 			height); err != nil {
