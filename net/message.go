@@ -297,13 +297,21 @@ func (msg *Message) finalize(includeChecksum bool) (*Message, error) {
 		return nil, fmt.Errorf("Message.Finalize() copy: error %s, written %d/%d", err, written, origSz)
 	}
 
+	/*
+	if !includeChecksum {
+			// TODO(ivucica): randomize the junk
+			for i := int16(0) ; i < sz - origSz ; i++ {
+				newMsg.Write([]byte{0xAB})
+			}
+		}
+	*/
+
 	return newMsg, nil
 }
 
-
 // Position defines the network representation of a character or creature
 // position in the tiled world.
-type Position struct{
-	X, Y uint16
+type Position struct {
+	X, Y  uint16
 	Floor uint8
 }
