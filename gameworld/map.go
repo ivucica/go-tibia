@@ -5,7 +5,9 @@ import (
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"encoding/binary"
 	"fmt"
+	"io"
 
+	//"github.com/cavaliercoder/go-abs" // int abs is trivial, but *shrug*, this is easy to replace as needed.
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -62,35 +64,142 @@ func (c *GameworldConnection) floorBedrockLevel() int8 {
 	return 14
 }
 
-func (c *GameworldConnection) floorDescription(outMap *tnet.Message, x, y uint16, z uint8, width, height uint16, skip int) (int, error) {
+type singleTileDescription struct {
+	pos  tnet.Position
+	idx  int
+	data *tnet.Message
+	err  error
+}
+
+func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8, width, height uint16) error {
+	start := int8(c.floorGroundLevel())
+	end := int8(0)
+	step := int8(-1)
+
+	if startFloor > c.floorGroundLevel() {
+		start = startFloor - 2
+		end = c.floorBedrockLevel()
+		if int8(startFloor)+2 < end {
+			end = int8(startFloor) + 2
+		}
+		step = 1
+	}
+
+	tilesCh := make(chan singleTileDescription)
+	descIdx := 0
+	for floor := start; floor != end+step; floor += step {
+		glog.V(2).Infof("describing floor %d", floor)
+
+		// TODO: handle error from floorDescription
+		go func(descIdx int, floor int8) {
+			if err := c.floorDescription(tilesCh,
+				startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
+				startY-uint16(floor-startFloor),
+				uint8(floor),
+				width,
+				height, descIdx); err != nil {
+				panic(fmt.Errorf("failed to send floor %d: %v %p", floor, err, err))
+			}
+		}(descIdx, floor)
+		descIdx += int(width * height)
+	}
+	all := make([]singleTileDescription, descIdx) // width*height*uint16(abs.WithTwosComplement(int64(end-start+1))))
+
+	//if len(all) != descIdx {
+	//	return fmt.Errorf("len(all) = %d, descIdx = %d, should be same", len(all), descIdx)
+	//}
+
+	hadError := false
+	for i := 0; i < descIdx; i++ {
+		tileDesc := <-tilesCh
+		if tileDesc.err != nil {
+			glog.Errorf("error in received tile: %v", tileDesc.err)
+			// continuing to read the remaining tiles to clear away the channel
+		}
+		if tileDesc.idx >= descIdx || tileDesc.idx >= len(all) {
+			return fmt.Errorf("tried to store at %d in all[%d] - descIdx %d", tileDesc.idx, len(all), descIdx)
+		}
+		all[tileDesc.idx] = tileDesc
+	}
+	if hadError {
+		return fmt.Errorf("error in at least one received tile")
+	}
+
+	var skip int
+	for i := 0; i < descIdx; i++ {
+
+		if all[i].data.Len() > 0 {
+			// there is data to send.
+			//
+			// wrap up previous tile by sending tilecount that was skipped.
+			//
+			// this may be zero, except, of course, if this is the first tile.
+			if skip > 0 || i > 0 {
+				for skip >= 0 {
+					if skip > 255 {
+						outMap.Write([]byte{0xFF, 0xFF})
+					} else {
+						outMap.Write([]byte{byte(skip % 256), 0xFF})
+					}
+					skip -= 256
+					if skip == 0 {
+						break
+					}
+				}
+				skip = 0
+			}
+
+			io.Copy(outMap, all[i].data)
+		} else {
+			skip++
+		}
+	}
+
+	for skip >= 0 {
+		if skip > 255 {
+			outMap.Write([]byte{0xFF, 0xFF})
+		} else {
+			outMap.Write([]byte{byte(skip % 256), 0xFF})
+		}
+		skip -= 256
+
+		if skip == 0 {
+			break
+		}
+	}
+
+	return nil
+}
+
+func (c *GameworldConnection) floorDescription(tilesCh chan singleTileDescription, x, y uint16, z uint8, width, height uint16, descIdx int) error {
 	for nx := x; nx < x+width; nx++ {
 		for ny := y; ny < y+height; ny++ {
 			tile, err := c.server.mapDataSource.GetMapTile(nx, ny, z)
 			if err != nil {
-				return skip, fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
+				return fmt.Errorf("failed to get tile %d %d %d: %v", nx, ny, z, err)
 			}
-			skip, err = c.tileDescription(outMap, tile, skip)
-			if err != nil {
-				return skip, fmt.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, err)
+
+			tileDesc := c.tileDescription(tnet.Position{
+				X:     uint16(nx),
+				Y:     uint16(ny),
+				Floor: uint8(z),
+			}, tile, descIdx)
+			if tileDesc.err != nil {
+				glog.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, tileDesc.err)
+				return fmt.Errorf("failed to send tile desc for %d %d %d: %v", nx, ny, z, tileDesc.err)
 			}
+
+			tilesCh <- *tileDesc
+			descIdx++
 		}
 	}
 
-	return skip, nil
+	return nil
 }
 
-func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile, skip int) (int, error) {
-	emptyTile := func() (int, error) {
-		if skip >= 0xFF {
-			// little endian of 0xFF00 & skiptiles
-			glog.Infof("[skip %d]", skip)
-			outMap.Write([]byte{0xFF, 0xFF})
-			skip -= 0xFF
-		} else {
-			skip++
-		}
-		return skip, nil
-	}
+func (c *GameworldConnection) tileDescription(pos tnet.Position, tile MapTile, descIdx int) (tileOut *singleTileDescription) {
+	outMap := tnet.NewMessage()
+	tileOut = &singleTileDescription{pos: pos, idx: descIdx, data: outMap}
 
 	idx := 0
 	for {
@@ -100,25 +209,24 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 			//_, crErr := tile.GetCreature(0)
 			if err == ItemNotFound {
 				if idx == 0 {
-					glog.Infof("empty tile %s", tile)
-					return emptyTile()
-				} else {
-					// little endian of 0xFF00 & skiptiles
-					//glog.Infof("[skip %d]", skip)
-					//outMap.Write([]byte{byte(skip), 0xFF})
-					//skip = 0
-					break
+					glog.V(3).Infof("empty tile %s", tile)
+					// TODO: support tiles with no items, but with creatures
+					return
 				}
+
+				// top of the stack; continue to creatures
+				break
 			}
 
 			// any other error is an actual error
-			return skip, err
+			tileOut.err = err
+			return
 		}
 		if item == nil {
 			glog.Warningf("Bug in map data source: returned item is nil, but error is not ItemNotFound")
-			return emptyTile()
+			return
 		}
-		glog.Infof("sending %s idx %d : %s", tile, idx, item)
+		glog.V(3).Infof("sending %s idx %d : %s", tile, idx, item)
 
 		//if idx == 0 {
 		//	// little endian of 0xFF00 & skiptiles
@@ -127,7 +235,8 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 		//}
 
 		if err := c.itemDescription(outMap, item); err != nil {
-			return emptyTile()
+			tileOut.err = err
+			return
 		}
 
 		idx++
@@ -135,33 +244,21 @@ func (c *GameworldConnection) tileDescription(outMap *tnet.Message, tile MapTile
 
 	// add any creatures on this tile
 	for idx := 0; ; idx++ {
-		if cr, err := tile.GetCreature(idx); err != CreatureNotFound {
-			if err != nil {
-				return skip, err
-			}
-			glog.Infof("sending %s idx %d : %s", tile, idx, cr)
-			if err := c.creatureDescription(outMap, cr); err != nil {
-				return skip, err
-			}
-		} else {
-			// We know err == CreatureNotFound or nil
-			//_, err := tile.GetItem(0)
-			//if err == ItemNotFound {
-			//	return emptyTile()
-			//}
-
-			// BUG: this needs to be sent BEFORE the tile EXCEPT the first one (this is correct even if the first tile is empty with length zero), and then just AFTER final tile.
-			// POSSIBLE REPLACEMENT ALGORITHM:
-			// - tileDescription provides a []byte + position (maybe over a channels so we can efficiently use GetTile as an RPC in the future)
-			// - when joining tileDescriptions into a single stream (possibly as they are being generated), positions are compared
-			// - just when tile is being added to msg, its bytes are prepended with how many tiles have been skipped (a subtraction of positions, which is a well-defined operation if we know startX, startY, startZ, x, y, z, updateW, updateH).
-			glog.Infof("[skip %d]", skip)
-			outMap.Write([]byte{byte(skip), 0xFF})
-			skip = 0
+		if cr, err := tile.GetCreature(idx); err == CreatureNotFound {
 			break
+		} else if err != nil {
+			tileOut.err = err
+			return
+		} else {
+			//glog.Infof("sending %s idx %d : %s", tile, idx, cr)
+			if err := c.creatureDescription(outMap, cr); err != nil {
+				tileOut.err = err
+				return
+			}
 		}
 	}
-	return skip, nil
+
+	return
 }
 
 func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) error {
@@ -220,44 +317,6 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	glog.V(2).Infof("initial map sent")
 
 	return err
-}
-
-func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8, width, height uint16) error {
-	start := int8(c.floorGroundLevel())
-	end := int8(0)
-	step := int8(-1)
-
-	if startFloor > c.floorGroundLevel() {
-		start = startFloor - 2
-		end = c.floorBedrockLevel()
-		if int8(startFloor)+2 < end {
-			end = int8(startFloor) + 2
-		}
-		step = 1
-	}
-
-	var skip int
-	for floor := start; floor != end+step; floor += step {
-		glog.V(2).Infof("sending floor %d", floor)
-		var err error
-		if skip, err = c.floorDescription(
-			outMap,
-			startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
-			startY-uint16(floor-startFloor),
-			uint8(floor),
-			width,
-			height, skip); err != nil {
-			return fmt.Errorf("failed to send floor %d during initialAppearMap: %v", floor, err)
-		}
-	}
-	if skip > 0 {
-		// little endian of 0xFF00 & skiptiles
-		glog.Infof("[skip %d]", skip)
-		outMap.Write([]byte{byte(skip), 0xFF})
-		skip = 0
-	}
-
-	return nil
 }
 
 func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creature) error {
