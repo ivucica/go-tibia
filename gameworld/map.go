@@ -1,15 +1,18 @@
 package gameworld
 
 import (
+	"context"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"time"
 
 	//"github.com/cavaliercoder/go-abs" // int abs is trivial, but *shrug*, this is easy to replace as needed.
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -85,24 +88,45 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		step = 1
 	}
 
-	tilesCh := make(chan singleTileDescription)
-	descIdx := 0
+	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
+	defer cancel()
+	group, ctx := errgroup.WithContext(ctx)
+	
+	total := int((end+step - start) * step)
+	total *= int(width * height)
+
+	tilesCh := make(chan singleTileDescription, total)
+	descIdx := int(0)
 	for floor := start; floor != end+step; floor += step {
 		glog.V(2).Infof("describing floor %d", floor)
 
-		// TODO: handle error from floorDescription
-		go func(descIdx int, floor int8) {
+		//go func(descIdx int, floor int8) {
+		func(descIdx int, floor int8) {
+			group.Go(func() error {
 			if err := c.floorDescription(tilesCh,
 				startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
 				startY-uint16(floor-startFloor),
 				uint8(floor),
 				width,
 				height, descIdx); err != nil {
-				panic(fmt.Errorf("failed to send floor %d: %v %p", floor, err, err))
-			}
+				return fmt.Errorf("failed to send floor %d: %v %p", floor, err, err)
+				//panic fmt.Errorf("failed to send floor %d: %v %p", floor, err, err)
+				}
+				return nil
+			})
 		}(descIdx, floor)
 		descIdx += int(width * height)
 	}
+	glog.Infof("start: %d end: %d step: %d total: %d descIdx: %d width*height: %d", start, end, step, total, descIdx, width*height)
+
+	if err := group.Wait(); err != nil {
+		return err
+	}
+
+	if descIdx != total {
+		panic(fmt.Sprintf("math problem: descIdx %d != total %d", descIdx, total))
+	}
+	
 	all := make([]singleTileDescription, descIdx) // width*height*uint16(abs.WithTwosComplement(int64(end-start+1))))
 
 	//if len(all) != descIdx {
