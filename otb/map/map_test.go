@@ -1,7 +1,9 @@
 package otbm
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"testing"
 
@@ -24,7 +26,7 @@ func BenchmarkNew(b *testing.B) {
 	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm", "map.Inconcessus-OTMapGen.generated.otbm"}
 	for _, file := range files {
 		b.Run(file, func(b *testing.B) {
-			testNew(b, file, th)
+			tobNew(b, file, th)
 		})
 	}
 }
@@ -35,7 +37,7 @@ func TestNew(t *testing.T) {
 	files := []string{"map.otserv.otbm", "map.Inconcessus-OTBM2JSON.otbm", "map.Inconcessus-OTMapGen.generated.otbm"}
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
-			testNew(t, file, th)
+			tobNew(t, file, th)
 		})
 	}
 }
@@ -64,9 +66,34 @@ func setupThings(t testOrBenchmark) *things.Things {
 			t.Fatalf("failed to open items.xml: %s", err)
 		}
 	}
-	defer f.Close()
+	//defer f.Close()
 
-	i, err := itemsotb.New(f)
+	// buffering BEGIN
+
+	// This is an optimization as a lot of performance problems come from too
+	// many syscalls for small readers + too many seeks around the file.
+	//
+	// This optimization should be added to gotserv binary, too, and it should
+	// wrap around items.otb loaders too.
+
+	// TODO(ivucica): add error handling here
+	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
+	var sz int64
+	fi, err := f.Stat()
+	if err != nil {
+		t.Errorf("error with stat: %v", err)
+	} else {
+		sz = fi.Size()
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Grow(int(sz))
+	io.Copy(buf, f) // handle error
+	f.Close()
+	bufR := bytes.NewReader(buf.Bytes())
+	// buffering END
+
+	i, err := itemsotb.New(bufR)
 	if err != nil {
 		t.Fatalf("failed to load items.otb: %s", err)
 	}
@@ -85,10 +112,11 @@ func setupThings(t testOrBenchmark) *things.Things {
 
 type testOrBenchmark interface {
 	Fatalf(string, ...interface{})
+	Errorf(string, ...interface{})
 	Skip(...interface{})
 }
 
-func testNew(t testOrBenchmark, baseName string, th *things.Things) {
+func tobNew(t testOrBenchmark, baseName string, th *things.Things) {
 	if baseName == "map.otserv.otbm" && testing.Short() {
 		t.Skip("skipping test in short mode")
 		return
@@ -101,12 +129,39 @@ func testNew(t testOrBenchmark, baseName string, th *things.Things) {
 			t.Fatalf("failed to open file %s: %s & %s", baseName, err, err2)
 		}
 	}
-	otbm, err := New(f, th)
+	//defer f.Close()
+	
+	// buffering BEGIN
+
+	// This is an optimization as a lot of performance problems come from too
+	// many syscalls for small readers + too many seeks around the file.
+	//
+	// This optimization should be added to gotserv binary, too, and it should
+	// wrap around items.otb loaders too.
+
+	// TODO(ivucica): add error handling here
+	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
+	var sz int64
+	fi, err := f.Stat()
+	if err != nil {
+		t.Errorf("error with stat: %v", err)
+	} else {
+		sz = fi.Size()
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Grow(int(sz))
+	io.Copy(buf, f) // handle error
+	f.Close()
+	bufR := bytes.NewReader(buf.Bytes())
+	// buffering END
+
+	otbm, err := New(bufR, th)
 	if err != nil {
 		t.Fatalf("failed to parse otbm %s: %s", baseName, err)
 	}
 
-	if tt := t.(*testing.T); tt != nil {
+	if tt, ok := t.(*testing.T); ok {
 		switch baseName {
 		case "map.otserv.otbm":
 			temples := []pos{posFromCoord(100, 100, 7), posFromCoord(335, 382, 7)}
