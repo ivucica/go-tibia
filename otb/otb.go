@@ -144,9 +144,14 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 	// glog.V(3).Infof("parsing at depth %d", depth)
 	// defer glog.V(3).Infof("end parsing at depth %d", depth)
 	currentNode := n
+
+	bytA := []byte{0}
+	var nodeType uint8
+	var cnt int
+	var err error
+
 	for {
-		var nodeType uint8
-		if err := binary.Read(reader, binary.LittleEndian, &nodeType); err != nil {
+		if err = binary.Read(reader, binary.LittleEndian, &nodeType); err != nil {
 			if err == io.EOF {
 				if depth != 0 {
 					glog.Warning("warning: abrupt end to an OTB.")
@@ -161,9 +166,8 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 		for {
 			shouldBreakFor := false
 
-			var byt uint8
-			if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
-				if err == io.EOF {
+			if cnt, err = reader.Read(bytA); err != nil || cnt != 1 {
+				if err == io.EOF || cnt != 1 {
 					if depth != 0 {
 						glog.Warning("warning: abrupt end to an OTB.")
 					}
@@ -171,7 +175,7 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 				}
 				return fmt.Errorf("error reading otb byte: %v", err)
 			}
-			switch byt {
+			switch bytA[0] {
 			case NODE_START:
 				node := OTBNode{}
 				currentNode.child = &node
@@ -179,9 +183,8 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 					return fmt.Errorf("error parsing child node: %v", err)
 				}
 			case NODE_END:
-				var byt uint8
-				if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
-					if err == io.EOF {
+				if cnt, err = reader.Read(bytA); err != nil || cnt != 1 {
+					if err == io.EOF  || cnt != 1 {
 						if depth != 0 {
 							glog.Warning("warning: abrupt end to an OTB.")
 						}
@@ -189,7 +192,7 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 					}
 					return fmt.Errorf("error reading otb byte: %v", err)
 				}
-				switch byt {
+				switch bytA[0] {
 				case NODE_START:
 					// glog.V(3).Infof("props: %+v", currentNode.props)
 					node := OTBNode{}
@@ -203,18 +206,16 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 					// glog.V(3).Infof("props: %+v", currentNode.props)
 					return nil
 				default:
-					return fmt.Errorf("expected NODE_START or NODE_END, got %x", byt)
+					return fmt.Errorf("expected NODE_START or NODE_END, got %x", bytA[0])
 				}
 			case ESCAPE_CHAR:
-				// Skip one byte. TODO(ivucica): simplify... too lazy to look up what's offered by io.ReadSeeker to skip 1 byte
-				var byt uint8
-				if err := binary.Read(reader, binary.LittleEndian, &byt); err != nil {
+				// Skip current byte, read the next one.
+				if cnt, err = reader.Read(bytA); err != nil || cnt != 1 {
 					return fmt.Errorf("error reading otb byte: %v", err)
 				}
-
-				currentNode.props = append(currentNode.props, byt)
+				currentNode.props = append(currentNode.props, bytA[0])
 			default:
-				currentNode.props = append(currentNode.props, byt)
+				currentNode.props = append(currentNode.props, bytA[0])
 			}
 
 			if shouldBreakFor {
