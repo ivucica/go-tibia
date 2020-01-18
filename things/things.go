@@ -4,6 +4,8 @@ import (
 	"badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/spr"
+
+	"github.com/golang/glog"
 )
 
 type Things struct {
@@ -34,11 +36,13 @@ func (t *Things) AddSpriteSet(s *spr.SpriteSet) error {
 func (t *Things) Temp__GetClientIDForServerID(serverID uint16, clientVersion uint16) uint16 {
 	itm, err := t.items.ItemByServerID(serverID)
 	if err != nil {
+		glog.Errorf("item %d fetch gave error: %v", err)
 		return 0
 	}
 	if attr, ok := itm.Attributes[itemsotb.ITEM_ATTR_CLIENTID]; ok {
 		return attr.(uint16)
 	} else {
+		glog.Errorf("item %d has no ITEM_ATTR_CLIENTID", serverID)
 		return 0
 	}
 }
