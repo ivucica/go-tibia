@@ -194,7 +194,16 @@ func tobNew(t testOrBenchmark, baseName string, th *things.Things) {
 /////////////////
 
 func TestMapDescriptionCorrectness(t *testing.T) {
-	gameworld.MapDescriptionEncoding_Test(t, loadOTBM(t, "range-test-map.otbm"))
+	ds1 := make(chan *Map)
+	ds2 := make(chan *Map)
+	go func() {
+		ds1 <- loadOTBM(t, "range-test-map.otbm")
+	}()
+	go func() {
+		ds2 <- loadOTBM(t, "map.otserv.otbm")
+	}()
+	
+	gameworld.MapDescriptionEncoding_Test(t, <-ds1, <-ds2)
 }
 
 func loadOTBM(t *testing.T, fn string) *Map {

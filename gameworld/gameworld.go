@@ -646,6 +646,15 @@ func (c *GameworldConnection) playerCancelMove(dir byte) error {
 }
 
 func (c *GameworldConnection) playerMoveNorth() error {
+	outMove := tnet.NewMessage()
+	if err := c.playerMoveNorthImpl(outMove); err != nil {
+		return err
+	}
+
+	c.senderChan <- outMove
+	return nil
+}
+func (c *GameworldConnection) playerMoveNorthImpl(outMove *tnet.Message) error {
 	pid, err := c.PlayerID()
 	if err != nil {
 		return err
@@ -656,7 +665,6 @@ func (c *GameworldConnection) playerMoveNorth() error {
 	}
 	p := player.GetPos()
 
-	outMove := tnet.NewMessage()
 	outMove.Write([]byte{0x6D})
 
 	if err := binary.Write(outMove, binary.LittleEndian, p); err != nil {
@@ -725,17 +733,12 @@ func (c *GameworldConnection) playerMoveNorth() error {
 
 	pos := newP
 
-	glog.Infof("playerMoveNorth for player %d at %d %d %d", pid, pos.X, pos.Y, pos.Floor)
-
 	startX := pos.X - uint16(c.viewportSizeW()/2-1)
 	startY := pos.Y - uint16(c.viewportSizeH()/2-1)
 
+	glog.Infof("playerMoveNorth for player %d at %d %d %d", pid, pos.X, pos.Y, pos.Floor)
+
 	err = c.mapDescription(outMap, startX, startY, int8(pos.Floor), uint16(c.viewportSizeW()), 1)
-
-	////////////////////////////
-
-	c.senderChan <- outMove
-	//c.senderChan <- outMap
 
 	return err
 }

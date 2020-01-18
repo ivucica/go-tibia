@@ -47,7 +47,18 @@ func LoadOTBForTest(t *testing.T) *itemsotb.Items {
 // But OTBM loader imports gameworld, due to some map types being here.
 //
 // So the actual test is invoked from OTBM loader.
-func MapDescriptionEncoding_Test(t *testing.T, ds MapDataSource) {
+func MapDescriptionEncoding_Test(t *testing.T, ds1, ds2 MapDataSource) {
+	t.Run("mapDescriptionEncodingInitialSpawn", func(t *testing.T) {
+		mapDescriptionEncodingInitialSpawn(t, ds1)
+	})
+
+	t.Run("mapDescriptionEncodingInitialSpawnMoveNorth", func(t *testing.T) {
+		mapDescriptionEncodingMoveNorth(t, ds2)
+	})
+
+}
+
+func mapDescriptionEncodingInitialSpawn(t *testing.T, ds MapDataSource) {
 	playerID := CreatureID(0x100003e9) // e9030010
 	gws := &GameworldServer{
 		things: LoadThingsForTest(t),
@@ -275,5 +286,61 @@ func MapDescriptionEncoding_Test(t *testing.T, ds MapDataSource) {
 			}
 		})
 	}
+}
 
+func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
+	playerID := CreatureID(0x100003e9) // e9030010
+	gws := &GameworldServer{
+		things: LoadThingsForTest(t),
+	}
+	gwConn := &GameworldConnection{}
+	gwConn.clientVersion = 854
+	gwConn.server = gws
+	//gwConn.conn = conn
+	//gwConn.key = key
+	gwConn.id = GameworldConnectionID(playerID)
+
+	gws.SetMapDataSource(ds)
+
+	ds.AddCreature(&creature{
+		id: playerID,
+		x:  100,
+		y:  91,
+		z:  7,
+	})
+
+	// First, sanity checking tile on top left: 92,84,7 (which should be 980100ff -- just item 405):
+	if topLeftTile, err := ds.GetMapTile(92,84,7); err != nil {
+		t.Errorf("error fetching topleft tile: %v", err)
+	} else {
+		if item, err := topLeftTile.GetItem(0); err != nil {
+			t.Errorf("error fetching bottom item at topleft tile of %v: %v", ds, err)
+		} else {
+			if item.GetServerType() != 405 {
+				t.Errorf("wrong item at topleft tile of %v; got %d, want 405", ds, item.GetServerType())
+			}
+		}
+	}
+
+
+	msg := tnet.NewMessage()
+	if err := gwConn.playerMoveNorthImpl(msg); err != nil {
+		t.Errorf("%v", err)
+	}
+	
+	t.Logf("%s", hex.EncodeToString(msg.Bytes()))
+
+	// 6d
+	//   6400 5b00 07 01
+	//   6400 5a00 07
+	// 65
+	// got:
+	//   02ff a311010508ff a311010508ff [-3]
+	//[+3] 5c0b010508ff 5c0b010506ff [-1]
+	//[+1] 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 91045aff
+	// want:
+	//   980100ff 980100ff a311010500ff a311010500ff 980100ff 980100ff 980100ff 980100ff 980100ff 980100ff 980100ff a311010500ff a311010500ff 980100ff 980100ff 980100ff 980100ff 980100ff
+	//   980100ff 9801010500ff 01055c0b00ff 980100ff 980100ff 980100ff 980100ff 980100ff 980100ff 980100ff 9801010500ff 01055c0b00ff 980100ff 980100ff 980100ff 980100ff 980100ff 980100ff
+	//   910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 910400ff 91045aff
+	t.Errorf("fake fail")
 }
