@@ -106,7 +106,7 @@ func generateMapTileImpl(x, y uint16, z uint8) (MapTile, error) {
 				return &mapTile{ground: mapItemOfType(103)}, nil
 			}
 		}
-		switch ((y + 3) / 2) % 4 {
+		switch ((y + 3) / 2) % 6 {
 		case 0:
 			return &mapTile{ground: mapItemOfType(103)}, nil
 		case 1:
@@ -115,6 +115,10 @@ func generateMapTileImpl(x, y uint16, z uint8) (MapTile, error) {
 			return &mapTile{ground: mapItemOfType(101)}, nil
 		case 3:
 			return &mapTile{ground: mapItemOfType(100)}, nil
+		case 4:
+			return &mapTile{ground: mapItemOfType(106)}, nil
+		case 5:
+			return &mapTile{ground: mapItemOfType(405)}, nil
 		default:
 			return &mapTile{}, nil
 		}
@@ -125,7 +129,7 @@ func generateMapTileImpl(x, y uint16, z uint8) (MapTile, error) {
 		}
 		if x > 90 && x < 97 && y > 91 && y < 97 {
 			// for unit test of mapInitialAppear
-			return &mapTile{ground: mapItemOfType(105)}, nil
+			return &mapTile{ground: mapItemOfType(405)}, nil
 		}
 
 		return &mapTile{}, nil
