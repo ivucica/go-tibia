@@ -75,6 +75,7 @@ type singleTileDescription struct {
 }
 
 func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8, width, height uint16) error {
+	glog.Infof("sending %d,%d,%d for %dx%d", startX, startY, startFloor, width, height)
 	start := int8(c.floorGroundLevel())
 	end := int8(0)
 	step := int8(-1)
@@ -293,7 +294,7 @@ func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) e
 	itemClientID := c.server.things.Temp__GetClientIDForServerID(item.GetServerType(), c.clientVersion)
 	if itemClientID == 0 {
 		// some error getting client ID
-		return fmt.Errorf("error getting client id for item %d", item.GetServerType())
+		return fmt.Errorf("id for item %d is 0", item.GetServerType())
 	}
 
 	out.Write([]byte{

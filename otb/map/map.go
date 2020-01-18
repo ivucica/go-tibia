@@ -12,6 +12,7 @@ import (
 
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -47,6 +48,13 @@ type Map struct {
 	things    *things.Things
 
 	defaultPlayerSpawnPoint pos // temporary variable; ideally this is specified by having player's town ID in config
+
+	desc []string
+	extSpawnFile, extHouseFile string
+}
+
+func (m *Map) String() string {
+	return fmt.Sprintf("<map with description: [%s]>", strings.Join(m.desc, "; "))
 }
 
 func (m *Map) Private_And_Temp__DefaultPlayerSpawnPoint(c gameworld.CreatureID) tnet.Position {
@@ -103,7 +111,7 @@ func (t *mapTile) addItem(item *mapItem) error {
 	m := t.parent
 
 	if item.GetServerType() == 0 {
-		glog.Warningf("   attempting to add item with server ID 0 to map; skipping")
+		glog.Warningf("   attempting to add item with server ID 0 to map tile %s; skipping", t.String())
 		return nil
 	}
 	otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
@@ -155,6 +163,8 @@ func (t *mapTile) RemoveCreature(cr gameworld.Creature) error {
 		if c.GetID() == cr.GetID() {
 			seen = true
 			newCs = append(newCs, c)
+		} else {
+			glog.Warningf("seeing creature %d at %v; looking for %d", c.GetID(), cr.GetPos(), cr.GetID())
 		}
 	}
 	if !seen {
@@ -409,7 +419,51 @@ func (m *Map) readRootChildNode(node *otb.OTBNode) (MapData, error) {
 }
 
 func (m *Map) readMapDataNode(node *otb.OTBNode) (MapData, error) {
-	// props := node.PropsBuffer() Likely nothing useful in PropsBuffer
+	propBuf := node.PropsBuffer() 
+
+	readStr := func() (string, error) {
+		var sz uint16
+		if err := binary.Read(propBuf, binary.LittleEndian, &sz); err != nil {
+			return "", err
+		}
+		buf := make([]byte, sz)
+		n, err := propBuf.Read(buf)
+		if err != nil {
+			return "", err
+		}
+		if n != int(sz) {
+			return "", fmt.Errorf("sz %d != n %d", sz, n)
+		}
+		return string(buf), nil
+	}
+	
+	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
+		attr := ItemAttribute(attr)
+		switch attr {
+		case OTBM_ATTR_DESCRIPTION:
+			s, err := readStr()
+			if err != nil {
+				return nil, err
+			}
+			m.desc = append(m.desc, s)
+		case OTBM_ATTR_EXT_SPAWN_FILE:
+			s, err := readStr()
+			if err != nil {
+				return nil, err
+			}
+			m.extSpawnFile = s
+		case OTBM_ATTR_EXT_HOUSE_FILE:
+			s, err := readStr()
+			if err != nil {
+				return nil, err
+			}
+			m.extHouseFile = s
+		default:
+			return nil, fmt.Errorf("readMapData: unsupported attr type 0x%02x (%s)", attr, attr)
+		}
+	}
+
+	glog.Infof("Reading map %s", m)
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
 		if mapData, err := m.readMapDataChildNode(node); err == nil {
 			mapData = mapData
