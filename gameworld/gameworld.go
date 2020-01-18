@@ -467,15 +467,15 @@ func (c *GameworldConnection) initialAppear() error {
 	if err := c.worldLight(outMap); err != nil {
 		return err
 	}
-	
+
 	var playerID CreatureID
 	if playerIDI, err := c.PlayerID(); err != nil {
 		return err
 	} else {
 		playerID = playerIDI
 	}
-	
-	if err := c.creatureLight(outMap, playerID ); err != nil {
+
+	if err := c.creatureLight(outMap, playerID); err != nil {
 		return err
 	}
 
@@ -616,12 +616,12 @@ func (c *GameworldConnection) creatureLight(out *tnet.Message, creature Creature
 	out.Write([]byte{0x8D})
 	light := struct {
 		Creature uint32
-		Level uint8
-		Color uint8
+		Level    uint8
+		Color    uint8
 	}{
 		Creature: uint32(creature),
-		Level: 45,
-		Color: 45,
+		Level:    45,
+		Color:    45,
 	}
 	if err := binary.Write(out, binary.LittleEndian, light); err != nil {
 		return err

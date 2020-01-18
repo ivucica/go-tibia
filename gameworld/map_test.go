@@ -38,10 +38,11 @@ func (t *accessCountingTile) String() string {
 }
 func (t *accessCountingTile) GetItem(idx int) (MapItem, error) {
 	t.accessCount++
-	if t.tst != nil { t.tst.Logf("@ %d,%d,%d accessed idx %d", t.x, t.y, t.z, idx) } 
+	if t.tst != nil {
+		t.tst.Logf("@ %d,%d,%d accessed idx %d", t.x, t.y, t.z, idx)
+	}
 	return t.MapTile.GetItem(idx)
 }
-
 
 func TestMapDescriptionRange(t *testing.T) {
 	playerID := CreatureID(123)
@@ -59,8 +60,10 @@ func TestMapDescriptionRange(t *testing.T) {
 		mapDataSource: *(NewMapDataSource().(*mapDataSource)),
 	}
 	ds.mapTileGenerator = func(x, y uint16, z uint8) (MapTile, error) {
-		mt, err := generateAccessCountingMapTile(x,y,z)
-		if err != nil {return nil, err}
+		mt, err := generateAccessCountingMapTile(x, y, z)
+		if err != nil {
+			return nil, err
+		}
 		mt.(*accessCountingTile).tst = t
 		return mt, err
 	}
@@ -156,4 +159,3 @@ func TestMapDescriptionRange(t *testing.T) {
 		})
 	}
 }
-

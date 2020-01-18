@@ -1,9 +1,9 @@
 package gameworld
 
 import (
-	"context"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -91,8 +91,8 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Second)
 	defer cancel()
 	group, ctx := errgroup.WithContext(ctx)
-	
-	total := int((end+step - start) * step)
+
+	total := int((end + step - start) * step)
 	total *= int(width * height)
 
 	tilesCh := make(chan singleTileDescription, total)
@@ -103,21 +103,19 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		//go func(descIdx int, floor int8) {
 		func(descIdx int, floor int8) {
 			group.Go(func() error {
-			if err := c.floorDescription(tilesCh,
-				startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
-				startY-uint16(floor-startFloor),
-				uint8(floor),
-				width,
-				height, descIdx); err != nil {
-				return fmt.Errorf("failed to send floor %d: %v %p", floor, err, err)
-				//panic fmt.Errorf("failed to send floor %d: %v %p", floor, err, err)
+				if err := c.floorDescription(tilesCh,
+					startX-uint16(floor-startFloor), // TODO(ivucica): fix this calculation
+					startY-uint16(floor-startFloor),
+					uint8(floor),
+					width,
+					height, descIdx); err != nil {
+					return fmt.Errorf("failed to send floor %d: %v %p", floor, err, err)
 				}
 				return nil
 			})
 		}(descIdx, floor)
 		descIdx += int(width * height)
 	}
-	glog.Infof("start: %d end: %d step: %d total: %d descIdx: %d width*height: %d", start, end, step, total, descIdx, width*height)
 
 	if err := group.Wait(); err != nil {
 		return err
@@ -126,7 +124,7 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	if descIdx != total {
 		panic(fmt.Sprintf("math problem: descIdx %d != total %d", descIdx, total))
 	}
-	
+
 	all := make([]singleTileDescription, descIdx) // width*height*uint16(abs.WithTwosComplement(int64(end-start+1))))
 
 	//if len(all) != descIdx {
