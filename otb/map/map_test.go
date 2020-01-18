@@ -221,7 +221,34 @@ func loadOTBM(t *testing.T, fn string) *Map {
 	}
 
 	th := setupThings(t)
-	otbm, err := New(f, th)
+
+	// buffering BEGIN
+
+	// This is an optimization as a lot of performance problems come from too
+	// many syscalls for small readers + too many seeks around the file.
+	//
+	// This optimization should be added to gotserv binary, too, and it should
+	// wrap around items.otb loaders too.
+
+	// TODO(ivucica): add error handling here
+	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
+	var sz int64
+	fi, err := f.Stat()
+	if err != nil {
+		t.Errorf("error with stat: %v", err)
+	} else {
+		sz = fi.Size()
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Grow(int(sz))
+	io.Copy(buf, f) // handle error
+	f.Close()
+	bufR := bytes.NewReader(buf.Bytes())
+	// buffering END
+
+
+	otbm, err := New(bufR, th)
 	if err != nil {
 		t.Fatalf("failed to parse otbm: %s", err)
 	}
