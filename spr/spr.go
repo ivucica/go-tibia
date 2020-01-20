@@ -10,20 +10,28 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"sync"
+
+	"github.com/golang/glog"
 )
 
 type SpriteSet struct {
 	//Images []image.Image
 
 	buf *bytes.Reader
+	m sync.Mutex
 }
 
 func (s *SpriteSet) Image(idx int) image.Image {
+	s.m.Lock()
+	s.buf.Seek(0, io.SeekStart)
 	spr, err := DecodeOne(s.buf, idx)
 	if err != nil {
+		glog.Errorf("error decoding sprite %d : %v", idx, err)
+		s.m.Unlock()
 		return nil
 	}
-	s.buf.Seek(0, io.SeekStart)
+	s.m.Unlock()
 	return spr
 }
 
