@@ -35,8 +35,11 @@ func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
 				if spr == 0 {
 					continue
 				}
-				glog.Infof("%d\n", spr)
 				src := i.parent.spriteSet.Image(int(spr))
+				if src == nil {
+					glog.Errorf("error decoding sprite %d", spr)
+					continue
+				}
 				r := image.Rect(
 					(int(gfx.Width)-x-1)*int(gfx.RenderSize), (int(gfx.Height)-y-1)*int(gfx.RenderSize),
 					(int(gfx.Width)-x-1+1)*int(gfx.RenderSize), (int(gfx.Height)-y-1+1)*int(gfx.RenderSize))
