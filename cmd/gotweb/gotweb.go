@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 
 	"badc0de.net/pkg/flagutil/v1"
 
@@ -160,6 +161,8 @@ func sprHandler(w http.ResponseWriter, r *http.Request) {
 	img, err := spr.DecodeOne(f, idx)
 	if err != nil {
 		http.Error(w, "failed to decode spr", http.StatusInternalServerError)
+		glog.Errorf("error decoding spr: %v", err)
+		return
 	}
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
@@ -190,7 +193,13 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
 }
+
+var citemLock sync.Mutex
+
 func citemHandler(w http.ResponseWriter, r *http.Request) {
+	citemLock.Lock()
+	defer citemLock.Unlock()
+
 	vars := mux.Vars(r)
 	idx, err := strconv.Atoi(vars["idx"])
 	if err != nil {
@@ -223,6 +232,10 @@ func citemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	img := itm.ItemFrame(p.fr, p.x, p.y, p.z)
+	if img == nil {
+		http.Error(w, "bad image", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
