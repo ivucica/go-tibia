@@ -19,7 +19,7 @@ type SpriteSet struct {
 	//Images []image.Image
 
 	buf *bytes.Reader
-	m sync.Mutex
+	m   sync.Mutex
 }
 
 func (s *SpriteSet) Image(idx int) image.Image {
@@ -74,10 +74,18 @@ type header struct {
 // file (a sprite set file), finds the image with passed index, and returns the
 // requested image as an image.Image.
 func DecodeOne(r io.ReadSeeker, which int) (image.Image, error) {
+	if which == 0 {
+		return nil, fmt.Errorf("not found")
+	}
+
 	var h header
 	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
 		return nil, fmt.Errorf("could not read spr header: %s", err)
 	}
+	if which >= int(h.SpriteCount) {
+		return nil, fmt.Errorf("not found")
+	}
+
 	r.Seek(int64((which-1)*4), io.SeekCurrent) // TODO(ivucica): handle error and return value
 
 	var ptr uint32
@@ -105,6 +113,10 @@ func DecodeUpcoming(r io.Reader) (image.Image, error) {
 	}
 	if size > 3444 {
 		return nil, fmt.Errorf("spr block too large; got %d, want < 3444", size)
+	}
+
+	if size == 0 {
+		return image.NewRGBA(image.Rect(0, 0, 32, 32)), nil
 	}
 
 	buf := bytes.Buffer{}
