@@ -162,14 +162,15 @@ func (t *mapTile) RemoveCreature(cr gameworld.Creature) error {
 	for _, c := range t.creatures {
 		if c.GetID() == cr.GetID() {
 			seen = true
-			newCs = append(newCs, c)
 		} else {
 			glog.Warningf("seeing creature %d at %v; looking for %d", c.GetID(), cr.GetPos(), cr.GetID())
+			newCs = append(newCs, c)
 		}
 	}
 	if !seen {
 		glog.Warningf("removing creature %d from tile %d %d %d where it's actually not present", cr.GetID(), cr.GetPos().X, cr.GetPos().Y, cr.GetPos().Floor)
 	}
+	t.creatures = newCs
 	return nil
 }
 
