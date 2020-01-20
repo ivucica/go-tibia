@@ -250,10 +250,52 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		pg := 0
+		pgSize := 50
+
+		if pgStr := r.URL.Query().Get("page"); pgStr != "" {
+			if pgConv, err := strconv.Atoi(pgStr); err == nil {
+				pg = pgConv - 1
+			}
+		}
+
 		w.Header().Set("Content-Type", "text/html")
+
+		itemCIDMin := 100
+		itemCIDMax := 10477 // TODO: ask things.Things
+		pgMin := 0
+		pgMax := (itemCIDMax - itemCIDMin) / pgSize
+
+		if pg < pgMin {
+			pg = pgMin
+		}
+		if pg > pgMax {
+			pg = pgMax
+		}
+
+		for i := pgMin; i < pgMax+1; i++ {
+			if i == pg {
+				fmt.Fprintf(w, `<b><a href="?page=%d">%d</a></b> `, i+1, i+1)
+			} else {
+				fmt.Fprintf(w, `<a href="?page=%d">%d</a> `, i+1, i+1)
+			}
+		}
+		fmt.Fprintf(w, "\n")
+
 		fmt.Fprintf(w, "<ul>")
-		for i := 100; i < 1000; i++ {
-			fmt.Fprintf(w, "<li><dt>%d</dt><dd><img src=/item/c%d></dd>\n", i, i)
+		for i := 100 + pg*pgSize; i < 100+pg*pgSize+pgSize; i++ {
+			var name string
+			wid := 32
+			hei := 32
+			if itm, err := th.ItemWithClientID(uint16(i), 854); err == nil {
+				name = fmt.Sprintf("%d: %s", i, itm.Name())
+				sz := itm.GraphicsSize()
+				wid = sz.W
+				hei = sz.H
+			} else {
+				name = fmt.Sprintf("%d", i)
+			}
+			fmt.Fprintf(w, "<li><dt>%s</dt><dd><img width=%d height=%d src=/item/c%d></dd>\n", name, wid, hei, i)
 		}
 	})
 	r.HandleFunc("/spr/{idx:[0-9]+}", sprHandler)
