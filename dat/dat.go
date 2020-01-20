@@ -179,7 +179,7 @@ func (i Item) IsGround() bool {
 }
 
 // GetGraphics returns sprites associated with this item.
-func (i Item) GetGraphics() *Graphics {
+func (i *Item) GetGraphics() *Graphics {
 	return &i.Graphics
 }
 
@@ -189,7 +189,7 @@ func (o Outfit) String() string {
 }
 
 // GetGraphics returns sprites associated with this outfit.
-func (o Outfit) GetGraphics() *Graphics {
+func (o *Outfit) GetGraphics() *Graphics {
 	return &o.Graphics
 }
 
@@ -199,7 +199,7 @@ func (e Effect) String() string {
 }
 
 // GetGraphics returns sprites associated with this effect.
-func (e Effect) GetGraphics() *Graphics {
+func (e *Effect) GetGraphics() *Graphics {
 	return &e.Graphics
 }
 
@@ -209,7 +209,7 @@ func (d DistanceEffect) String() string {
 }
 
 // GetGraphics returns sprites associated with this distance effect.
-func (d DistanceEffect) GetGraphics() *Graphics {
+func (d *DistanceEffect) GetGraphics() *Graphics {
 	return &d.Graphics
 }
 
@@ -238,6 +238,17 @@ func NewDataset(r io.Reader) (*Dataset, error) {
 	glog.V(3).Infoln("loaded")
 
 	return &dataset, nil
+}
+
+func (d *Dataset) Item(clientID uint16) *Item {
+	if clientID < 100 {
+		return nil
+	}
+	if clientID > uint16(len(d.items)+100) {
+		return nil
+	}
+
+	return &d.items[clientID-100]
 }
 
 // load780plus loads the format used in game version 7.8 and later.
@@ -633,8 +644,9 @@ func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
 	if err := binary.Read(r, binary.LittleEndian, &gfx.GraphicsDimensions); err != nil {
 		return fmt.Errorf("error reading graphics dimensions: %v", err)
 	}
-	glog.V(5).Info("reading rendersize")
+	gfx.RenderSize = 32
 	if gfx.GraphicsDimensions.Width != 1 || gfx.GraphicsDimensions.Height != 1 {
+		glog.V(5).Info("reading rendersize")
 		if err := binary.Read(r, binary.LittleEndian, gfx.RenderSize); err != nil {
 			return fmt.Errorf("error reading render size: %v", err)
 		}

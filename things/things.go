@@ -8,6 +8,13 @@ import (
 	"github.com/golang/glog"
 )
 
+type Item struct {
+	otb     *itemsotb.Item
+	dataset *dat.Item
+
+	parent *Things
+}
+
 type Things struct {
 	items     *itemsotb.Items
 	dataset   *dat.Dataset
@@ -31,6 +38,28 @@ func (t *Things) AddTibiaDataset(d *dat.Dataset) error {
 func (t *Things) AddSpriteSet(s *spr.SpriteSet) error {
 	t.spriteSet = s
 	return nil
+}
+
+func (t *Things) Item(serverID uint16, clientVersion uint16) (*Item, error) {
+	otb := t.Temp__GetItemFromOTB(serverID, clientVersion)
+	datID := t.Temp__GetClientIDForServerID(serverID, clientVersion)
+	return &Item{
+		otb:     otb,
+		dataset: t.dataset.Item(datID),
+		parent:  t,
+	}, nil
+}
+func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item, error) {
+	itm, err := t.items.ItemByClientID(clientID)
+	if err != nil {
+		glog.Errorf("item %d fetch gave error: %v", err)
+		return nil, err
+	}
+	return &Item{
+		otb:     itm,
+		dataset: t.dataset.Item(clientID),
+		parent:  t,
+	}, nil
 }
 
 func (t *Things) Temp__GetClientIDForServerID(serverID uint16, clientVersion uint16) uint16 {

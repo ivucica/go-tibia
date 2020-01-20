@@ -13,14 +13,33 @@ import (
 )
 
 type SpriteSet struct {
-	Images []image.Image
+	//Images []image.Image
+
+	buf *bytes.Reader
+}
+
+func (s *SpriteSet) Image(idx int) image.Image {
+	spr, err := DecodeOne(s.buf, idx)
+	if err != nil {
+		return nil
+	}
+	s.buf.Seek(0, io.SeekStart)
+	return spr
 }
 
 // DecodeAll decodes all images in the passed reader, and returns a sprite set.
 //
-// It is currently not implemented.
+// It is currently implemented as an in-memory buffer which can be queried to
+// return a particular sprite.
 func DecodeAll(r io.Reader) (*SpriteSet, error) {
-	return nil, fmt.Errorf("not implemented")
+	buf := &bytes.Buffer{}
+	io.Copy(buf, r)
+
+	ss := &SpriteSet{
+		buf: bytes.NewReader(buf.Bytes()),
+	}
+
+	return ss, nil
 }
 
 // EncodeAll encodes all images in the sprite set and writes them to the passed writer.

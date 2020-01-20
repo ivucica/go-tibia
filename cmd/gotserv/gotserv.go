@@ -249,6 +249,7 @@ func games() {
 	t, err := things.New()
 	if err != nil {
 		glog.Errorln("creating thing registry", err)
+		return
 	}
 
 	f, err := os.Open(itemsOTBPath)
