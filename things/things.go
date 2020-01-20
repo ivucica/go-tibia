@@ -15,6 +15,15 @@ type Item struct {
 	parent *Things
 }
 
+func (i *Item) Name() string {
+	return i.otb.Name()
+}
+
+func (i *Item) GraphicsSize() struct{ W, H int } {
+	gfx := i.dataset.GetGraphics()
+	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
+}
+
 type Things struct {
 	items     *itemsotb.Items
 	dataset   *dat.Dataset
@@ -49,6 +58,7 @@ func (t *Things) Item(serverID uint16, clientVersion uint16) (*Item, error) {
 		parent:  t,
 	}, nil
 }
+
 func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item, error) {
 	itm, err := t.items.ItemByClientID(clientID)
 	if err != nil {
