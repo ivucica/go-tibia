@@ -12,7 +12,6 @@ import (
 
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -81,7 +80,7 @@ type mapTile struct {
 }
 
 func (t *mapTile) String() string {
-	return fmt.Sprintf("<tile at %s>", t.ownPos)
+	return fmt.Sprintf("<tile at %s; %d creatures>", t.ownPos, len(t.creatures))
 }
 
 func (t *mapTile) GetItem(idx int) (gameworld.MapItem, error) {
