@@ -506,7 +506,7 @@ func (m *Map) readTileAreaNode(node *otb.OTBNode) (MapData, error) { // TODO: th
 		base: posFromCoord(props.X, props.Y, props.Floor),
 	}
 
-	glog.V(2).Infof("tile area at %d,%d,%d", props.X, props.Y, props.Floor)
+	if glog.V(2) { glog.Infof("tile area at %d,%d,%d for %v", props.X, props.Y, props.Floor, m) }
 
 	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
 		if mapData, err := m.readTileAreaChildNode(node, &area); err == nil {
@@ -519,18 +519,18 @@ func (m *Map) readTileAreaNode(node *otb.OTBNode) (MapData, error) { // TODO: th
 }
 
 func (m *Map) readTileAreaChildNode(node *otb.OTBNode, area *mapTileArea) (MapData, error) { // TODO: this won't return mapdata.
-	switch MapNodeType(node.NodeType()) {
-	case OTBM_TILE:
-		return m.readTileNode(node, area)
+	switch nt := MapNodeType(node.NodeType()); nt {
 	case OTBM_HOUSETILE:
-		glog.V(2).Infof(" house tile")
+		fallthrough
+	case OTBM_TILE:
+		return m.readTileOrHouseTileNode(node, area, nt)
 	default:
 		return nil, fmt.Errorf("readTileAreaChildNode: unsupported node type 0x%02x", node.NodeType())
 	}
 	return nil, nil
 }
 
-func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error) { // TODO: this won't return mapdata.
+func (m *Map) readTileOrHouseTileNode(node *otb.OTBNode, area *mapTileArea, nt MapNodeType) (MapData, error) { // TODO: this won't return mapdata.
 	propBuf := node.PropsBuffer()
 	type propType struct {
 		X, Y uint8
@@ -545,7 +545,19 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 	tile := mapTile{ownPos: p, parent: m}
 	m.tiles[p] = &tile
 
-	glog.V(2).Infof(" tile at %d,%d,%d (%d+%d,%d+%d,%d)", p.X(), p.Y(), p.Floor(), area.base.X(), props.X, area.base.Y(), props.Y, area.base.Floor())
+	var v glog.Level
+	v = 2
+
+	if glog.V(v) { glog.Infof(" tile at %d,%d,%d (%d+%d,%d+%d,%d) of %v", p.X(), p.Y(), p.Floor(), area.base.X(), props.X, area.base.Y(), props.Y, area.base.Floor(), m) }
+	defer func() { if glog.V(v) { glog.Infof(" end tile at %d,%d,%d (%d+%d,%d+%d,%d) of %v", p.X(), p.Y(), p.Floor(), area.base.X(), props.X, area.base.Y(), props.Y, area.base.Floor(), m) } }()
+
+	if nt == OTBM_HOUSETILE {
+		var houseID uint32
+		if err := binary.Read(propBuf, binary.LittleEndian, &houseID); err != nil {
+			return nil, fmt.Errorf("readTileNode: error reading flags attr of tile: %v", err)
+		}
+		glog.V(v).Infof("  house ID: %04x", houseID)
+	}
 
 	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
 		attr := ItemAttribute(attr)
@@ -555,7 +567,7 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			if err := binary.Read(propBuf, binary.LittleEndian, &tileFlags); err != nil {
 				return nil, fmt.Errorf("readTileNode: error reading flags attr of tile: %v", err)
 			}
-			glog.V(2).Infof("  tileflags: %04x", tileFlags)
+			glog.V(v).Infof("  tileflags: %04x", tileFlags)
 		case OTBM_ATTR_ITEM:
 			item := &mapItem{
 				ancestorMap: m,
@@ -565,20 +577,21 @@ func (m *Map) readTileNode(node *otb.OTBNode, area *mapTileArea) (MapData, error
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.otbItemTypeID); err != nil {
 				return nil, fmt.Errorf("readTileNode: error reading item prop of tile: %v", err)
 			}
-			glog.V(2).Infof("  tileitem: %02d %04x", item.otbItemTypeID, item.otbItemTypeID)
+			if glog.V(v) { glog.Infof("  tileitem: %02d %04x", item.otbItemTypeID, item.otbItemTypeID) }
 
 			// if otbm version is MAP_OTBM_1 and item is stackable, or splash, or fluid container, read one more byte
 			// TODO: check for otbm_1
 			otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
 			// n.b. Item group is supposed to be ground here!
-			glog.V(2).Infof("  item group: %s", otbItem.Group)
-			glog.V(2).Infof("  item flags: %s", otbItem.Flags)
+			if glog.V(v) { glog.Infof("  item group: %s", otbItem.Group) }
+			if glog.V(v) { glog.Infof("  item flags: %s", otbItem.Flags) }
 			if otbItem.Group == itemsotb.ITEM_GROUP_SPLASH || otbItem.Group == itemsotb.ITEM_GROUP_FLUID || otbItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
 				cntB, err := propBuf.ReadByte()
 				if err != nil {
 					return nil, fmt.Errorf("readTileNode: countable item error: %v", err)
 				}
-				glog.V(2).Infof("    -> count %d", cntB)
+				if glog.V(v) { glog.Infof("    -> count %d", cntB) }
+				panic(cntB)
 				item.count = int(cntB)
 			}
 
@@ -609,7 +622,10 @@ func (m *Map) readTileChildNode(node *otb.OTBNode, tile *mapTile) (MapData, erro
 }
 
 func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *mapItem, depth int) (MapData, error) { // TODO: this won't return mapdata.
-	glog.V(2).Infof("%sitem", strings.Repeat(" ", depth))
+	var indent string
+	if glog.V(2) { indent = strings.Repeat(" ", depth+1) }
+
+	if glog.V(2) { glog.Infof("%sitem", indent) }
 	propBuf := node.PropsBuffer()
 
 	item := &mapItem{
@@ -621,22 +637,28 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 	if err := binary.Read(propBuf, binary.LittleEndian, &item.otbItemTypeID); err != nil {
 		return nil, fmt.Errorf("error reading prop otbItemTypeID of item node: %v", err)
 	}
-	glog.V(2).Infof("%sitem id: %d", strings.Repeat(" ", depth+1), item.otbItemTypeID)
+
+	v := glog.Level(2)
+	glog.V(v).Infof("%sitem id: %d", indent, item.otbItemTypeID)
 	if item.otbItemTypeID != 0 {
 		otbItem := m.things.Temp__GetItemFromOTB(item.GetServerType(), 0)
 		if otbItem != nil {
-			glog.V(2).Infof("%sitem name: %s", strings.Repeat(" ", depth+1), otbItem.Name())
-			glog.V(2).Infof("%sitem group: %s", strings.Repeat(" ", depth+1), otbItem.Group)
-			glog.V(2).Infof("%sitem flags: %s", strings.Repeat(" ", depth+1), otbItem.Flags)
+			if glog.V(v) {
+				glog.Infof("%sitem name: %s", indent, otbItem.Name())
+				glog.Infof("%sitem group: %s", indent, otbItem.Group)
+				glog.Infof("%sitem flags: %s", indent, otbItem.Flags)
+			}
 			// if otbm version is MAP_OTBM_1 and item is stackable, or splash, or fluid container, read one more byte
 			// TODO: check for otbm_1
 			if otbItem.Group == itemsotb.ITEM_GROUP_SPLASH || otbItem.Group == itemsotb.ITEM_GROUP_FLUID || otbItem.Flags&itemsotb.FLAG_STACKABLE != 0 {
 			}
 		} else {
-			glog.V(2).Infof("%s[n.b. item nil in items.otb]", strings.Repeat(" ", depth+1))
+			if glog.V(v) { glog.Infof("%s[n.b. item nil in items.otb]", indent) }
 		}
 	} else {
-		glog.V(2).Infof("%s[n.b. item not found in items.otb]", strings.Repeat(" ", depth+1))
+		//glog.Errorf("%s[n.b. item id on map is 0]", indent)
+		//v = 0
+		return nil, nil // just ignore the item for the tiem being, figure out what's up later...
 	}
 
 	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
@@ -647,33 +669,33 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 			if err != nil {
 				return nil, fmt.Errorf("readItemNode: countable item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem count: %d", strings.Repeat(" ", depth+1), cntB)
+			if glog.V(v) { glog.Infof("%sitem count: %d", indent, cntB) }
 			item.count = int(cntB)
 		case OTBM_ATTR_RUNE_CHARGES:
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.runeCharges); err != nil {
 				return nil, fmt.Errorf("readItemNode: rune item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem rune charges: %d", strings.Repeat(" ", depth+1), item.runeCharges)
+			if glog.V(v) { glog.Infof("%sitem rune charges: %d", indent, item.runeCharges) }
 		case OTBM_ATTR_CHARGES:
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.charges); err != nil {
 				return nil, fmt.Errorf("readItemNode: chargable item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem charges: %d", strings.Repeat(" ", depth+1), item.charges)
+			if glog.V(v) { glog.Infof("%sitem charges: %d", indent, item.charges) }
 		case OTBM_ATTR_ACTION_ID:
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.actionID); err != nil {
 				return nil, fmt.Errorf("readItemNode: actionable item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem action ID: %d", strings.Repeat(" ", depth+1), item.actionID)
+			if glog.V(v) { glog.Infof("%sitem action ID: %d", indent, item.actionID) }
 		case OTBM_ATTR_UNIQUE_ID:
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.uniqueID); err != nil {
 				return nil, fmt.Errorf("readItemNode: unique item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem unique ID: %d", strings.Repeat(" ", depth+1), item.uniqueID)
+			if glog.V(v) { glog.Infof("%sitem unique ID: %d", indent, item.uniqueID) }
 		case OTBM_ATTR_DEPOT_ID:
 			if err := binary.Read(propBuf, binary.LittleEndian, &item.depotID); err != nil {
 				return nil, fmt.Errorf("readItemNode: depotid item error: %v", err)
 			}
-			glog.V(2).Infof("%sitem depot ID: %d", strings.Repeat(" ", depth+1), item.depotID)
+			if glog.V(v) { glog.Infof("%sitem depot ID: %d", indent, item.depotID) }
 		case OTBM_ATTR_TELE_DEST:
 			var teleDest struct {
 				X, Y  uint16
@@ -683,7 +705,7 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 				return nil, fmt.Errorf("readItemNode: teledest item error: %v", err)
 			}
 			item.teleDest = posFromCoord(teleDest.X, teleDest.Y, teleDest.Floor)
-			glog.V(2).Infof("%sitem teledest: %s", strings.Repeat(" ", depth+1), item.teleDest)
+			if glog.V(v) { glog.Infof("%sitem teledest: %s", indent, item.teleDest) }
 		case OTBM_ATTR_TEXT:
 			var textSize uint16
 			if err := binary.Read(propBuf, binary.LittleEndian, &textSize); err != nil {
@@ -699,7 +721,20 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 			}
 			item.text = string(textB) // assume utf8, I suppose
 
-			glog.V(2).Infof("%sitem text[%d]: %s", strings.Repeat(" ", depth+1), textSize, item.text)
+			if glog.V(v) { glog.Infof("%sitem text[%d]: %s", indent, textSize, item.text) }
+		case OTBM_ATTR_HOUSEDOORID:
+			var houseDoorID [1]byte
+			
+			n, err := propBuf.Read(houseDoorID[:])
+			if err != nil {
+				return nil, fmt.Errorf("failed to read house door id: %v", err)
+			}
+			if n != 1 {
+				return nil, fmt.Errorf("failed to read house door id, got only %d bytes", n)
+			}
+
+			if glog.V(v) { glog.Infof("%shouse door id: %d", indent, houseDoorID[0]) }
+
 		default:
 			return nil, fmt.Errorf("readItemNode: unsupported attr type: %s", attr)
 		}
@@ -711,6 +746,11 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 		} else {
 			return nil, fmt.Errorf("error reading tile child node: %v", err)
 		}
+	}
+
+	if item.otbItemTypeID == 0 {
+		glog.Errorf("bad item 0 at tile parent item %v / parent tile %v; skipping", parentItem, parentTile)
+		return nil, nil
 	}
 
 	if parentItem != nil {
