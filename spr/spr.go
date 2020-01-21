@@ -35,6 +35,8 @@ func (s *SpriteSet) Image(idx int) image.Image {
 	return spr
 }
 
+type ColorKey struct{ ColorKeyR, ColorKeyG, ColorKeyB uint8 }
+
 // DecodeAll decodes all images in the passed reader, and returns a sprite set.
 //
 // It is currently implemented as an in-memory buffer which can be queried to
@@ -70,10 +72,19 @@ type header struct {
 	SpriteCount uint16
 }
 
+type picHeader struct {
+	Width, Height uint8
+	ColorKey      ColorKey
+}
+
 // DecodeOne accepts an io.ReadSeeker positioned at the beginning of a spr-formatted
 // file (a sprite set file), finds the image with passed index, and returns the
 // requested image as an image.Image.
 func DecodeOne(r io.ReadSeeker, which int) (image.Image, error) {
+	return decodeOne(r, which, false)
+}
+
+func decodeOne(r io.ReadSeeker, which int, isPic bool) (image.Image, error) {
 	if which == 0 {
 		return nil, fmt.Errorf("not found")
 	}
@@ -86,59 +97,97 @@ func DecodeOne(r io.ReadSeeker, which int) (image.Image, error) {
 		return nil, fmt.Errorf("not found")
 	}
 
-	r.Seek(int64((which-1)*4), io.SeekCurrent) // TODO(ivucica): handle error and return value
+	var width int
+	var height int
+	var ptrs []uint32
+	if !isPic {
+		width = 1
+		height = 1
+		r.Seek(int64((which-1)*4), io.SeekCurrent) // TODO(ivucica): handle error and return value
+	} else {
+		for i := 0; i < which; i++ {
+			var ph picHeader
+			if err := binary.Read(r, binary.LittleEndian, &ph); err != nil {
+				return nil, fmt.Errorf("could not read pic header: %s", err)
+			}
+			width = int(ph.Width)
+			height = int(ph.Height)
+			if i != which-1 {
+				r.Seek(int64(width)*int64(height)*4, io.SeekCurrent) // TODO(ivucica): handle error and return value
+			}
+		}
+	}
+	ptrs = make([]uint32, width*height)
 
-	var ptr uint32
-	if err := binary.Read(r, binary.LittleEndian, &ptr); err != nil {
-		return nil, fmt.Errorf("could not read spr ptr: %s", err)
+	if err := binary.Read(r, binary.LittleEndian, &ptrs); err != nil {
+		return nil, fmt.Errorf("could not read ptrs: %s", err)
 	}
 
-	r.Seek(int64(ptr), io.SeekStart) // TODO(ivucica): handle error
+	img := image.NewRGBA(image.Rect(0, 0, 32*width, 32*height))
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			ptr := ptrs[y*width+x]
+			r.Seek(int64(ptr), io.SeekStart) // TODO(ivucica): handle error
 
-	return DecodeUpcoming(r)
+			if !isPic {
+				var colorKey ColorKey // This is colorkey according to http://otfans.net/showpost.php?p=840634&postcount=134. TODO(ivucica): update link as this one is broken.
+				if err := binary.Read(r, binary.LittleEndian, &colorKey); err != nil {
+					return nil, fmt.Errorf("could not read spr color key: %s", err)
+				}
+			}
+			if err := decodeUpcoming(r, img, x*32, y*32); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return img, nil
+}
 
+// DecodeOnePic behaves like DecodeOne, except it accepts .pic formatted files.
+func DecodeOnePic(r io.ReadSeeker, which int) (image.Image, error) {
+	return decodeOne(r, which, true)
 }
 
 // DecodeUpcoming decodes a single block of spr-format data. This is
 // used in both pic and spr files.
 func DecodeUpcoming(r io.Reader) (image.Image, error) {
-	var colorKey struct{ ColorKeyR, ColorKeyG, ColorKeyB uint8 } // This is colorkey according to http://otfans.net/showpost.php?p=840634&postcount=134. TODO(ivucica): update link as this one is broken.
-	if err := binary.Read(r, binary.LittleEndian, &colorKey); err != nil {
-		return nil, fmt.Errorf("could not read spr color key: %s", err)
+	i := image.NewRGBA(image.Rect(0, 0, 32, 32))
+	if err := decodeUpcoming(r, i, 0, 0); err != nil {
+		return nil, err
 	}
-
+	return i, nil
+}
+func decodeUpcoming(r io.Reader, img *image.RGBA, x, y int) error {
 	var size uint16
 	if err := binary.Read(r, binary.LittleEndian, &size); err != nil {
-		return nil, fmt.Errorf("could not read spr size: %s", err)
+		return fmt.Errorf("could not read spr size: %s", err)
 	}
 	if size > 3444 {
-		return nil, fmt.Errorf("spr block too large; got %d, want < 3444", size)
+		return fmt.Errorf("spr block too large; got %d, want < 3444", size)
 	}
 
 	if size == 0 {
-		return image.NewRGBA(image.Rect(0, 0, 32, 32)), nil
+		return nil
 	}
 
 	buf := bytes.Buffer{}
 	n, err := buf.ReadFrom(io.LimitReader(r, int64(size)))
 	if err != nil {
-		return nil, fmt.Errorf("spr block could not be read: %s", err)
+		return fmt.Errorf("spr block could not be read: %s", err)
 	}
 	if n != int64(size) {
-		return nil, fmt.Errorf("not all of the spr block could be read: read %d, want %d", n, size)
+		return fmt.Errorf("not all of the spr block could be read: read %d, want %d", n, size)
 	}
 
-	return decodeData(&buf)
+	return decodeData(&buf, img, x, y)
 }
 
-func decodeData(r readerAndByteReader) (image.Image, error) {
-	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
-
+func decodeData(r readerAndByteReader, img *image.RGBA, x, y int) error {
 	transparent := true
 
 	var size uint16
 	if err := binary.Read(r, binary.LittleEndian, &size); err != nil {
-		return nil, fmt.Errorf("could not read spr segment size: %s", err)
+		return fmt.Errorf("could not read spr segment size: %s", err)
 	}
 	px := 0
 	for {
@@ -154,7 +203,7 @@ func decodeData(r readerAndByteReader) (image.Image, error) {
 					B: cB,
 					A: 0xFF,
 				}
-				img.SetRGBA((px+i)%32, (px+i)/32, col)
+				img.SetRGBA(x+(px+i)%32, y+(px+i)/32, col)
 			}
 		}
 		transparent = !transparent
@@ -163,12 +212,12 @@ func decodeData(r readerAndByteReader) (image.Image, error) {
 		px += int(size)
 		if err := binary.Read(r, binary.LittleEndian, &size); err != nil {
 			if err != io.EOF {
-				return nil, fmt.Errorf("could not read segment size: %s", err)
+				return fmt.Errorf("could not read segment size: %s", err)
 			} else {
 				break
 			}
 
 		}
 	}
-	return img, nil
+	return nil
 }
