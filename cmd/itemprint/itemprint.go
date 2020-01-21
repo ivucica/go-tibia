@@ -17,10 +17,13 @@ import (
 	"badc0de.net/pkg/go-tibia/things"
 
 	"github.com/golang/glog"
+	"github.com/nfnt/resize"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
 	sprID   = flag.Int("spr", 0, "sprite to print")
+	picID   = flag.Int("pic", 0, "pic to print")
 	itemID  = flag.Int("item", 0, "server ID of item to print")
 	citemID = flag.Int("citem", 0, "client ID of item to print")
 	col256  = flag.Bool("col256", false, "whether to use 256 col instead of 24 bit")
@@ -31,6 +34,7 @@ var (
 	itemsXMLPath string
 	tibiaDatPath string
 	tibiaSprPath string
+	tibiaPicPath string
 )
 
 type ReadSeekerCloser interface {
@@ -59,11 +63,16 @@ func sprOpen() (ReadSeekerCloser, error) {
 	return f, nil
 }
 
+func picOpen() (ReadSeekerCloser, error) {
+	return os.Open(tibiaPicPath)
+}
+
 func setupFilePathFlags() {
 	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
 	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
 	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 }
 
 func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
@@ -204,6 +213,22 @@ func out(img image.Image) {
 	}
 }
 
+func picHandler(idx int) {
+	f, err := picOpen()
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	img, err := spr.DecodeOnePic(f, idx)
+	if err != nil {
+		glog.Errorf("error decoding spr: %v", err)
+		return
+	}
+
+	out(img)
+}
+
 func main() {
 	setupFilePathFlags()
 	flagutil.Parse()
@@ -219,5 +244,8 @@ func main() {
 	}
 	if *citemID != 0 {
 		citemHandler(*citemID, 0, 0, 0, 0)
+	}
+	if *picID != 0 {
+		picHandler(*picID)
 	}
 }
