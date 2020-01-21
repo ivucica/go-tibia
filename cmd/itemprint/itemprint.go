@@ -204,6 +204,11 @@ func citemHandler(idx int, fr, x, y, z int) {
 }
 
 func out(img image.Image) {
+
+	if w, h, err := terminal.GetSize(0); err == nil { // or int(os.Stdin.Fd())
+		img = resize.Thumbnail(uint(w/2), uint(h), img, resize.Lanczos3)
+	}
+
 	if *iterm {
 		imageprint.PrintITerm(img, "image.png")
 	} else if *col256 {
