@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/draw"
 	"image/png"
 	"io"
 	"net/http"
@@ -28,6 +30,7 @@ var (
 	itemsXMLPath string
 	tibiaDatPath string
 	tibiaSprPath string
+	tibiaPicPath string
 )
 
 type ReadSeekerCloser interface {
@@ -56,11 +59,16 @@ func sprOpen() (ReadSeekerCloser, error) {
 	return f, nil
 }
 
+func picOpen() (ReadSeekerCloser, error) {
+	return os.Open(tibiaPicPath)
+}
+
 func setupFilePathFlags() {
 	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
 	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
 	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 }
 
 func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
@@ -164,6 +172,57 @@ func sprHandler(w http.ResponseWriter, r *http.Request) {
 		glog.Errorf("error decoding spr: %v", err)
 		return
 	}
+	w.Header().Set("Content-Type", "image/png")
+	w.WriteHeader(http.StatusOK)
+	png.Encode(w, img)
+}
+
+func picHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idx, err := strconv.Atoi(vars["idx"])
+	if err != nil {
+		http.Error(w, "idx not a number", http.StatusBadRequest)
+		return
+	}
+
+	f, err := picOpen()
+	if err != nil {
+		http.Error(w, "failed to open data file", http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+
+	img, err := spr.DecodeOnePic(f, idx)
+	if err != nil {
+		http.Error(w, "failed to decode pic", http.StatusInternalServerError)
+		glog.Errorf("error decoding pic: %v", err)
+		return
+	}
+
+	var src image.Rectangle
+	var dst image.Rectangle
+	if x := r.URL.Query().Get("x"); x != "" {
+		src.Min.X, _ = strconv.Atoi(x)
+	}
+	if y := r.URL.Query().Get("y"); y != "" {
+		src.Min.Y, _ = strconv.Atoi(y)
+	}
+	if w := r.URL.Query().Get("w"); w != "" {
+		dst.Max.X, _ = strconv.Atoi(w)
+		src.Max.X = src.Min.X + dst.Max.X
+
+	}
+	if h := r.URL.Query().Get("h"); h != "" {
+		dst.Max.Y, _ = strconv.Atoi(h)
+		src.Max.Y = src.Min.Y + dst.Max.Y
+	}
+
+	if dst.Max.X != 0 && dst.Max.Y != 0 {
+		oldImg := img
+		img = image.NewRGBA(dst)
+		draw.Draw(img.(draw.Image), dst, oldImg, src.Min, draw.Over)
+	}
+
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
@@ -301,6 +360,7 @@ func main() {
 	r.HandleFunc("/spr/{idx:[0-9]+}", sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", itemHandler)
 	r.HandleFunc("/item/c{idx:[0-9]+}", citemHandler)
+	r.HandleFunc("/pic/{idx:[0-9]+}", picHandler)
 
 	glog.Infof("beginning to serve")
 	glog.Fatal(http.ListenAndServe(*listenAddress, r))
