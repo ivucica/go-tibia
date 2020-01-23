@@ -24,6 +24,10 @@ import (
 	"badc0de.net/pkg/go-tibia/otb/map"
 	"badc0de.net/pkg/go-tibia/secrets"
 	"badc0de.net/pkg/go-tibia/things"
+
+	"badc0de.net/pkg/go-tibia/spr"
+	"image/png"
+	"strconv"
 )
 
 var (
@@ -31,8 +35,9 @@ var (
 
 	itemsOTBPath string
 	itemsXMLPath string
-	mapPath      string
 	tibiaDatPath string
+	tibiaSprPath string
+	mapPath      string
 
 	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
 )
@@ -41,6 +46,7 @@ func setupFilePathFlags() {
 	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
 	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
 	setupFilePathFlag("map.otbm", "map_path", &mapPath)
 }
 
@@ -159,13 +165,13 @@ func connection(lgn *login.LoginServer, gw *gameworld.GameworldServer, conn *net
 
 }
 
-func serveLameDuck(l *net.TCPListener, stop chan bool, lgn *login.LoginServer, gw *gameworld.GameworldServer ) {
+func serveLameDuck(l *net.TCPListener, stop chan bool, lgn *login.LoginServer, gw *gameworld.GameworldServer) {
 	// This is a dirty hack to temporarily accept connection even while setting up the
 	// actual server, but abort ~approximately when told to stop.
 	//
 	// It would be much nicer to properly integrate the cancellation of attempts to
 	// Accept() as soon as stop happens. But this hack will do for now.
-	
+
 	gw.LameDuckText = "Server still starting up. Try again soon."
 	defer func() {
 		gw.LameDuckText = ""
@@ -230,7 +236,7 @@ func games() {
 		glog.Errorln(err)
 		return
 	}
-	
+
 	login, err := login.NewServer(&secrets.OpenTibiaPrivateKey)
 	if err != nil {
 		glog.Errorln(err)
@@ -267,7 +273,7 @@ func games() {
 	}
 	itemsOTB.AddXMLInfo(f)
 	f.Close()
-	
+
 	if err != nil {
 		glog.Errorln("parsing items otb for add", err)
 		return
@@ -287,25 +293,89 @@ func games() {
 	}
 	t.AddTibiaDataset(dataset)
 
+	hasSpr := false
+	f, err = os.Open(tibiaSprPath)
+	if err == nil { // sprites are optional
+		s, err := spr.DecodeAll(f)
+		f.Close()
+		if err != nil {
+			glog.Errorln("parsing tibia spr for add", err)
+			return
+		}
+		t.AddSpriteSet(s)
+		hasSpr = true
+	}
+
 	gw.SetThings(t)
 
+	var m gameworld.MapDataSource
 	if mapPath == ":test:" {
-		m := gameworld.NewMapDataSource()
-		gw.SetMapDataSource(m)
+		m = gameworld.NewMapDataSource()
 	} else {
 		f, err := os.Open(mapPath)
 		if err != nil {
 			glog.Errorln("opening map file", err)
 			return
 		}
-		m, err := otbm.New(f, t)
+		m, err = otbm.New(f, t)
 		if err != nil {
 			glog.Errorln("reading map file", err)
 			return
 		}
-
-		gw.SetMapDataSource(m)
 	}
+	gw.SetMapDataSource(m)
+
+	if hasSpr {
+		http.HandleFunc("/debug/map", func(w http.ResponseWriter, r *http.Request) {
+			var tx, ty uint16
+			var tbot, ttop uint8
+			var tw, th int
+
+			tx = 84
+			ty = 84
+			tbot = 7
+			ttop = 0
+			tw = 18
+			th = 14
+			
+			if x := r.URL.Query().Get("x"); x != "" {
+				txI, _ := strconv.Atoi(x)
+				tx = uint16(txI)
+			}
+			if y := r.URL.Query().Get("y"); y != "" {
+				tyI, _ := strconv.Atoi(y)
+				ty = uint16(tyI)
+			}
+			if w := r.URL.Query().Get("w"); w != "" {
+				tw, _ = strconv.Atoi(w)
+			}
+			if h := r.URL.Query().Get("h"); h != "" {
+				th, _ = strconv.Atoi(h)
+			}
+			if bot := r.URL.Query().Get("bot"); bot != "" {
+				tbotI, _ := strconv.Atoi(bot)
+				tbot = uint8(tbotI)
+			}
+			if top := r.URL.Query().Get("top"); top != "" {
+				ttopI, _ := strconv.Atoi(top)
+				ttop = uint8(ttopI)
+			}
+
+			if tw > 70 {
+				tw = 70
+			}
+			if th > 70 {
+				th = 70
+			}
+
+			// TODO: more input validation! never allow for number inside CompositeMap to go negative, e.g.
+			img := gameworld.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
+			w.Header().Set("Content-Type", "image/png")
+			w.WriteHeader(http.StatusOK)
+			png.Encode(w, img)
+		})
+	}
+
 	///
 
 	lameDuckStop <- true
