@@ -1,11 +1,16 @@
 package main
 
 import (
+	_ "net/http/pprof" // REMOVE ME: Debug information should not be served publicly.
+
+	"runtime"
+
 	"flag"
 	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
+	"image/jpeg"
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +23,8 @@ import (
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
+	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
+	"badc0de.net/pkg/go-tibia/otb/map" // for map loader
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -31,6 +38,7 @@ var (
 	tibiaDatPath string
 	tibiaSprPath string
 	tibiaPicPath string
+	mapPath      string
 )
 
 type ReadSeekerCloser interface {
@@ -69,6 +77,7 @@ func setupFilePathFlags() {
 	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
 	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
 	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
+	setupFilePathFlag("map.otbm", "map_path", &mapPath)
 }
 
 func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
@@ -362,6 +371,85 @@ func main() {
 	r.HandleFunc("/item/c{idx:[0-9]+}", citemHandler)
 	r.HandleFunc("/pic/{idx:[0-9]+}", picHandler)
 
+	go func() {
+		var m gameworld.MapDataSource
+		if mapPath == ":test:" {
+			m = gameworld.NewMapDataSource()
+		} else {
+			f, err := os.Open(mapPath)
+			if err != nil {
+				glog.Errorln("opening map file", err)
+				return
+			}
+			m, err = otbm.New(f, th)
+			if err != nil {
+				glog.Errorln("reading map file", err)
+				return
+			}
+			f.Close()
+		}
+		r.HandleFunc("/map", func(w http.ResponseWriter, r *http.Request) {
+			t := th
+			var tx, ty uint16
+			var tbot, ttop uint8
+			var tw, th int
+
+			tx = 84
+			ty = 84
+			tbot = 7
+			ttop = 0
+			tw = 18
+			th = 14
+			
+			if x := r.URL.Query().Get("x"); x != "" {
+				txI, _ := strconv.Atoi(x)
+				tx = uint16(txI)
+			}
+			if y := r.URL.Query().Get("y"); y != "" {
+				tyI, _ := strconv.Atoi(y)
+				ty = uint16(tyI)
+			}
+			if w := r.URL.Query().Get("w"); w != "" {
+				tw, _ = strconv.Atoi(w)
+			}
+			if h := r.URL.Query().Get("h"); h != "" {
+				th, _ = strconv.Atoi(h)
+			}
+			if bot := r.URL.Query().Get("bot"); bot != "" {
+				tbotI, _ := strconv.Atoi(bot)
+				tbot = uint8(tbotI)
+			}
+			if top := r.URL.Query().Get("top"); top != "" {
+				ttopI, _ := strconv.Atoi(top)
+				ttop = uint8(ttopI)
+			}
+
+			if tw > 70 {
+				tw = 70
+			}
+			if th > 70 {
+				th = 70
+			}
+
+			// TODO: more input validation! never allow for number inside CompositeMap to go negative, e.g.
+			img := gameworld.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
+			if true {
+				w.Header().Set("Content-Type", "image/png")
+				w.WriteHeader(http.StatusOK)
+				png.Encode(w, img)
+			} else {		
+				w.Header().Set("Content-Type", "image/jpeg")
+				w.WriteHeader(http.StatusOK)
+				jpeg.Encode(w, img, &jpeg.Options{Quality: jpeg.DefaultQuality}) // jpeg.DefaultQuality})
+			}
+
+			runtime.GC() // TODO: remove
+		})
+	}()
+
+	//r.Handle("/debug/pprof/", http.DefaultServeMux)
+	go http.ListenAndServe(":6060", nil)
+	
 	glog.Infof("beginning to serve")
 	glog.Fatal(http.ListenAndServe(*listenAddress, r))
 }
