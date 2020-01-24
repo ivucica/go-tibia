@@ -6,6 +6,8 @@ import (
 	"badc0de.net/pkg/go-tibia/spr"
 
 	"github.com/golang/glog"
+
+	"image"
 )
 
 type Item struct {
@@ -13,7 +15,10 @@ type Item struct {
 	dataset *dat.Item
 
 	parent *Things
+
+	img map[itemFrame]image.Image
 }
+type itemFrame struct{ X, Y, Z, Frame int}
 
 func (i *Item) Name() string {
 	return i.otb.Name()

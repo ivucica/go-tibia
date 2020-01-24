@@ -9,10 +9,20 @@ import (
 )
 
 func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
+	itf := itemFrame{X: x, Y: y, Z: z, Frame: idx}
+
+	if i.img == nil {
+		i.img = make(map[itemFrame]image.Image)
+	}
+
+	if img, ok := i.img[itf]; ok {
+		return img
+	}
+	
 	// n.b. rendersize is used for scaling.
 	gfx := i.dataset.GetGraphics()
 	img := image.NewRGBA(image.Rect(0, 0, int(gfx.Width)*int(gfx.RenderSize), int(gfx.Height)*int(gfx.RenderSize)))
-	glog.Infof("compositing image for %d (client: %d): %+v - gfx: %+v", i.otb.Attributes[itemsotb.ITEM_ATTR_SERVERID].(uint16), i.dataset.Id, img, gfx)
+	glog.V(2).Infof("compositing image for %d (client: %d): %+v - gfx: %+v", i.otb.Attributes[itemsotb.ITEM_ATTR_SERVERID].(uint16), i.dataset.Id, img, gfx)
 
 	x %= int(gfx.XDiv)
 	y %= int(gfx.YDiv)
@@ -47,5 +57,7 @@ func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
 			}
 		}
 	}
+
+	i.img[itf] = img
 	return img
 }

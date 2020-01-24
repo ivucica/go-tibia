@@ -13,6 +13,7 @@ func NewMapDataSource() MapDataSource {
 	return &mapDataSource{
 		creatures:         map[CreatureID]Creature{},
 		generatedMapTiles: map[tnet.Position]MapTile{},
+		mapTileGenerator:  generateMapTileImpl,
 	}
 }
 
