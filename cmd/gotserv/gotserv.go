@@ -337,7 +337,7 @@ func games() {
 			ttop = 0
 			tw = 18
 			th = 14
-			
+
 			if x := r.URL.Query().Get("x"); x != "" {
 				txI, _ := strconv.Atoi(x)
 				tx = uint16(txI)

@@ -18,7 +18,7 @@ type Item struct {
 
 	img map[itemFrame]image.Image
 }
-type itemFrame struct{ X, Y, Z, Frame int}
+type itemFrame struct{ X, Y, Z, Frame int }
 
 func (i *Item) Name() string {
 	return i.otb.Name()

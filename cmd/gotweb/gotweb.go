@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/png"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"os"
@@ -20,11 +20,11 @@ import (
 	"badc0de.net/pkg/flagutil/v1"
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
+	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/otb/map" // for map loader
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
-	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
-	"badc0de.net/pkg/go-tibia/otb/map" // for map loader
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -400,7 +400,7 @@ func main() {
 			ttop = 0
 			tw = 18
 			th = 14
-			
+
 			if x := r.URL.Query().Get("x"); x != "" {
 				txI, _ := strconv.Atoi(x)
 				tx = uint16(txI)
@@ -437,7 +437,7 @@ func main() {
 				w.Header().Set("Content-Type", "image/png")
 				w.WriteHeader(http.StatusOK)
 				png.Encode(w, img)
-			} else {		
+			} else {
 				w.Header().Set("Content-Type", "image/jpeg")
 				w.WriteHeader(http.StatusOK)
 				jpeg.Encode(w, img, &jpeg.Options{Quality: jpeg.DefaultQuality}) // jpeg.DefaultQuality})
@@ -449,7 +449,7 @@ func main() {
 
 	//r.Handle("/debug/pprof/", http.DefaultServeMux)
 	go http.ListenAndServe(":6060", nil)
-	
+
 	glog.Infof("beginning to serve")
 	glog.Fatal(http.ListenAndServe(*listenAddress, r))
 }

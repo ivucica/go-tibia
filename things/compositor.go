@@ -18,7 +18,7 @@ func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
 	if img, ok := i.img[itf]; ok {
 		return img
 	}
-	
+
 	// n.b. rendersize is used for scaling.
 	gfx := i.dataset.GetGraphics()
 	img := image.NewRGBA(image.Rect(0, 0, int(gfx.Width)*int(gfx.RenderSize), int(gfx.Height)*int(gfx.RenderSize)))
