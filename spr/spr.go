@@ -23,6 +23,9 @@ type SpriteSet struct {
 }
 
 func (s *SpriteSet) Image(idx int) image.Image {
+	if s == nil {
+		panic("attempted to get image from a nil spriteset")
+	}
 	s.m.Lock()
 	s.buf.Seek(0, io.SeekStart)
 	spr, err := DecodeOne(s.buf, idx)
