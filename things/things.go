@@ -54,6 +54,14 @@ func (t *Things) AddSpriteSet(s *spr.SpriteSet) error {
 	return nil
 }
 
+func (t *Things) TibiaDatasetSignature() uint32 {
+	return t.dataset.Header.Signature
+}
+
+func (t *Things) SpriteSetSignature() uint32 {
+	return t.spriteSet.Header.Signature
+}
+
 func (t *Things) Item(serverID uint16, clientVersion uint16) (*Item, error) {
 	otb := t.Temp__GetItemFromOTB(serverID, clientVersion)
 	datID := t.Temp__GetClientIDForServerID(serverID, clientVersion)

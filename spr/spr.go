@@ -18,6 +18,7 @@ import (
 type SpriteSet struct {
 	//Images []image.Image
 
+	Header
 	buf *bytes.Reader
 	m   sync.Mutex
 }
@@ -52,6 +53,12 @@ func DecodeAll(r io.Reader) (*SpriteSet, error) {
 		buf: bytes.NewReader(buf.Bytes()),
 	}
 
+	var h Header
+	if err := binary.Read(buf, binary.LittleEndian, &h); err != nil {
+		return nil, fmt.Errorf("could not read spr header: %s", err)
+	}
+	ss.buf.Seek(0, io.SeekStart)
+
 	return ss, nil
 }
 
@@ -70,7 +77,7 @@ type readerAndByteReader interface {
 	io.ByteReader
 }
 
-type header struct {
+type Header struct {
 	Signature   uint32
 	SpriteCount uint16
 }
@@ -92,7 +99,7 @@ func decodeOne(r io.ReadSeeker, which int, isPic bool) (image.Image, error) {
 		return nil, fmt.Errorf("not found")
 	}
 
-	var h header
+	var h Header
 	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
 		return nil, fmt.Errorf("could not read spr header: %s", err)
 	}

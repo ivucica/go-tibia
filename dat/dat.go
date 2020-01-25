@@ -19,7 +19,7 @@ const (
 // Dataset represents a set of items, outfits, effects and distance
 // effects read from a Tibia dataset file ('things' or 'dataset entries').
 type Dataset struct {
-	header header
+	Header
 
 	items           []Item
 	outfits         []Outfit
@@ -27,7 +27,7 @@ type Dataset struct {
 	distanceEffects []DistanceEffect
 }
 
-type header struct {
+type Header struct {
 	Signature                                                uint32
 	ItemCount, OutfitCount, EffectCount, DistanceEffectCount uint16 // TODO(ivucica): rename to 'max id'
 }
@@ -216,14 +216,14 @@ func (d *DistanceEffect) GetGraphics() *Graphics {
 // NewDataset reads the dataset file from the passed io.Reader and returns the Dataset object.
 func NewDataset(r io.Reader) (*Dataset, error) {
 	glog.V(3).Info("starting to read dataset")
-	h := header{}
+	h := Header{}
 	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
 		return nil, fmt.Errorf("error reading dataset header: %v", err)
 	}
 
 	glog.V(3).Infof("creating dataset")
 	dataset := Dataset{
-		header:          h,
+		Header:          h,
 		items:           make([]Item, h.ItemCount-100+1),
 		outfits:         make([]Outfit, h.OutfitCount),
 		effects:         make([]Effect, h.EffectCount),
@@ -302,7 +302,7 @@ func (d *Dataset) load780plus(r io.Reader) error {
 //
 // Currently supported is only 8.54.
 func (d Dataset) ClientVersion() int {
-	if d.header.Signature == 0x4b28b89e || d.header.Signature == 0x4b1e2caa {
+	if d.Header.Signature == 0x4b28b89e || d.Header.Signature == 0x4b1e2caa {
 		return CLIENT_VERSION_854
 	}
 	return CLIENT_VERSION_UNKNOWN

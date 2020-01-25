@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	listenAddress = flag.String("listen_address", ":8080", "http listen address for gotweb")
+	listenAddress      = flag.String("listen_address", ":8080", "http listen address for gotweb")
 	debugListenAddress = flag.String("debug_listen_address", "", "http listen address for pprof (and other stuff registered on default serve mux)")
 
 	itemsOTBPath string
@@ -241,10 +241,22 @@ var (
 )
 
 func itemHandler(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 	idx, err := strconv.Atoi(vars["idx"])
 	if err != nil {
 		http.Error(w, "idx not a number", http.StatusBadRequest)
+		return
+	}
+
+	generation := 1 // bump if the way we generate it changes
+	mime := "image/png"
+	etag := fmt.Sprintf(`W/"item:%d:%08x:%08x:%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, mime)
+
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
@@ -255,6 +267,9 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	img := itm.ItemFrame(0, 0, 0, 0)
+
+	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+	w.Header().Set("ETag", etag)
 
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
