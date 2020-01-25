@@ -40,7 +40,6 @@ func posFromCoord(x, y uint16, floor uint8) pos {
 }
 
 type Map struct {
-	otb.OTB
 	gameworld.MapDataSource
 	tiles     map[pos]*mapTile
 	creatures map[gameworld.CreatureID]gameworld.Creature
@@ -72,7 +71,7 @@ type mapTile struct {
 
 	ownPos pos
 
-	ground    *mapItem
+	ground    mapItem
 	layers    [][]*mapItem
 	creatures []gameworld.Creature
 
@@ -84,9 +83,9 @@ func (t *mapTile) String() string {
 }
 
 func (t *mapTile) GetItem(idx int) (gameworld.MapItem, error) {
-	if t.ground != nil {
+	if t.ground.otbItemTypeID != 0 {
 		if idx == 0 {
-			return t.ground, nil
+			return &t.ground, nil
 		} else {
 			idx--
 		}
@@ -102,7 +101,7 @@ func (t *mapTile) GetItem(idx int) (gameworld.MapItem, error) {
 	return nil, gameworld.ItemNotFound
 }
 
-func (t *mapTile) addItem(item *mapItem) error {
+func (t *mapTile) addItem(item mapItem) error {
 	// TODO notify of item updates (e.g. replacement)
 	// for now, private method because it's used only during map load
 	// maybe the public method will be a wrapper?
@@ -119,7 +118,7 @@ func (t *mapTile) addItem(item *mapItem) error {
 		return fmt.Errorf("otbm item %d not found in otb items", item.GetServerType())
 	}
 	if otbItem.Group == itemsotb.ITEM_GROUP_GROUND {
-		if t.ground != nil {
+		if t.ground.otbItemTypeID != 0 {
 			// maybe tell t.ground it is being replaced?
 			// definitely notification will be different
 			t.ground = item
@@ -144,7 +143,7 @@ func (t *mapTile) addItem(item *mapItem) error {
 		ord = ordI.(uint8)
 	}
 
-	t.layers[ord] = append(t.layers[ord], item)
+	t.layers[ord] = append(t.layers[ord], &item)
 
 	return nil
 }
@@ -350,15 +349,13 @@ func New(r io.ReadSeeker, t *things.Things) (*Map, error) {
 	}
 
 	otb := Map{
-		OTB: *f,
-
 		tiles:     map[pos]*mapTile{},
 		creatures: map[gameworld.CreatureID]gameworld.Creature{},
 
 		things: t,
 	}
 
-	root := otb.ChildNode(nil)
+	root := f.ChildNode(nil)
 	if root == nil {
 		return nil, fmt.Errorf("nil root node")
 	}
@@ -384,11 +381,11 @@ func New(r io.ReadSeeker, t *things.Things) (*Map, error) {
 		return nil, fmt.Errorf("unknown root node 0x%02x", root.NodeType())
 	}
 
-	if otb.ChildNode(root) == nil {
+	if root.ChildNode() == nil {
 		return nil, fmt.Errorf("no children in root node")
 	}
 
-	for node := otb.ChildNode(root); node != nil; node = node.NextNode() {
+	for node := root.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := otb.readRootChildNode(node); err == nil {
 			mapData = mapData // FIXME
 		} else {
@@ -464,7 +461,7 @@ func (m *Map) readMapDataNode(node *otb.OTBNode) (MapData, error) {
 	}
 
 	glog.Infof("Reading map %s", m)
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := m.readMapDataChildNode(node); err == nil {
 			mapData = mapData
 		} else {
@@ -508,7 +505,7 @@ func (m *Map) readTileAreaNode(node *otb.OTBNode) (MapData, error) { // TODO: th
 
 	if glog.V(2) { glog.Infof("tile area at %d,%d,%d for %v", props.X, props.Y, props.Floor, m) }
 
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := m.readTileAreaChildNode(node, &area); err == nil {
 			mapData = mapData
 		} else {
@@ -569,7 +566,7 @@ func (m *Map) readTileOrHouseTileNode(node *otb.OTBNode, area *mapTileArea, nt M
 			}
 			glog.V(v).Infof("  tileflags: %04x", tileFlags)
 		case OTBM_ATTR_ITEM:
-			item := &mapItem{
+			item := mapItem{
 				ancestorMap: m,
 				parentTile:  &tile,
 				count:       1,
@@ -601,7 +598,7 @@ func (m *Map) readTileOrHouseTileNode(node *otb.OTBNode, area *mapTileArea, nt M
 		}
 	}
 
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := m.readTileChildNode(node, &tile); err == nil {
 			mapData = mapData
 		} else {
@@ -628,7 +625,7 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 	if glog.V(2) { glog.Infof("%sitem", indent) }
 	propBuf := node.PropsBuffer()
 
-	item := &mapItem{
+	item := mapItem{
 		ancestorMap: m,
 		parentTile:  parentTile,
 		parentItem:  parentItem,
@@ -740,8 +737,8 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 		}
 	}
 
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
-		if mapData, err := m.readItemChildNode(node, parentTile, item, depth+1); err == nil {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
+		if mapData, err := m.readItemChildNode(node, parentTile, &item, depth+1); err == nil {
 			mapData = mapData
 		} else {
 			return nil, fmt.Errorf("error reading tile child node: %v", err)
@@ -777,7 +774,7 @@ func (m *Map) readItemChildNode(node *otb.OTBNode, parentTile *mapTile, parentIt
 
 func (m *Map) readTownsNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
 	glog.V(2).Infof("towns")
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := m.readTownsChildNode(node); err == nil {
 			mapData = mapData
 		} else {
@@ -846,7 +843,7 @@ func (m *Map) readTownNode(node *otb.OTBNode) (MapData, error) { // TODO: this w
 
 func (m *Map) readWaypointsNode(node *otb.OTBNode) (MapData, error) { // TODO: this won't return mapdata.
 	glog.V(2).Infof("waypoints")
-	for node := m.ChildNode(node); node != nil; node = node.NextNode() {
+	for node := node.ChildNode(); node != nil; node = node.NextNode() {
 		if mapData, err := m.readWaypointsChildNode(node); err == nil {
 			mapData = mapData
 		} else {
@@ -920,7 +917,7 @@ func (m *Map) AddCreature(c gameworld.Creature) error {
 		// REMOVE THIS once maps are correctly loaded.
 		if i, err := t.GetItem(0); err != nil || i == nil {
 			glog.V(2).Info("  but first adding some ground for the creature")
-			item := &mapItem{
+			item := mapItem{
 				ancestorMap:   m,
 				parentTile:    t.(*mapTile),
 				parentItem:    nil,
@@ -938,7 +935,7 @@ func (m *Map) GetMapTile(x, y uint16, z uint8) (gameworld.MapTile, error) {
 	if t, ok := m.tiles[pos]; ok { //tnet.Position{x, y, z}]; ok {
 		return t, nil
 	}
-	//return nil, fmt.Errorf("tile not found")
+	//return nil, fmt.Errorf("tile not found") // TODO(ivucica): we should not return a tile
 	return &mapTile{parent: m,  ownPos: pos}, nil
 }
 
