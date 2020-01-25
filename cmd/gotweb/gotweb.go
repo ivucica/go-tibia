@@ -1,9 +1,7 @@
 package main
 
 import (
-	_ "net/http/pprof" // REMOVE ME: Debug information should not be served publicly.
-
-	"runtime"
+	_ "net/http/pprof" // Default mux should not be served publicly; it's actually hidden behind a flag.
 
 	"flag"
 	"fmt"
@@ -32,6 +30,7 @@ import (
 
 var (
 	listenAddress = flag.String("listen_address", ":8080", "http listen address for gotweb")
+	debugListenAddress = flag.String("debug_listen_address", "", "http listen address for pprof (and other stuff registered on default serve mux)")
 
 	itemsOTBPath string
 	itemsXMLPath string
@@ -443,12 +442,13 @@ func main() {
 				jpeg.Encode(w, img, &jpeg.Options{Quality: jpeg.DefaultQuality}) // jpeg.DefaultQuality})
 			}
 
-			runtime.GC() // TODO: remove
 		})
 	}()
 
-	//r.Handle("/debug/pprof/", http.DefaultServeMux)
-	go http.ListenAndServe(":6060", nil)
+	if *debugListenAddress != "" {
+		// TODO(ivucica): have a mux that includes /debug URLs.
+		go http.ListenAndServe(*debugListenAddress, nil)
+	}
 
 	glog.Infof("beginning to serve")
 	glog.Fatal(http.ListenAndServe(*listenAddress, r))
