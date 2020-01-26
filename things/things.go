@@ -24,6 +24,10 @@ func (i *Item) Name() string {
 	return i.otb.Name()
 }
 
+func (i *Item) LightInfo() dat.LightInfo {
+	return i.dataset.LightInfo
+}
+
 func (i *Item) GraphicsSize() struct{ W, H int } {
 	gfx := i.dataset.GetGraphics()
 	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
