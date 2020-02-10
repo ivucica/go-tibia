@@ -25,13 +25,15 @@ func (fmtDumperT) Printf(s string, arg ...interface{}) {
 
 var fmtDumper fmtDumperT
 
-func shade(col ic.Color, escapesTrueColor, blanks bool) {
+func shade(col ic.Color, escapesTrueColor, blanks, noColor bool) {
 	cR, cG, cB, cA := col.RGBA()
 	if cA > 0 {
 		//fmt.Printf("\x1b[38;5;%dm", a) // TODO(ivucica): Map color to closest entry in xterm 256color palette.
 		var d dumper
 
-		if escapesTrueColor {
+		if noColor {
+			d = &fmtDumper
+		} else if escapesTrueColor {
 			fmt.Printf("\x1b[48;2;%d;%d;%dm", uint8(cR), uint8(cG), uint8(cB))
 			d = &fmtDumper
 		} else {
@@ -40,13 +42,13 @@ func shade(col ic.Color, escapesTrueColor, blanks bool) {
 		if blanks {
 			d.Printf("  ")
 		} else {
-			a := cR + cG + cB
+			a := ((cR + cG + cB)/ 3) >> 8
 			switch {
-			case a < 64:
+			case a < 32:
 				d.Printf("..")
-			case a < 128:
+			case a < 64:
 				d.Printf("--")
-			case a < 192:
+			case a < 128:
 				d.Printf("==")
 			default:
 				d.Printf("##")
@@ -66,7 +68,7 @@ func Print256Color(i image.Image, blanks bool) {
 	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			col := i.At(x, y)
-			shade(col, false, blanks)
+			shade(col, false, blanks, false)
 		}
 		fmt.Printf("\x1b[0m")
 		fmt.Printf("\n")
@@ -78,9 +80,20 @@ func Print24bit(i image.Image, blanks bool) {
 	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			col := i.At(x, y)
-			shade(col, true, blanks)
+			shade(col, true, blanks, false)
 		}
 		fmt.Printf("\x1b[0m")
+		fmt.Printf("\n")
+	}
+}
+
+// PrintNoColor draws an image without using color escape sequences. Only makes sense with blanks=true.
+func PrintNoColor(i image.Image, blanks bool) {
+	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
+		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
+			col := i.At(x, y)
+			shade(col, true, blanks, true)
+		}
 		fmt.Printf("\n")
 	}
 }
