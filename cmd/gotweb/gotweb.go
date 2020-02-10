@@ -6,7 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
+	"image/color/palette"
 	"image/draw"
+	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -237,10 +240,14 @@ func picHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	th *things.Things
+	th           *things.Things
+	itemLock     sync.Mutex
+	creatureLock sync.Mutex
 )
 
 func itemHandler(w http.ResponseWriter, r *http.Request) {
+	itemLock.Lock()
+	defer itemLock.Unlock()
 
 	vars := mux.Vars(r)
 	idx, err := strconv.Atoi(vars["idx"])
@@ -276,11 +283,9 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 	png.Encode(w, img)
 }
 
-var citemLock sync.Mutex
-
 func citemHandler(w http.ResponseWriter, r *http.Request) {
-	citemLock.Lock()
-	defer citemLock.Unlock()
+	itemLock.Lock()
+	defer itemLock.Unlock()
 
 	vars := mux.Vars(r)
 	idx, err := strconv.Atoi(vars["idx"])
@@ -322,6 +327,155 @@ func citemHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
+}
+
+func creatureHandler(w http.ResponseWriter, r *http.Request) {
+	creatureLock.Lock()
+	defer creatureLock.Unlock()
+
+	vars := mux.Vars(r)
+	idx, err := strconv.Atoi(vars["idx"])
+	if err != nil {
+		http.Error(w, "idx not a number", http.StatusBadRequest)
+		return
+	}
+
+	dir, err := strconv.Atoi(vars["dir"])
+	if err != nil {
+		http.Error(w, "dir not a number", http.StatusBadRequest)
+		return
+	}
+
+	fr, err := strconv.Atoi(vars["fr"])
+	if err != nil {
+		http.Error(w, "fr not a number", http.StatusBadRequest)
+		return
+	}
+
+	cr, err := th.CreatureWithClientID(uint16(idx), 854)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var p struct {
+		outfitOverlayMask things.OutfitOverlayMask
+		col               [4]color.Color
+	}
+	p.col[0] = things.OutfitColor(0)
+	p.col[1] = things.OutfitColor(0)
+	p.col[2] = things.OutfitColor(0)
+	p.col[3] = things.OutfitColor(0)
+	if oom := r.URL.Query().Get("oom"); oom != "" {
+		oom2, _ := strconv.Atoi(oom)
+		// ignore invalid oom
+
+		if oom2 < int(things.OutfitOverlayMaskLast) {
+			p.outfitOverlayMask = things.OutfitOverlayMask(oom2)
+		}
+	}
+	for i := 0; i < 4; i++ {
+		if col := r.URL.Query().Get(fmt.Sprintf("col%d", i)); col != "" {
+			col2, _ := strconv.Atoi(col)
+			// ignore invalid oom
+
+			if col2 < 133 {
+				p.col[i] = things.OutfitColor(col2)
+			}
+		}
+	}
+
+	img := cr.ColorizedCreatureFrame(fr, dir, p.outfitOverlayMask, p.col[:])
+	if img == nil {
+		http.Error(w, "bad image", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.WriteHeader(http.StatusOK)
+	png.Encode(w, img)
+}
+
+func creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
+	creatureLock.Lock()
+	defer creatureLock.Unlock()
+
+	vars := mux.Vars(r)
+	idx, err := strconv.Atoi(vars["idx"])
+	if err != nil {
+		http.Error(w, "idx not a number", http.StatusBadRequest)
+		return
+	}
+	dir, err := strconv.Atoi(vars["dir"])
+	if err != nil {
+		http.Error(w, "dir not a number", http.StatusBadRequest)
+		return
+	}
+
+	cr, err := th.CreatureWithClientID(uint16(idx), 854)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	g := gif.GIF{}
+
+	// TODO: Can we do better? Can we calculate best palette for each frame?
+	imgPalette := make([]color.Color, len(palette.WebSafe)+1)
+	imgPalette[0] = image.Transparent
+	copy(imgPalette[1:], palette.WebSafe)
+
+	start := 1
+	if cr.IdleAnim() {
+		start = 0
+	}
+
+	var p struct {
+		outfitOverlayMask things.OutfitOverlayMask
+		col               [4]color.Color
+	}
+	p.col[0] = things.OutfitColor(0)
+	p.col[1] = things.OutfitColor(0)
+	p.col[2] = things.OutfitColor(0)
+	p.col[3] = things.OutfitColor(0)
+	if oom := r.URL.Query().Get("oom"); oom != "" {
+		oom2, _ := strconv.Atoi(oom)
+		// ignore invalid oom
+
+		if oom2 < int(things.OutfitOverlayMaskLast) {
+			p.outfitOverlayMask = things.OutfitOverlayMask(oom2)
+		}
+	}
+	for i := 0; i < 4; i++ {
+		if col := r.URL.Query().Get(fmt.Sprintf("col%d", i)); col != "" {
+			col2, _ := strconv.Atoi(col)
+			// ignore invalid oom
+
+			if col2 < 133 {
+				p.col[i] = things.OutfitColor(col2)
+			}
+		}
+	}
+
+	for i := start; i < cr.AnimCount(); i++ {
+		img := cr.ColorizedCreatureFrame(i, dir, p.outfitOverlayMask, p.col[:])
+		if img == nil {
+			http.Error(w, "bad image", http.StatusInternalServerError)
+			return
+		}
+
+		pal := image.NewPaletted(img.Bounds(), imgPalette)
+
+		draw.Draw(pal, img.Bounds(), img, image.ZP, draw.Over)
+		g.Image = append(g.Image, pal)
+		g.Delay = append(g.Delay, 50)
+		g.Disposal = append(g.Disposal, gif.DisposalBackground)
+		g.BackgroundIndex = 0 // image.Transparent
+	}
+
+	w.Header().Set("Content-Type", "image/gif")
+	w.WriteHeader(http.StatusOK)
+	gif.EncodeAll(w, &g)
 }
 
 func main() {
@@ -383,6 +537,8 @@ func main() {
 	r.HandleFunc("/spr/{idx:[0-9]+}", sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", itemHandler)
 	r.HandleFunc("/item/c{idx:[0-9]+}", citemHandler)
+	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}-{fr:[0-9]+}", creatureHandler)
+	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}.gif", creatureGIFHandler)
 	r.HandleFunc("/pic/{idx:[0-9]+}", picHandler)
 
 	go func() {
