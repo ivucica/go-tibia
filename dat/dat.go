@@ -93,6 +93,7 @@ type Item struct {
 	MapColor     uint16
 	LookThrough  bool
 }
+
 // Outfit represents a dataset entry describing a possible appearance for an in-game character, whether NPC or player.
 type Outfit struct {
 	DatasetEntry
@@ -103,6 +104,7 @@ type Outfit struct {
 	IdleAnim bool
 	LightInfo
 }
+
 // Effect represents a temporarily-appearing in-game effect, such as a poof of smoke, then disappears.
 type Effect struct {
 	DatasetEntry
@@ -111,6 +113,7 @@ type Effect struct {
 	Id int
 	LightInfo
 }
+
 // DistanceEffect represents an in-game effect which moves from one tile to another over a period of time, then diappears.
 type DistanceEffect struct {
 	DatasetEntry
@@ -124,6 +127,7 @@ type DistanceEffect struct {
 type LightInfo struct {
 	Strength, Color uint16
 }
+
 // OffsetInfo represents how far the object should be drawn offset to its usual drawing location.
 type OffsetInfo struct {
 	X, Y uint16
@@ -251,6 +255,10 @@ func (d *Dataset) Item(clientID uint16) *Item {
 	return &d.items[clientID-100]
 }
 
+func (d *Dataset) Outfit(clientID uint16) *Outfit {
+	return &d.outfits[clientID]
+}
+
 // load780plus loads the format used in game version 7.8 and later.
 func (d *Dataset) load780plus(r io.Reader) error {
 	var e DatasetEntry
@@ -278,6 +286,7 @@ func (d *Dataset) load780plus(r io.Reader) error {
 			e = &d.distanceEffects[eid]
 			e.(*DistanceEffect).Id = eid + 1
 		}
+
 		glog.V(4).Infof("id %d (%d, %d, %d, %d) %T", id, len(d.items), len(d.items)+len(d.outfits), len(d.items)+len(d.outfits)+len(d.effects), len(d.items)+len(d.outfits)+len(d.effects)+len(d.distanceEffects), e)
 		if e == nil {
 			glog.Errorf("unsupported dataset entry type at index %d", id)
@@ -292,6 +301,7 @@ func (d *Dataset) load780plus(r io.Reader) error {
 		if err := d.loadGraphicsSpec(r, e); err != nil {
 			return fmt.Errorf("error reading graphics spec for %s: %v", e, err)
 		}
+		glog.V(4).Infof("gfx: %+v", e.GetGraphics())
 		glog.V(4).Infoln("next item")
 	}
 	glog.V(3).Infof("done with 780 dataset")

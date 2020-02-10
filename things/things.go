@@ -33,6 +33,41 @@ func (i *Item) GraphicsSize() struct{ W, H int } {
 	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
 }
 
+type Creature struct {
+	outfit *dat.Outfit
+
+	parent *Things
+
+	img map[creatureFrame]image.Image
+}
+type creatureFrame struct {
+	Dir, Frame        int
+	OutfitOverlayMask OutfitOverlayMask
+	ColorTemplate     bool
+}
+
+func (c *Creature) Name() string {
+	return "a creature"
+}
+
+func (c *Creature) LightInfo() dat.LightInfo {
+	return c.outfit.LightInfo
+}
+
+func (c *Creature) GraphicsSize() struct{ W, H int } {
+	gfx := c.outfit.GetGraphics()
+	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
+}
+
+func (c *Creature) IdleAnim() bool {
+	return c.outfit.IdleAnim
+}
+
+func (c *Creature) AnimCount() int {
+	gfx := c.outfit.GetGraphics()
+	return int(gfx.AnimCount)
+}
+
 type Things struct {
 	items     *itemsotb.Items
 	dataset   *dat.Dataset
@@ -86,6 +121,13 @@ func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item,
 		otb:     itm,
 		dataset: t.dataset.Item(clientID),
 		parent:  t,
+	}, nil
+}
+
+func (t *Things) CreatureWithClientID(clientID uint16, clientVersion uint16) (*Creature, error) {
+	return &Creature{
+		outfit: t.dataset.Outfit(clientID),
+		parent: t,
 	}, nil
 }
 
