@@ -141,6 +141,17 @@ func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, flo
 				if light != nil {
 					lights = append(lights, light)
 				}
+
+				if (tx == int(x)+width/2) && (ty == int(y)+height/2) && tz == int(floorBottom) {
+					cr, err := th.CreatureWithClientID(128, 854)
+					if err == nil {
+						frame := cr.ColorizedCreatureFrame(0, 2, 0, []color.Color{things.OutfitColor(130), things.OutfitColor(90), things.OutfitColor(25), things.OutfitColor(130)})
+						dst := image.Rect(
+							bottomRight.X-frame.Bounds().Size().X, bottomRight.Y-frame.Bounds().Size().Y,
+							bottomRight.X, bottomRight.Y)
+						draw.Draw(floor, dst, frame, image.ZP, draw.Over)
+					}
+				}
 			}
 		}
 		overlay := compositeLightOverlayGen(width, height, tileW, tileH, lights, floor)
