@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
 	"io"
 	"os"
 	"sync"
@@ -29,6 +30,9 @@ var (
 	col256  = flag.Bool("col256", false, "whether to use 256 col instead of 24 bit")
 	iterm   = flag.Bool("iterm", false, "whether to print with iterm escape code instead of 24 bit")
 	blanks  = flag.Bool("blanks", true, "whether to just use colored blanks instead of some bad ascii art")
+	col  = flag.Bool("color", true, "whether to use colorization escape sequences at all")
+
+	creatureID = flag.Int("creature", 0, "ID of creature to print")
 
 	itemsOTBPath string
 	itemsXMLPath string
@@ -203,13 +207,27 @@ func citemHandler(idx int, fr, x, y, z int) {
 	out(img)
 }
 
+func creatureHandler(idx int) {
+	cr, err := th.CreatureWithClientID(uint16(idx), 854)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+		return
+	}
+
+	img := cr.ColorizedCreatureFrame(0, 2, 0, []color.Color{things.OutfitColor(130), things.OutfitColor(90), things.OutfitColor(25), things.OutfitColor(130)})
+
+	out(img)
+}
+
 func out(img image.Image) {
 
 	if w, h, err := terminal.GetSize(0); err == nil { // or int(os.Stdin.Fd())
 		img = resize.Thumbnail(uint(w/2), uint(h), img, resize.Lanczos3)
 	}
 
-	if *iterm {
+	if !*col {
+		imageprint.PrintNoColor(img, *blanks)
+	} else if *iterm {
 		imageprint.PrintITerm(img, "image.png")
 	} else if *col256 {
 		imageprint.Print256Color(img, *blanks)
@@ -249,6 +267,9 @@ func main() {
 	}
 	if *citemID != 0 {
 		citemHandler(*citemID, 0, 0, 0, 0)
+	}
+	if *creatureID != 0 {
+		creatureHandler(*creatureID)
 	}
 	if *picID != 0 {
 		picHandler(*picID)
