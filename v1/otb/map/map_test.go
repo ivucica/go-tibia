@@ -10,9 +10,9 @@ import (
 	"badc0de.net/pkg/flagutil/v1"
 	//"badc0de.net/pkg/go-tibia/ttesting"
 
-	"badc0de.net/pkg/go-tibia/otb/items"
-	"badc0de.net/pkg/go-tibia/gameworld"
-	"badc0de.net/pkg/go-tibia/things"
+	"badc0de.net/pkg/go-tibia/v1/otb/items"
+	"badc0de.net/pkg/go-tibia/v1/gameworld"
+	"badc0de.net/pkg/go-tibia/v1/things"
 )
 
 func init() {

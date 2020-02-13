@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"badc0de.net/pkg/go-tibia/otb"
+	"badc0de.net/pkg/go-tibia/v1/otb"
 	"github.com/golang/glog"
 )
 

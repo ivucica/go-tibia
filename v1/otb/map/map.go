@@ -2,13 +2,13 @@
 package otbm
 
 import (
-	"badc0de.net/pkg/go-tibia/gameworld"
-	tnet "badc0de.net/pkg/go-tibia/net"
-	"badc0de.net/pkg/go-tibia/otb"
+	"badc0de.net/pkg/go-tibia/v1/gameworld"
+	tnet "badc0de.net/pkg/go-tibia/v1/net"
+	"badc0de.net/pkg/go-tibia/v1/otb"
 	"github.com/golang/glog"
 
-	"badc0de.net/pkg/go-tibia/otb/items"
-	"badc0de.net/pkg/go-tibia/things"
+	"badc0de.net/pkg/go-tibia/v1/otb/items"
+	"badc0de.net/pkg/go-tibia/v1/things"
 
 	"bytes"
 	"encoding/binary"

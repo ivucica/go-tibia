@@ -1,9 +1,9 @@
 package things
 
 import (
-	"badc0de.net/pkg/go-tibia/dat"
-	"badc0de.net/pkg/go-tibia/otb/items"
-	"badc0de.net/pkg/go-tibia/spr"
+	"badc0de.net/pkg/go-tibia/v1/dat"
+	"badc0de.net/pkg/go-tibia/v1/otb/items"
+	"badc0de.net/pkg/go-tibia/v1/spr"
 
 	"github.com/golang/glog"
 

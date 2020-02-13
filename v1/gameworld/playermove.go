@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	tnet "badc0de.net/pkg/go-tibia/net"
+	tnet "badc0de.net/pkg/go-tibia/v1/net"
 
 	"github.com/golang/glog"
 )

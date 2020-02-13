@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	tnet "badc0de.net/pkg/go-tibia/net"
+	tnet "badc0de.net/pkg/go-tibia/v1/net"
 )
 
 type accessCountingMapDataSource struct {

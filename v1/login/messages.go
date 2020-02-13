@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	gonet "net"
 
-	"badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/v1/net"
 )
 
 // CharacterListEntry represents a single character presented on the character list.

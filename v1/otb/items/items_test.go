@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"badc0de.net/pkg/go-tibia/ttesting"
+	"badc0de.net/pkg/go-tibia/v1/ttesting"
 )
 
 func TestNew(t *testing.T) {

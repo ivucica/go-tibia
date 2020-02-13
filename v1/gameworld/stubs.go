@@ -5,7 +5,7 @@ package gameworld
 import (
 	"encoding/binary"
 
-	tnet "badc0de.net/pkg/go-tibia/net"
+	tnet "badc0de.net/pkg/go-tibia/v1/net"
 )
 
 func (c *GameworldConnection) initialAppearSelfAppear(outMap *tnet.Message) error {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"badc0de.net/pkg/go-tibia/imageprint"
+	"badc0de.net/pkg/go-tibia/v1/imageprint"
 )
 
 func TestDecodeOne(t *testing.T) {
