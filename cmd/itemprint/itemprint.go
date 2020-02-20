@@ -11,11 +11,11 @@ import (
 
 	"badc0de.net/pkg/flagutil/v1"
 
-	tdat "badc0de.net/pkg/go-tibia/dat"
-	"badc0de.net/pkg/go-tibia/imageprint"
-	"badc0de.net/pkg/go-tibia/otb/items"
-	"badc0de.net/pkg/go-tibia/spr"
-	"badc0de.net/pkg/go-tibia/things"
+	tdat "badc0de.net/pkg/go-tibia/v1/dat"
+	"badc0de.net/pkg/go-tibia/v1/imageprint"
+	"badc0de.net/pkg/go-tibia/v1/otb/items"
+	"badc0de.net/pkg/go-tibia/v1/spr"
+	"badc0de.net/pkg/go-tibia/v1/things"
 
 	"github.com/golang/glog"
 	"github.com/nfnt/resize"
