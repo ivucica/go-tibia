@@ -8,7 +8,7 @@ import (
 	"io"
 	"net"
 
-	tnet "badc0de.net/pkg/go-tibia/v1/net"
+	tnet "badc0de.net/pkg/go-tibia/net"
 
 	"github.com/golang/glog"
 )

@@ -1,2 +1,1 @@
-// Package things implements a registry for items, creatures etc.
-package things
+// Package deprecated for semver reasons.

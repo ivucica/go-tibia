@@ -5,9 +5,9 @@ import (
 	"image/color"
 	"image/draw"
 
-	"badc0de.net/pkg/go-tibia/v1/dat"
-	"badc0de.net/pkg/go-tibia/v1/otb/items"
-	"badc0de.net/pkg/go-tibia/v1/spr"
+	"badc0de.net/pkg/go-tibia/dat"
+	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/spr"
 	"github.com/golang/glog"
 )
 

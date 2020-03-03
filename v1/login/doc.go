@@ -1,2 +1,1 @@
-// Package login provides a login protocol server.
-package login
+// Package deprecated for semver reasons.

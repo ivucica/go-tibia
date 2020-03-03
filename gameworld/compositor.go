@@ -6,8 +6,8 @@ import (
 	"image/draw"
 	"math"
 
-	"badc0de.net/pkg/go-tibia/v1/dat"
-	"badc0de.net/pkg/go-tibia/v1/things"
+	"badc0de.net/pkg/go-tibia/dat"
+	"badc0de.net/pkg/go-tibia/things"
 	"github.com/golang/glog"
 )
 

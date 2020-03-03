@@ -1,2 +1,1 @@
-// Package gameworld provides a gameworld protocol server.
-package gameworld
+// Package deprecated for semver reasons.

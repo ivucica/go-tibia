@@ -16,16 +16,16 @@ import (
 
 	_ "golang.org/x/net/trace"
 
-	tdat "badc0de.net/pkg/go-tibia/v1/dat"
-	"badc0de.net/pkg/go-tibia/v1/gameworld"
-	"badc0de.net/pkg/go-tibia/v1/login"
-	tnet "badc0de.net/pkg/go-tibia/v1/net"
-	"badc0de.net/pkg/go-tibia/v1/otb/items"
-	"badc0de.net/pkg/go-tibia/v1/otb/map"
-	"badc0de.net/pkg/go-tibia/v1/secrets"
-	"badc0de.net/pkg/go-tibia/v1/things"
+	tdat "badc0de.net/pkg/go-tibia/dat"
+	"badc0de.net/pkg/go-tibia/gameworld"
+	"badc0de.net/pkg/go-tibia/login"
+	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/otb/map"
+	"badc0de.net/pkg/go-tibia/secrets"
+	"badc0de.net/pkg/go-tibia/things"
 
-	"badc0de.net/pkg/go-tibia/v1/spr"
+	"badc0de.net/pkg/go-tibia/spr"
 	"image/png"
 	"strconv"
 )

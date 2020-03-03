@@ -1,7 +1,7 @@
 package gameworld
 
 import (
-	tnet "badc0de.net/pkg/go-tibia/v1/net"
+	tnet "badc0de.net/pkg/go-tibia/net"
 	"bytes"
 	"encoding/binary"
 	"fmt"
