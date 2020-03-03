@@ -2,6 +2,8 @@
 
 Just a toy project to see how far Go's built in crypto primitives can take me.
 
+(c) 2017-2020 Ivan Vucica. See the [LICENSE](LICENSE) for licensing information.
+
 ## gotserv: OTServ in Go
 
 Main binary: `badc0de.net/pkg/go-tibia/cmd/gotserv`
