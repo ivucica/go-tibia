@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"badc0de.net/pkg/flagutil/v1"
+	"badc0de.net/pkg/flagutil"
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/imageprint"

@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"badc0de.net/pkg/flagutil/v1"
+	"badc0de.net/pkg/flagutil"
 	//"badc0de.net/pkg/go-tibia/ttesting"
 
 	"badc0de.net/pkg/go-tibia/otb/items"

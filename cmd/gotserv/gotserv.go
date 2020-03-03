@@ -16,6 +16,8 @@ import (
 
 	_ "golang.org/x/net/trace"
 
+	"badc0de.net/pkg/flagutil"
+
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/login"
@@ -75,7 +77,7 @@ func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
 func main() {
 	setupFilePathFlags()
 
-	flag.Parse()
+	flagutil.Parse()
 	glog.Infoln("starting gotserv services")
 	go logins()
 	go games()
