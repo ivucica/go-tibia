@@ -1,5 +1,7 @@
 badc0de.net/pkg/flagutil v0.0.0-20200303203100-b719cf6e3a8f h1:Z7X1IHuiGCdBJh9MI3nOokRzQ4eV0gQflSj3/H8wtJs=
 badc0de.net/pkg/flagutil v0.0.0-20200303203100-b719cf6e3a8f/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
+badc0de.net/pkg/flagutil v1.0.0 h1:vlXXXQMqp2XRYwwrZiMdYPCHFWk46zZiIx1cXyuId2Q=
+badc0de.net/pkg/flagutil v1.0.0/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
