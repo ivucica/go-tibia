@@ -31,6 +31,7 @@ var (
 	iterm   = flag.Bool("iterm", false, "whether to print with iterm escape code instead of 24 bit")
 	blanks  = flag.Bool("blanks", true, "whether to just use colored blanks instead of some bad ascii art")
 	col  = flag.Bool("color", true, "whether to use colorization escape sequences at all")
+	downsize = flag.Bool("downsize", true, "whether to downsize to terminal size")
 
 	creatureID = flag.Int("creature", 0, "ID of creature to print")
 
@@ -221,8 +222,10 @@ func creatureHandler(idx int) {
 
 func out(img image.Image) {
 
-	if w, h, err := terminal.GetSize(0); err == nil { // or int(os.Stdin.Fd())
-		img = resize.Thumbnail(uint(w/2), uint(h), img, resize.Lanczos3)
+	if *downsize {
+		if w, h, err := terminal.GetSize(0); err == nil { // or int(os.Stdin.Fd())
+			img = resize.Thumbnail(uint(w/2), uint(h), img, resize.Lanczos3)
+		}
 	}
 
 	if !*col {
