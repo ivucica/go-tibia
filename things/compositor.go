@@ -22,6 +22,11 @@ func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
 		return img
 	}
 
+	if i.dataset == nil {
+		glog.Errorf("cannot composite image for item %d: no dat", i.otb.Attributes[itemsotb.ITEM_ATTR_SERVERID].(uint16))
+		return nil
+	}
+
 	// n.b. rendersize is used for scaling.
 	gfx := i.dataset.GetGraphics()
 
