@@ -146,6 +146,14 @@ func (t *Things) Temp__GetClientIDForServerID(serverID uint16, clientVersion uin
 }
 
 func (t *Things) Temp__GetItemFromOTB(serverID uint16, clientVersion uint16) *itemsotb.Item {
+	if t == nil {
+		glog.Errorf("Things.Temp__GetItemFromOTB: things is null")
+		return nil
+	}
+	if t.items == nil {
+		glog.Errorf("Things.Temp__GetItemFromOTB: items is null")
+		return nil
+	}
 	itm, err := t.items.ItemByServerID(serverID)
 	if err != nil {
 		return nil
