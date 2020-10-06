@@ -657,10 +657,9 @@ func (d *Dataset) loadGraphicsSpec(r io.Reader, e DatasetEntry) error {
 	gfx.RenderSize = 32
 	if gfx.GraphicsDimensions.Width != 1 || gfx.GraphicsDimensions.Height != 1 {
 		glog.V(5).Info("reading rendersize")
-		if err := binary.Read(r, binary.LittleEndian, gfx.RenderSize); err != nil {
+		if err := binary.Read(r, binary.LittleEndian, &gfx.RenderSize); err != nil {
 			return fmt.Errorf("error reading render size: %v", err)
 		}
-
 	}
 
 	if err := binary.Read(r, binary.LittleEndian, &gfx.GraphicsDetails); err != nil {
