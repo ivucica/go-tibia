@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -29,6 +30,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
 )
 
 var (
@@ -41,6 +43,7 @@ var (
 	tibiaSprPath string
 	tibiaPicPath string
 	mapPath      string
+	htmlPath     string
 )
 
 type ReadSeekerCloser interface {
@@ -80,6 +83,8 @@ func setupFilePathFlags() {
 	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
 	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 	setupFilePathFlag("map.otbm", "map_path", &mapPath)
+	setupFilePathFlag("html/index.html", "index_html_path", &htmlPath)
+	htmlPath = filepath.Dir(htmlPath)
 }
 
 func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
@@ -274,6 +279,10 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	img := itm.ItemFrame(0, 0, 0, 0)
+	if img == nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 	w.Header().Set("ETag", etag)
@@ -540,6 +549,10 @@ func main() {
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}-{fr:[0-9]+}", creatureHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}.gif", creatureGIFHandler)
 	r.HandleFunc("/pic/{idx:[0-9]+}", picHandler)
+	if htmlPath != "" {
+		glog.Infof("serving %q as the /app/", htmlPath)
+		r.PathPrefix("/app/").Handler(http.StripPrefix("/app/", handlers.LoggingHandler(os.Stderr, http.FileServer(http.Dir(htmlPath)))))
+	}
 
 	go func() {
 		var m gameworld.MapDataSource

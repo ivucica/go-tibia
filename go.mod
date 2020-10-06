@@ -6,6 +6,7 @@ require (
 	badc0de.net/pkg/flagutil v1.0.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gookit/color v1.2.3
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.7.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.9.1
