@@ -1,0 +1,28 @@
+{
+  "name": "GOTweb-FE",
+  "short_name": "GOTweb-FE",
+  "display": "standalone",
+  "start_url": "/app/",
+  "theme_color": "#dddddd",
+  "background_color": "#dddddd",
+  "icons": [
+    {
+      "src": "/app/go-tibia.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/app/go-tibia-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/app/go-tibia-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+
+
+  "scope": "/"
+}

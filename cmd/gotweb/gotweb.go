@@ -29,8 +29,8 @@ import (
 	"badc0de.net/pkg/go-tibia/things"
 
 	"github.com/golang/glog"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -551,7 +551,33 @@ func main() {
 	r.HandleFunc("/pic/{idx:[0-9]+}", picHandler)
 	if htmlPath != "" {
 		glog.Infof("serving %q as the /app/", htmlPath)
-		r.PathPrefix("/app/").Handler(http.StripPrefix("/app/", handlers.LoggingHandler(os.Stderr, http.FileServer(http.Dir(htmlPath)))))
+		r.HandleFunc("/app/Tibia.spr", func(w http.ResponseWriter, r *http.Request) {
+			generation := 1 // bump if the way we generate it changes
+			mime := "application/octet-stream"
+			etag := fmt.Sprintf(`W/"spritefile:%d:%08x:%s"`, generation, th.SpriteSetSignature(), mime)
+			if r.Header.Get("If-None-Match") == etag {
+				w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+				w.Header().Set("ETag", etag)
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			w.Header().Set("ETag", etag)
+
+			http.ServeFile(w, r, tibiaSprPath)
+		})
+		r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			http.ServeFile(w, r, htmlPath+"/favicon.ico")
+		})
+		r.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			w.Header().Set("Content-Type", "application/javascript")
+			http.ServeFile(w, r, htmlPath+"/sw.js")
+		})
+		r.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir(htmlPath))))
+
 	}
 
 	go func() {
@@ -635,5 +661,5 @@ func main() {
 	}
 
 	glog.Infof("beginning to serve")
-	glog.Fatal(http.ListenAndServe(*listenAddress, r))
+	glog.Fatal(http.ListenAndServe(*listenAddress, handlers.LoggingHandler(os.Stderr, r)))
 }
