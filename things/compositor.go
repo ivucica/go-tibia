@@ -182,7 +182,14 @@ func (c *Creature) CreatureFrame(idx, dir int, outfitOverlayMask OutfitOverlayMa
 }
 
 func compositeGfx(idx int, x, y, z int, gfx *dat.Graphics, s *spr.SpriteSet, blendFrames []int) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, int(gfx.Width)*int(gfx.RenderSize), int(gfx.Height)*int(gfx.RenderSize)))
+	w := int(gfx.RenderSize)
+	h := int(gfx.RenderSize)
+	if w == 0 || h == 0 {
+		w = 32 * int(gfx.Width)
+		h = 32 * int(gfx.Height)
+	}
+
+	img := image.NewRGBA(image.Rect(0, 0, int(gfx.RenderSize), int(gfx.RenderSize)))
 
 	x %= int(gfx.XDiv)
 	y %= int(gfx.YDiv)
@@ -220,8 +227,9 @@ func compositeGfx(idx int, x, y, z int, gfx *dat.Graphics, s *spr.SpriteSet, ble
 					continue
 				}
 				r := image.Rect(
-					(int(gfx.Width)-x-1)*int(gfx.RenderSize), (int(gfx.Height)-y-1)*int(gfx.RenderSize),
-					(int(gfx.Width)-x-1+1)*int(gfx.RenderSize), (int(gfx.Height)-y-1+1)*int(gfx.RenderSize))
+					w-(x)*32, h-(y)*32,
+					w-(x+1)*32, h-(y+1)*32)
+
 				draw.Draw(img, r, src, image.ZP, draw.Over)
 			}
 		}
