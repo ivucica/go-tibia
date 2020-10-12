@@ -43,6 +43,27 @@ func compositeTile(t MapTile, th *things.Things, img *image.RGBA, bottomRight im
 		idx++
 	}
 
+	idx = 0
+	for creature, err := t.GetCreature(idx); err == nil; creature, err = t.GetCreature(idx) {
+		glog.Infof("creature at %d %d %d", x, y, floor)
+		thCreature, err := th.CreatureWithClientID(uint16(creature.GetID()), 854)
+		if err != nil {
+			glog.Errorf("could not get creature of type %d: %v", creature.GetID(), err)
+			continue
+		}
+		
+		frame := thCreature.ColorizedCreatureFrame(0, creature.GetDir(), things.OutfitOverlayMask(0), []color.Color{things.OutfitColor(130), things.OutfitColor(90), things.OutfitColor(25), things.OutfitColor(130)})
+
+		dst := image.Rect(
+			bottomRight.X-frame.Bounds().Size().X, bottomRight.Y-frame.Bounds().Size().Y,
+			bottomRight.X, bottomRight.Y)
+
+		draw.Draw(img, dst, frame, image.ZP, draw.Over)
+
+		// TODO: creature light?
+		idx++
+	}
+
 	return light
 }
 
