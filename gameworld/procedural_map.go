@@ -96,7 +96,22 @@ func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ds.generatedMapTiles[tnet.Position{x, y, z}] = generatedMapTile
+
+	if x == 32768+5 && y == 32768+5 && z == 7 {
+		cr := &creature{id: 128, pos: tnet.Position{X: x, Y: y, Floor: z}}
+		ds.AddCreature(cr)
+	}
+	if x == 109 && y == 89 && z == 7 {
+		cr := &creature{id: 128, pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionNorth}
+		ds.AddCreature(cr)
+	}
+	if x == 111 && y == 89 && z == 7 {
+		cr := &creature{id: 129, pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionWest}
+		ds.AddCreature(cr)
+	}
+
 	return generatedMapTile, nil
 
 }
