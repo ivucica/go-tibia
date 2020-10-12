@@ -48,6 +48,15 @@ const (
 	OutfitOverlayMaskLast
 )
 
+type CreatureDirection int
+
+const (
+	CreatureDirectionNorth = CreatureDirection(0)
+	CreatureDirectionEast  = CreatureDirection(iota)
+	CreatureDirectionSouth
+	CreatureDirectionWest
+)
+
 var (
 	outfitColorLookupTable = [133]OutfitColor{
 		0xFFFFFF, 0xFFD4BF, 0xFFE9BF, 0xFFFFBF, 0xE9FFBF, 0xD4FFBF,
@@ -105,7 +114,7 @@ func colorize(base image.Image, col color.Color, x, y int) color.RGBA {
 	return px
 }
 
-func (c *Creature) ColorizedCreatureFrame(idx, dir int, outfitOverlayMask OutfitOverlayMask, colors []color.Color) image.Image {
+func (c *Creature) ColorizedCreatureFrame(idx int, dir CreatureDirection, outfitOverlayMask OutfitOverlayMask, colors []color.Color) image.Image {
 	base := c.CreatureFrame(idx, dir, outfitOverlayMask, false)
 	if c.outfit.GetGraphics().BlendFrames == 1 {
 		return base
@@ -140,7 +149,7 @@ func (c *Creature) ColorizedCreatureFrame(idx, dir int, outfitOverlayMask Outfit
 
 	return out
 }
-func (c *Creature) CreatureFrame(idx, dir int, outfitOverlayMask OutfitOverlayMask, colorTemplate bool) image.Image {
+func (c *Creature) CreatureFrame(idx int, dir CreatureDirection, outfitOverlayMask OutfitOverlayMask, colorTemplate bool) image.Image {
 	crf := creatureFrame{Frame: idx, Dir: dir, OutfitOverlayMask: outfitOverlayMask, ColorTemplate: colorTemplate}
 
 	if c.img == nil {
@@ -169,7 +178,7 @@ func (c *Creature) CreatureFrame(idx, dir int, outfitOverlayMask OutfitOverlayMa
 
 	var img image.Image
 	for _, y := range outfitOverlays {
-		innerImg := compositeGfx(idx, dir, y, 0, gfx, c.parent.spriteSet, []int{blendIdx})
+		innerImg := compositeGfx(idx, int(dir), y, 0, gfx, c.parent.spriteSet, []int{blendIdx})
 		if img == nil {
 			img = innerImg
 		} else {

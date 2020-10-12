@@ -41,7 +41,8 @@ type Creature struct {
 	img map[creatureFrame]image.Image
 }
 type creatureFrame struct {
-	Dir, Frame        int
+	Dir               CreatureDirection
+	Frame             int
 	OutfitOverlayMask OutfitOverlayMask
 	ColorTemplate     bool
 }

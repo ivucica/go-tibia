@@ -5,11 +5,22 @@ import (
 	"fmt"
 
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/things"
 
 	"github.com/golang/glog"
 )
 
 func (c *GameworldConnection) playerCancelMove(dir byte) error {
+	pid, err := c.PlayerID()
+	if err != nil {
+		return err
+	}
+	player, err := c.server.mapDataSource.GetCreatureByID(pid)
+	if err != nil {
+		return err
+	}
+	player.SetDir(things.CreatureDirection(dir))
+
 	out := tnet.NewMessage()
 	out.Write([]byte{0xB5})
 	out.Write([]byte{
@@ -111,6 +122,8 @@ func (c *GameworldConnection) playerMoveNorthImpl(outMove *tnet.Message) error {
 		}
 	}
 
+	player.SetDir(things.CreatureDirectionNorth)
+
 	newP := tnet.Position{X: p.X, Y: p.Y - 1, Floor: p.Floor}
 	if err := player.SetPos(newP); err != nil {
 		return err
@@ -199,6 +212,8 @@ func (c *GameworldConnection) playerMoveEastImpl(outMove *tnet.Message) error {
 			return err
 		}
 	}
+
+	player.SetDir(things.CreatureDirectionEast)
 
 	newP := tnet.Position{X: p.X + 1, Y: p.Y, Floor: p.Floor}
 	if err := player.SetPos(newP); err != nil {
@@ -289,6 +304,8 @@ func (c *GameworldConnection) playerMoveSouthImpl(outMove *tnet.Message) error {
 		}
 	}
 
+	player.SetDir(things.CreatureDirectionSouth)
+
 	newP := tnet.Position{X: p.X, Y: p.Y + 1, Floor: p.Floor}
 	if err := player.SetPos(newP); err != nil {
 		return err
@@ -377,6 +394,8 @@ func (c *GameworldConnection) playerMoveWestImpl(outMove *tnet.Message) error {
 			return err
 		}
 	}
+
+	player.SetDir(things.CreatureDirectionWest)
 
 	newP := tnet.Position{X: p.X - 1, Y: p.Y, Floor: p.Floor}
 	if err := player.SetPos(newP); err != nil {

@@ -74,9 +74,11 @@ func mapDescriptionEncodingInitialSpawn(t *testing.T, ds MapDataSource) {
 
 	ds.AddCreature(&creature{
 		id: playerID,
-		x:  100,
-		y:  100,
-		z:  7,
+		pos: tnet.Position{
+			X:     100,
+			Y:     100,
+			Floor: 7,
+		},
 	})
 
 	msg := tnet.NewMessage()
@@ -304,13 +306,15 @@ func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
 
 	ds.AddCreature(&creature{
 		id: playerID,
-		x:  100,
-		y:  91,
-		z:  7,
+		pos: tnet.Position{
+			X:     100,
+			Y:     91,
+			Floor: 7,
+		},
 	})
 
 	// First, sanity checking tile on top left: 92,84,7 (which should be 980100ff -- just item 405):
-	if topLeftTile, err := ds.GetMapTile(92,84,7); err != nil {
+	if topLeftTile, err := ds.GetMapTile(92, 84, 7); err != nil {
 		t.Errorf("error fetching topleft tile: %v", err)
 	} else {
 		if item, err := topLeftTile.GetItem(0); err != nil {
@@ -322,12 +326,11 @@ func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
 		}
 	}
 
-
 	msg := tnet.NewMessage()
 	if err := gwConn.playerMoveNorthImpl(msg); err != nil {
 		t.Errorf("%v", err)
 	}
-	
+
 	t.Logf("%s", hex.EncodeToString(msg.Bytes()))
 
 	// 6d

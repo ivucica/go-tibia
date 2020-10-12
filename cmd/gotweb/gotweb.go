@@ -394,7 +394,7 @@ func creatureHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	img := cr.ColorizedCreatureFrame(fr, dir, p.outfitOverlayMask, p.col[:])
+	img := cr.ColorizedCreatureFrame(fr, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 	if img == nil {
 		http.Error(w, "bad image", http.StatusInternalServerError)
 		return
@@ -467,7 +467,7 @@ func creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := start; i < cr.AnimCount(); i++ {
-		img := cr.ColorizedCreatureFrame(i, dir, p.outfitOverlayMask, p.col[:])
+		img := cr.ColorizedCreatureFrame(i, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 		if img == nil {
 			http.Error(w, "bad image", http.StatusInternalServerError)
 			return

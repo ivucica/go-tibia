@@ -1,10 +1,12 @@
 package gameworld
 
 import (
-	tnet "badc0de.net/pkg/go-tibia/net"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/things"
 
 	"github.com/golang/glog"
 )
@@ -20,16 +22,13 @@ func NewMapDataSource() MapDataSource {
 //////////////////////////////
 
 type creature struct {
-	x, y, z int
+	pos     tnet.Position
 	id      CreatureID
+	dir     things.CreatureDirection
 }
 
 func (c *creature) GetPos() tnet.Position {
-	return tnet.Position{
-		X:     uint16(c.x),
-		Y:     uint16(c.y),
-		Floor: uint8(c.z),
-	}
+	return c.pos
 }
 func (c *creature) GetID() CreatureID {
 	return c.id
@@ -39,9 +38,16 @@ func (c *creature) GetName() string {
 }
 
 func (c *creature) SetPos(p tnet.Position) error {
-	c.x = int(p.X)
-	c.y = int(p.Y)
-	c.z = int(p.Floor)
+	c.pos = p
+	return nil
+}
+
+func (c *creature) GetDir() things.CreatureDirection {
+	return c.dir
+}
+
+func (c *creature) SetDir(dir things.CreatureDirection) error {
+	c.dir = dir
 	return nil
 }
 

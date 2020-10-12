@@ -19,6 +19,8 @@ type Creature interface {
 	SetPos(tnet.Position) error
 	GetID() CreatureID
 	GetName() string
+	GetDir() things.CreatureDirection // TODO: move to tnet? or move tnet.Position to things?
+	SetDir(things.CreatureDirection) error
 }
 
 var (
@@ -214,10 +216,10 @@ func (c *GameworldServer) serveGame(conn net.Conn, initialMessage *tnet.Message,
 	defPos := c.mapDataSource.Private_And_Temp__DefaultPlayerSpawnPoint(playerID)
 
 	c.mapDataSource.AddCreature(&creature{
-		x:  int(defPos.X),
-		y:  int(defPos.Y),
-		z:  int(defPos.Floor),
-		id: playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
+		pos: defPos,
+		id:  playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
+
+		dir: things.CreatureDirectionSouth,
 	})
 
 	gwConn.senderQuit = make(chan struct{})
