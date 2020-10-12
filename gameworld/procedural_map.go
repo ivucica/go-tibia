@@ -202,7 +202,9 @@ func (ds *mapDataSource) RemoveCreatureByID(id CreatureID) error {
 
 func (t *mapTile) GetCreature(idx int) (Creature, error) {
 	if idx >= len(t.creatures) {
-		glog.Infof("creature not found; requested idx %d with len %d", idx, len(t.creatures))
+		if idx > len(t.creatures) {
+			glog.Infof("creature not found; requested idx %d with len %d", idx, len(t.creatures))
+		}
 		return nil, CreatureNotFound
 	}
 	return t.creatures[idx], nil
