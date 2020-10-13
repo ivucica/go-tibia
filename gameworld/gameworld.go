@@ -614,8 +614,8 @@ func (c *GameworldConnection) worldLight(out *tnet.Message) error {
 		Level uint8
 		Color uint8
 	}{
-		Level: 45,
-		Color: 45,
+		Level: 40, // LIGHT_LEVEL_NIGHT
+		Color: 0xD7,
 	}
 	if err := binary.Write(out, binary.LittleEndian, light); err != nil {
 		return err
@@ -631,7 +631,7 @@ func (c *GameworldConnection) creatureLight(out *tnet.Message, creature Creature
 		Color    uint8
 	}{
 		Creature: uint32(creature),
-		Level:    45,
+		Level:    2,
 		Color:    45,
 	}
 	if err := binary.Write(out, binary.LittleEndian, light); err != nil {
