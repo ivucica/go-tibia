@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/golang/glog"
 )
@@ -90,7 +91,7 @@ type Item struct {
 	PlayerOffset uint16
 	LargeOffset  bool
 	IdleAnim     bool
-	MapColor     uint16
+	MapColor     DatasetColor
 	LookThrough  bool
 }
 
@@ -123,9 +124,23 @@ type DistanceEffect struct {
 	LightInfo
 }
 
+// DatasetColor fulfills the color.Color interface on top of the stored uint16 value.
+//
+// Usable for light color and map color.
+type DatasetColor uint16
+
+func (col DatasetColor) RGBA() (r, g, b, a uint32) {
+	r = uint32(float64(col/36.) / 6. * math.MaxUint16)
+	g = uint32(float64(uint32(float64(col)/6)%6) / 5. * math.MaxUint16)
+	b = uint32(float64(col%6) / 5. * math.MaxUint16) // color.Color.RGBA() is defined to return in range [0, 0xFFFF]
+	a = math.MaxUint16
+	return
+}
+
 // LightInfo represents a recurring structure in the binary format of the data file concerning the strength and color of the light emitted client-side.
 type LightInfo struct {
-	Strength, Color uint16
+	Strength uint16
+	Color    DatasetColor
 }
 
 // OffsetInfo represents how far the object should be drawn offset to its usual drawing location.

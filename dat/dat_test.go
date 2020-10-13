@@ -2,6 +2,7 @@ package dat
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"testing"
 
@@ -13,6 +14,21 @@ type expectedCounts struct {
 	Outfits         int
 	Effects         int
 	DistanceEffects int
+}
+
+func TestDatColor(t *testing.T) {
+	c := DatasetColor(156)
+
+	r, g, b, a := c.RGBA()
+	if r != 0 || g != 26214 || b != 43690 || a != 65535 {
+		t.Errorf("got %d %d %d %d (%g %g %g %g), want %d %d %d %d",
+			r, g, b, a,
+			float64(r)/math.MaxUint16,
+			float64(g)/math.MaxUint16,
+			float64(b)/math.MaxUint16,
+			float64(a)/math.MaxUint16,
+			0, 26214, 43690, 65535)
+	}
 }
 
 func TestNewDataset(t *testing.T) {
@@ -59,7 +75,6 @@ func TestNewDataset(t *testing.T) {
 	}
 
 	ttesting.AssertEqualInt(t, "first item's ID should be 100", ds.items[0].Id, 100)
-	ttesting.AssertEqualInt(t, "last item's ID should be max id", ds.items[len(ds.items)-1].Id, int(ds.header.ItemCount))
-
+	ttesting.AssertEqualInt(t, "last item's ID should be max id", ds.items[len(ds.items)-1].Id, int(ds.Header.ItemCount))
 
 }
