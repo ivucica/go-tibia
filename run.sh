@@ -1,5 +1,5 @@
 set -e
-export GOPATH=${HOME}/projects/gotserv
+export GOPATH=${HOME}/Projects/go-tibia
 go get -v badc0de.net/pkg/go-tibia/cmd/gotserv
 ${GOPATH}/bin/gotserv --logtostderr "$@"
 

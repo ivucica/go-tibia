@@ -16,15 +16,33 @@
     <script>
       // FIXME: wait until serviceworker is available, otherwise both sw
       // and wasm will be fetching the file.
-      const go = new Go()
-      WebAssembly.instantiateStreaming(
-        fetch('main.wasm'),
-        go.importObject
-      ).then(result => {
-        go.run(result.instance)
-      })
+
+      if (WebAssembly) {
+        // WebAssembly.instantiateStreaming is not currently available in Safari
+        if (WebAssembly && !WebAssembly.instantiateStreaming) { // polyfill
+          WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+          };
+        }
+
+        const go = new Go();
+        WebAssembly.instantiateStreaming(
+          fetch('main.wasm'),
+          go.importObject
+        ).then(result => {
+          go.run(result.instance)
+        })
+      } else {
+         console.log("WebAssembly is not supported in your browser")
+      }
+
+
     </script>
   </head>
   <body><input id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));">show</button></body>
+
+  <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })">clear sw</button>
+
 </html>
 
