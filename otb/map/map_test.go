@@ -15,9 +15,11 @@ import (
 	"badc0de.net/pkg/go-tibia/things"
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	// make -args -v=2 -logtostderr work.
 	flagutil.Parse()
+
+	os.Exit(m.Run())
 }
 
 func BenchmarkNew(b *testing.B) {
