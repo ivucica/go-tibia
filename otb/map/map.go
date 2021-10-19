@@ -396,7 +396,8 @@ func New(r io.ReadSeeker, t *things.Things) (*Map, error) {
 	if otb.defaultPlayerSpawnPoint == 0 {
 		//otb.defaultPlayerSpawnPoint = posFromCoord(44, 173, 5) // generated file
 		//otb.defaultPlayerSpawnPoint = posFromCoord(1001, 1010, 7) // test file
-		return nil, fmt.Errorf("no default player spawn point; does the map have any temples?")
+		//return nil, fmt.Errorf("no default player spawn point; does the map have any temples?")
+		glog.Warningf("no default player spawn point; does the map have any temples?")
 	}
 
 	return &otb, nil
