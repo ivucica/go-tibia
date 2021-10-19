@@ -45,7 +45,7 @@ func shade(col ic.Color, escapesTrueColor, blanks, noColor bool) {
 		if blanks {
 			d.Printf("  ")
 		} else {
-			a := ((cR + cG + cB)/ 3) >> 8
+			a := ((cR + cG + cB) / 3) >> 8
 			switch {
 			case a < 32:
 				d.Printf("..")
