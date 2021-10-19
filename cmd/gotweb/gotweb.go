@@ -482,6 +482,8 @@ func main() {
 			pg = pgMax
 		}
 
+		fmt.Fprintf(w, `<a href="/map">serverside map render</a> <a href="/app/">clientside demo</a><br>`)
+
 		for i := pgMin; i < pgMax+1; i++ {
 			if i == pg {
 				fmt.Fprintf(w, `<b><a href="?page=%d">%d</a></b> `, i+1, i+1)
