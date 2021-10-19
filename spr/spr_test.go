@@ -7,26 +7,15 @@ import (
 	"testing"
 
 	"badc0de.net/pkg/go-tibia/imageprint"
+	"badc0de.net/pkg/go-tibia/paths"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 func TestDecodeOne(t *testing.T) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.spr")
+	f, err := paths.Open("Tibia.spr")
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.spr")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.spr")
-			if err3 != nil {
-				var err4 error
-				f, err4 = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.spr")
-				if err4 != nil {
-					t.Fatalf("failed to open file: %s & %s & %s & %s", err, err2, err3, err4)
-				}
-			}
-		}
+		t.Fatalf("failed to open file: %s", err)
 	}
 	defer f.Close()
 
@@ -56,21 +45,9 @@ func downsize(_ *testing.T, img image.Image, scale float32) image.Image {
 }
 
 func TestDecodeOnePic(t *testing.T) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.pic")
+	f, err := paths.Open("Tibia.pic")
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.pic")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.pic")
-			if err3 != nil {
-				var err4 error
-				f, err4 = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.pic")
-				if err4 != nil {
-					t.Fatalf("failed to open file: %s & %s & %s & %s", err, err2, err3, err4)
-				}
-			}
-		}
+		t.Fatalf("failed to open file: %s", err)
 	}
 	defer f.Close()
 

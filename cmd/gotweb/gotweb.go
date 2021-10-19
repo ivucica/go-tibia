@@ -25,6 +25,7 @@ import (
 	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/otb/map" // for map loader
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
 
@@ -53,23 +54,7 @@ type ReadSeekerCloser interface {
 }
 
 func sprOpen() (ReadSeekerCloser, error) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.spr")
-	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.spr")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.spr") // TODO: do we want to hardcode 854?
-			if err3 != nil {
-				var err4 error
-				f, err4 = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.spr")
-				if err4 != nil {
-					return nil, fmt.Errorf("could not open spr") // TODO: replace with err, err2, err3 + err4?
-				}
-			}
-		}
-	}
-	return f, nil
+	return os.Open(tibiaSprPath)
 }
 
 func picOpen() (ReadSeekerCloser, error) {
@@ -77,39 +62,18 @@ func picOpen() (ReadSeekerCloser, error) {
 }
 
 func setupFilePathFlags() {
-	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
-	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
-	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
-	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
-	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
-	setupFilePathFlag("map.otbm", "map_path", &mapPath)
-	setupFilePathFlag("html/index.html", "index_html_path", &htmlPath)
+	paths.SetupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
+	paths.SetupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
+	paths.SetupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+	paths.SetupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
+	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
+	paths.SetupFilePathFlag("html/index.html", "index_html_path", &htmlPath)
 	htmlPath = filepath.Dir(htmlPath)
 }
 
-func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
-	possiblePaths := []string{
-		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/itemsotb854/file/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/tibia854/" + fileName,
-	}
-
-	didReg := false
-	for _, path := range possiblePaths {
-		if f, err := os.Open(path); err == nil {
-			f.Close()
-			flag.StringVar(flagPtr, flagName, path, "Path to "+fileName)
-			didReg = true
-			break
-		}
-	}
-	if !didReg {
-		flag.StringVar(flagPtr, flagName, "", "Path to "+fileName)
-	}
-}
-
 func thingsOpen() *things.Things {
+	// TODO(ivucica): Add functionality to things/full package to support flags-based loading.
 	t, err := things.New()
 	if err != nil {
 		glog.Errorln("creating thing registry", err)

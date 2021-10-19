@@ -237,7 +237,7 @@ func (o *lightOverlay) At(x, y int) color.Color {
 		influence = attenuation
 	} else {
 		//influence = (d + 16) / (radius)
-		d+=16
+		d += 16
 		d2 := math.Max(d-radius, 0)
 		denominator := d2/radius + 1.0
 		influence = 1.0 / (denominator * denominator)

@@ -10,8 +10,9 @@ import (
 	"badc0de.net/pkg/flagutil"
 	//"badc0de.net/pkg/go-tibia/ttesting"
 
-	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/gameworld"
+	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
 )
 
@@ -46,27 +47,16 @@ func TestNew(t *testing.T) {
 
 func setupThings(t testOrBenchmark) *things.Things {
 	var f, xmlf *os.File
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.otb")
+	f, err := paths.Open("items.otb")
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.otb")
-		if err2 != nil {
-			t.Fatalf("failed to open items.otb: %s & %s", err, err2)
-		} else {
-			xmlf, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.xml")
-			if err2 == nil {
-				defer xmlf.Close()
-		} else {
-			t.Fatalf("failed to open items.xml: %s", err2)
-		}
-		}
+		t.Fatalf("failed to open items.otb: %s", err)
+	}
+
+	xmlf, err = paths.Open("items.xml")
+	if err == nil {
+		defer xmlf.Close()
 	} else {
-		xmlf, err = os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.xml")
-		if err == nil {
-			defer xmlf.Close()
-		} else {
-			t.Fatalf("failed to open items.xml: %s", err)
-		}
+		t.Fatalf("failed to open items.xml: %s", err)
 	}
 	//defer f.Close()
 
@@ -103,7 +93,7 @@ func setupThings(t testOrBenchmark) *things.Things {
 	if err != nil {
 		t.Fatalf("failed to load items.xml: %s", err)
 	}
-	
+
 	th, err := things.New()
 	if err != nil {
 		t.Fatalf("failed to create things registry: %s", err)
@@ -123,16 +113,12 @@ func tobNew(t testOrBenchmark, baseName string, th *things.Things) {
 		t.Skip("skipping test in short mode")
 		return
 	}
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + baseName)
+	f, err := paths.Open(baseName)
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/" + baseName)
-		if err2 != nil {
-			t.Fatalf("failed to open file %s: %s & %s", baseName, err, err2)
-		}
+		t.Fatalf("failed to open file %s: %s", baseName, err)
 	}
 	//defer f.Close()
-	
+
 	// buffering BEGIN
 
 	// This is an optimization as a lot of performance problems come from too
@@ -204,22 +190,14 @@ func TestMapDescriptionCorrectness(t *testing.T) {
 	go func() {
 		ds2 <- loadOTBM(t, "map.otserv.otbm")
 	}()
-	
+
 	gameworld.MapDescriptionEncoding_Test(t, <-ds1, <-ds2)
 }
 
 func loadOTBM(t *testing.T, fn string) *Map {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fn)
+	f, err := paths.Open(fn)
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/external/itemsotb854/file/" + fn)
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/" + fn)
-			if err3 != nil {
-				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
-			}
-		}
+		t.Fatalf("failed to open file %q: %s", fn, err)
 	}
 
 	th := setupThings(t)
@@ -248,7 +226,6 @@ func loadOTBM(t *testing.T, fn string) *Map {
 	f.Close()
 	bufR := bytes.NewReader(buf.Bytes())
 	// buffering END
-
 
 	otbm, err := New(bufR, th)
 	if err != nil {

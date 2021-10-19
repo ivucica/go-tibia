@@ -3,10 +3,10 @@ package gameworld
 import (
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 )
@@ -23,17 +23,9 @@ func LoadThingsForTest(t *testing.T) *things.Things {
 	return nil
 }
 func LoadOTBForTest(t *testing.T) *itemsotb.Items {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/items.otb")
+	f, err := paths.Open("items.otb")
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/external/itemsotb854/file/items.otb")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/items.otb")
-			if err3 != nil {
-				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
-			}
-		}
+		t.Fatalf("failed to open file: %s", err)
 	}
 	otb, err := itemsotb.New(f)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/imageprint"
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
 
@@ -50,23 +51,7 @@ type ReadSeekerCloser interface {
 }
 
 func sprOpen() (ReadSeekerCloser, error) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.spr")
-	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.spr")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.spr") // TODO: do we want to hardcode 854?
-			if err3 != nil {
-				var err4 error
-				f, err4 = os.Open(os.Args[0] + ".runfiles/go_tibia/external/tibia854/Tibia.spr")
-				if err4 != nil {
-					return nil, fmt.Errorf("could not open spr") // TODO: replace with err, err2, err3 + err4?
-				}
-			}
-		}
-	}
-	return f, nil
+	return os.Open(tibiaSprPath)
 }
 
 func picOpen() (ReadSeekerCloser, error) {
@@ -74,33 +59,11 @@ func picOpen() (ReadSeekerCloser, error) {
 }
 
 func setupFilePathFlags() {
-	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
-	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
-	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
-	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
-	setupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
-}
-
-func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
-	possiblePaths := []string{
-		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/itemsotb854/file/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/tibia854/" + fileName,
-	}
-
-	didReg := false
-	for _, path := range possiblePaths {
-		if f, err := os.Open(path); err == nil {
-			f.Close()
-			flag.StringVar(flagPtr, flagName, path, "Path to "+fileName)
-			didReg = true
-			break
-		}
-	}
-	if !didReg {
-		flag.StringVar(flagPtr, flagName, "", "Path to "+fileName)
-	}
+	paths.SetupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
+	paths.SetupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
+	paths.SetupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+	paths.SetupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 }
 
 func thingsOpen() *things.Things {

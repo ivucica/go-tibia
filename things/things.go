@@ -115,7 +115,7 @@ func (t *Things) Item(serverID uint16, clientVersion uint16) (*Item, error) {
 func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item, error) {
 	itm, err := t.items.ItemByClientID(clientID)
 	if err != nil {
-		glog.Errorf("item %d fetch gave error: %v", err)
+		glog.Errorf("item %d fetch gave error: %v", clientID, err)
 		return nil, err
 	}
 	return &Item{
@@ -135,7 +135,7 @@ func (t *Things) CreatureWithClientID(clientID uint16, clientVersion uint16) (*C
 func (t *Things) Temp__GetClientIDForServerID(serverID uint16, clientVersion uint16) uint16 {
 	itm, err := t.items.ItemByServerID(serverID)
 	if err != nil {
-		glog.Errorf("item %d fetch gave error: %v", err)
+		glog.Errorf("item %d fetch gave error: %v", serverID, err)
 		return 0
 	}
 	if attr, ok := itm.Attributes[itemsotb.ITEM_ATTR_CLIENTID]; ok {

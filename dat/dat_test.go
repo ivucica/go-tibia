@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/ttesting"
 )
 
@@ -32,17 +33,9 @@ func TestDatColor(t *testing.T) {
 }
 
 func TestNewDataset(t *testing.T) {
-	f, err := os.Open(os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/Tibia.dat")
+	f, err := paths.Open("Tibia.dat")
 	if err != nil {
-		var err2 error
-		f, err2 = os.Open(os.Getenv("TEST_SRCDIR") + "/go_tibia/datafiles/Tibia.dat")
-		if err2 != nil {
-			var err3 error
-			f, err3 = os.Open(os.Getenv("TEST_SRCDIR") + "/tibia854/Tibia.dat")
-			if err3 != nil {
-				t.Fatalf("failed to open file: %s & %s & %s", err, err2, err3)
-			}
-		}
+		t.Fatalf("failed to open file: %s", err)
 	}
 	ds, err := NewDataset(f)
 	if err != nil {

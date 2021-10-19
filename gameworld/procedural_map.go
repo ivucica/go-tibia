@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 )
 
+// NewMapDataSource returns a new procedural map data source, good for testing.
 func NewMapDataSource() MapDataSource {
 	return &mapDataSource{
 		creatures:         map[CreatureID]Creature{},

@@ -24,6 +24,7 @@ import (
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/otb/map"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/secrets"
 	"badc0de.net/pkg/go-tibia/things"
 
@@ -45,33 +46,11 @@ var (
 )
 
 func setupFilePathFlags() {
-	setupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
-	setupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
-	setupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
-	setupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
-	setupFilePathFlag("map.otbm", "map_path", &mapPath)
-}
-
-func setupFilePathFlag(fileName, flagName string, flagPtr *string) {
-	possiblePaths := []string{
-		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/itemsotb854/file/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/tibia854/" + fileName,
-	}
-
-	didReg := false
-	for _, path := range possiblePaths {
-		if f, err := os.Open(path); err == nil {
-			f.Close()
-			flag.StringVar(flagPtr, flagName, path, "Path to "+fileName)
-			didReg = true
-			break
-		}
-	}
-	if !didReg {
-		flag.StringVar(flagPtr, flagName, "", "Path to "+fileName)
-	}
+	paths.SetupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
+	paths.SetupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
+	paths.SetupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
+	paths.SetupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
 }
 
 func main() {
