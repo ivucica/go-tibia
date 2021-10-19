@@ -10,7 +10,10 @@ import (
 	"image"
 	ic "image/color"
 	"image/png"
+	"os"
 
+	"github.com/BourgeoisBear/rasterm"
+	"github.com/andybons/gogif"
 	"github.com/gookit/color"
 )
 
@@ -102,9 +105,37 @@ func PrintNoColor(i image.Image, blanks bool) {
 //
 // https://www.iterm2.com/documentation-images.html
 func PrintITerm(i image.Image, fn string) {
+	if !rasterm.IsTermItermWez() {
+		return
+	}
 	name := base64.StdEncoding.EncodeToString([]byte(fn))
 	b := &bytes.Buffer{}
 	bEnc := base64.NewEncoder(base64.StdEncoding, b)
 	png.Encode(bEnc, i)
 	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=%dpx;height=%dpx:%s\a\n", name, len(b.String()), i.Bounds().Size().X, i.Bounds().Size().Y, b.String())
+}
+
+// PrintRasTerm draws an image using the RasTerm library.
+//
+// This should enable drawing in Kitty terminal.
+func PrintRasTerm(i image.Image) {
+	if rasterm.IsTermKitty() {
+		rasterm.Settings{}.KittyWriteImage(os.Stdout, i)
+		fmt.Printf("\n")
+		return
+	}
+	if rasterm.IsTermItermWez() {
+		rasterm.Settings{}.ItermWriteImage(os.Stdout, i)
+		fmt.Printf("\n")
+		return
+	}
+	if capable, err := rasterm.IsSixelCapable(); capable && err == nil {
+		palettedImage := image.NewPaletted(i.Bounds(), nil)
+		quantizer := gogif.MedianCutQuantizer{NumColor: 64}
+		quantizer.Quantize(palettedImage, i.Bounds(), i, image.ZP)
+
+		rasterm.Settings{}.SixelWriteImage(os.Stdout, palettedImage)
+		fmt.Printf("\n")
+		return
+	}
 }
