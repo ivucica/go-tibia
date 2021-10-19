@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/things"
 )
 
 type accessCountingMapDataSource struct {
@@ -71,9 +72,12 @@ func TestMapDescriptionRange(t *testing.T) {
 
 	ds.AddCreature(&creature{
 		id: 123,
-		x:  100,
-		y:  100,
-		z:  7,
+		pos: tnet.Position{
+			X: 100,
+			Y: 100,
+			Floor: 7,
+		},
+		dir: things.CreatureDirectionSouth,
 	})
 
 	msg := tnet.NewMessage()
@@ -187,9 +191,8 @@ func TestMapDescriptionRangeMoveNorth(t *testing.T) {
 
 	ds.AddCreature(&creature{
 		id: 123,
-		x:  100,
-		y:  91,
-		z:  7,
+		pos: tnet.Position{X: 100,Y: 91,Floor: 7,},
+		dir: things.CreatureDirectionSouth,
 	})
 
 	msg := tnet.NewMessage()
