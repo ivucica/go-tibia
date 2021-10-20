@@ -5,18 +5,18 @@ import (
 	"io"
 )
 
-type xmlItems struct{
+type xmlItems struct {
 	Item []*xmlItem `xml:"item"`
 }
 
-type xmlItem struct{
-	ID uint16 `xml:"id,attr,omitempty"`
-	Name string `xml:"name,attr,omitempty"`
+type xmlItem struct {
+	ID        uint16         `xml:"id,attr,omitempty"`
+	Name      string         `xml:"name,attr,omitempty"`
 	Attribute []xmlAttribute `xml:"attribute,omitempty"`
 }
 
-type xmlAttribute struct{
-	Key string `xml:"key,attr"`
+type xmlAttribute struct {
+	Key   string `xml:"key,attr"`
 	Value string `xml:"value,attr"`
 }
 
