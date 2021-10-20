@@ -92,6 +92,7 @@ type Item struct {
 	LargeOffset  bool
 	IdleAnim     bool
 	MapColor     DatasetColor
+	MapColorOK   bool
 	LookThrough  bool
 }
 
@@ -610,6 +611,7 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		if err != nil {
 			return optByte, fmt.Errorf("error reading map color info: %v", err)
 		}
+		i.MapColorOK = true
 
 	case 0x1E: // Line spot.
 		i, ok := e.(*Item)

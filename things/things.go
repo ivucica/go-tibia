@@ -24,6 +24,16 @@ func (i *Item) Name() string {
 	return i.otb.Name()
 }
 
+func (i *Item) MapColor() dat.DatasetColor {
+	// TODO: return MapColorOK. currently omitted to allow use in template
+	return i.dataset.MapColor //, i.dataset.MapColorOK
+}
+
+func (i *Item) MapColorOK() bool {
+	// TODO: maybe call HasMapColor
+	return i.dataset.MapColorOK
+}
+
 func (i *Item) LightInfo() dat.LightInfo {
 	return i.dataset.LightInfo
 }
@@ -31,6 +41,10 @@ func (i *Item) LightInfo() dat.LightInfo {
 func (i *Item) GraphicsSize() struct{ W, H int } {
 	gfx := i.dataset.GetGraphics()
 	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
+}
+
+func (i *Item) ValidClientItem() bool {
+	return i.dataset != nil
 }
 
 type Creature struct {
@@ -105,11 +119,15 @@ func (t *Things) SpriteSetSignature() uint32 {
 func (t *Things) Item(serverID uint16, clientVersion uint16) (*Item, error) {
 	otb := t.Temp__GetItemFromOTB(serverID, clientVersion)
 	datID := t.Temp__GetClientIDForServerID(serverID, clientVersion)
-	return &Item{
-		otb:     otb,
-		dataset: t.dataset.Item(datID),
-		parent:  t,
-	}, nil
+
+	i := &Item{
+		otb:    otb,
+		parent: t,
+	}
+	if datID != 0 {
+		i.dataset = t.dataset.Item(datID)
+	}
+	return i, nil
 }
 
 func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item, error) {

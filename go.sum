@@ -6,6 +6,8 @@ github.com/BourgeoisBear/rasterm v1.0.3 h1:k3/mcjyo3ukAkMA2PDdtrBGv16NvJ26ABd9p9
 github.com/BourgeoisBear/rasterm v1.0.3/go.mod h1:wpcJbTo13ssx5lk+7Ovb7MVR6qvgHFW5lrjNXlxBInY=
 github.com/andybons/gogif v0.0.0-20140526152223-16d573594812 h1:WBBv0ka2SO7Ut4bpskb87E9cHNnJabqA6VoBTex0Jng=
 github.com/andybons/gogif v0.0.0-20140526152223-16d573594812/go.mod h1:lkVwYUDYv/mJZK69J7BP7HRUhHEAone7OQHFBRnhQdQ=
+github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 h1:GKTyiRCL6zVf5wWaqKnf+7Qs6GbEPfd4iMOitWzXJx8=
+github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8/go.mod h1:spo1JLcs67NmW1aVLEgtA8Yy1elc+X8y5SRW1sFW4Og=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=

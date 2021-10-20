@@ -1,0 +1,51 @@
+<a href="/map">serverside map render</a> <a href="/app/">clientside demo</a><br>
+{{range $index, $p := N2 .PGMin .PGMax}}
+{{- if eq $p $.PG -}}
+<b><a href="?page={{ plusone $p }}">{{ plusone $p }}</a></b> {{else -}}
+<a href="?page={{ plusone $p }}">{{ plusone $p }}</a> {{end -}}
+{{end}}
+
+<table>
+  <th>
+    cid
+  </th>
+  <th>
+    name
+  </th>
+  <th>
+    img
+  </th>
+  <th>
+    lightinfo
+  </th>
+  <th>
+    minimap color
+  </th>
+  {{range $index, $cid := N2 (add 100 (mul .PG .PGSize)) (add 100 (mul (plusone .PG) .PGSize))}}
+  {{ $itm := itemWithClientID $cid }}<!-- use := item $cid to get server ID. works fine, except for pagination being adapted to client items. -->
+  {{ if isNil $itm }}
+  <tr>
+    <td>{{$cid}}</td>
+    <td colspan="4"><i>does not exist</i></td>
+  </tr>
+  {{ else }}
+  <tr>
+    <td>{{$cid}}</td>
+    <td>{{ $itm.Name }}</td>
+    <td><img src="/item/c{{ $cid }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);"></td>
+    <td>{{ if ne $itm.LightInfo.Strength 0 }}{{ $itm.LightInfo.Strength }} <div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.LightInfo.Color }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.MapColorOK }}<div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.MapColor }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+  </tr>
+  {{end}}
+  {{end}}
+</table>
+
+<table>
+  {{range $index, $row := N2 0 7}}
+  <tr>
+    {{range $index2, $col := N2 0 19}}
+    <td bgcolor="{{ outfitColorIndexToHex (add (mul $row 19) $col)}}" width="24" height="24">{{ add (mul $row 19) $col }}</td>
+    {{end}}
+  </tr>
+  {{end}}
+</table>

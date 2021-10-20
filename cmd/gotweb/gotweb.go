@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"html/template"
 	_ "net/http/pprof" // Default mux should not be served publicly; it's actually hidden behind a flag.
 
 	"flag"
@@ -30,6 +31,7 @@ import (
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
 
+	"github.com/bradfitz/iter"
 	"github.com/golang/glog"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -529,59 +531,132 @@ func main() {
 	flagutil.Parse()
 
 	th = thingsOpen()
-
 	r := mux.NewRouter()
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		pg := 0
-		pgSize := 50
 
-		if pgStr := r.URL.Query().Get("page"); pgStr != "" {
-			if pgConv, err := strconv.Atoi(pgStr); err == nil {
-				pg = pgConv - 1
+	funcs := template.FuncMap{
+		"N": iter.N,
+		"N2": func(n1, n2 int) <-chan int {
+			c := make(chan int)
+			go func() {
+				for i := n1; i < n2; i++ {
+					c <- i
+				}
+				close(c)
+			}()
+			return c
+		},
+		"plusone": func(n int) int { return n + 1 },
+		"add":     func(a, b int) int { return a + b },
+		"mul":     func(a, b int) int { return a * b },
+		"itemWithClientID": func(cid int) *things.Item {
+			it, err := th.ItemWithClientID(uint16(cid), 854)
+			if err != nil {
+				panic(err)
 			}
-		}
-
-		w.Header().Set("Content-Type", "text/html")
-
-		itemCIDMin := 100
-		itemCIDMax := 10477 // TODO: ask things.Things
-		pgMin := 0
-		pgMax := (itemCIDMax - itemCIDMin) / pgSize
-
-		if pg < pgMin {
-			pg = pgMin
-		}
-		if pg > pgMax {
-			pg = pgMax
-		}
-
-		fmt.Fprintf(w, `<a href="/map">serverside map render</a> <a href="/app/">clientside demo</a><br>`)
-
-		for i := pgMin; i < pgMax+1; i++ {
-			if i == pg {
-				fmt.Fprintf(w, `<b><a href="?page=%d">%d</a></b> `, i+1, i+1)
-			} else {
-				fmt.Fprintf(w, `<a href="?page=%d">%d</a> `, i+1, i+1)
+			return it
+		},
+		"item": func(sid int) *things.Item {
+			it, err := th.Item(uint16(sid), 854)
+			if err != nil {
+				return nil
 			}
-		}
-		fmt.Fprintf(w, "\n")
-
-		fmt.Fprintf(w, "<ul>")
-		for i := 100 + pg*pgSize; i < 100+pg*pgSize+pgSize; i++ {
-			var name string
-			wid := 32
-			hei := 32
-			if itm, err := th.ItemWithClientID(uint16(i), 854); err == nil {
-				name = fmt.Sprintf("%d: %s", i, itm.Name())
-				sz := itm.GraphicsSize()
-				wid = sz.W
-				hei = sz.H
-			} else {
-				name = fmt.Sprintf("%d", i)
+			return it
+		},
+		"datasetColorToHex": func(col tdat.DatasetColor) string {
+			r, g, b, _ := col.RGBA()
+			return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
+		},
+		"datasetColorIndexToHex": func(idx int) string {
+			col := tdat.DatasetColor(idx)
+			r, g, b, _ := col.RGBA()
+			return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
+		},
+		"outfitColorToHex": func(col things.OutfitColor) string {
+			r, g, b, _ := col.RGBA()
+			return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
+		},
+		"outfitColorIndexToHex": func(idx int) string {
+			col := things.OutfitColor(idx)
+			r, g, b, _ := col.RGBA()
+			return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
+		},
+		"isNil": func(x interface{}) bool {
+			if itm, ok := x.(*things.Item); ok {
+				return itm == nil || !itm.ValidClientItem()
 			}
-			fmt.Fprintf(w, "<li><dt>%s</dt><dd><img width=%d height=%d src=/item/c%d></dd>\n", name, wid, hei, i)
-		}
-	})
+			return x == nil
+		},
+	}
+	itemTableTemplate := template.New("")
+	itemTableTemplate = itemTableTemplate.Funcs(funcs)
+	itemTableTemplate, err := itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
+
+	if err != nil {
+		glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
+	} else {
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// REMOVE THIS begin
+			itemTableTemplate := template.New("")
+			itemTableTemplate = itemTableTemplate.Funcs(funcs)
+			itemTableTemplate, err := itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
+			if err != nil {
+				glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			// REMOVE THIS end
+
+			pg := 0
+			pgSize := 50
+
+			if pgStr := r.URL.Query().Get("page"); pgStr != "" {
+				if pgConv, err := strconv.Atoi(pgStr); err == nil {
+					pg = pgConv - 1
+				}
+			}
+
+			w.Header().Set("Content-Type", "text/html")
+
+			itemCIDMin := 100
+			itemCIDMax := 10477 // TODO: ask things.Things
+			pgMin := 0
+			pgMax := (itemCIDMax - itemCIDMin) / pgSize
+
+			if pg < pgMin {
+				pg = pgMin
+			}
+			if pg > pgMax {
+				pg = pgMax
+			}
+
+			params := struct {
+				PG, PGMin, PGMax, PGSize int
+			}{
+				PG:     pg,
+				PGMin:  pgMin,
+				PGMax:  pgMax,
+				PGSize: pgSize,
+			}
+
+			glog.Errorf("%v", itemTableTemplate.ExecuteTemplate(w, "itemtable.html", params))
+			return
+			fmt.Fprintf(w, "<ul>")
+			for i := 100 + pg*pgSize; i < 100+pg*pgSize+pgSize; i++ {
+				var name string
+				wid := 32
+				hei := 32
+				if itm, err := th.ItemWithClientID(uint16(i), 854); err == nil {
+					name = fmt.Sprintf("%d: %s", i, itm.Name())
+					sz := itm.GraphicsSize()
+					wid = sz.W
+					hei = sz.H
+				} else {
+					name = fmt.Sprintf("%d", i)
+				}
+				fmt.Fprintf(w, "<li><dt>%s</dt><dd><img width=%d height=%d src=/item/c%d></dd>\n", name, wid, hei, i)
+			}
+		})
+	}
 	r.HandleFunc("/spr/{idx:[0-9]+}", sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", itemHandler)
 	r.HandleFunc("/item/c{idx:[0-9]+}", citemHandler)
