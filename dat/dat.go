@@ -295,7 +295,7 @@ func (d *Dataset) Item(clientID uint16) *Item {
 	if clientID < 100 {
 		return nil
 	}
-	if clientID > uint16(len(d.items)+100) {
+	if int(clientID) > len(d.items)+100 {
 		return nil
 	}
 
@@ -303,7 +303,19 @@ func (d *Dataset) Item(clientID uint16) *Item {
 }
 
 func (d *Dataset) Outfit(clientID uint16) *Outfit {
-	return &d.outfits[clientID]
+	if d == nil {
+		glog.Warningf("attempting to access outfit %d from a nil dataset", clientID)
+		return nil
+	}
+	if clientID == 0 {
+		glog.Warningf("attempting to access outfit 0 from dataset; clientIDs start with 1")
+		return nil
+	}
+	if int(clientID) >= len(d.outfits)+1 {
+		glog.Warningf("attempted to access outfit %d which doesn't exist in the dat", clientID)
+		return nil
+	}
+	return &d.outfits[clientID-1]
 }
 
 // load780plus loads the format used in game version 7.8 and later.
