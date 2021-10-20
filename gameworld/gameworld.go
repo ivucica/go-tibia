@@ -1,16 +1,20 @@
 package gameworld
 
 import (
-	tnet "badc0de.net/pkg/go-tibia/net"
-	"badc0de.net/pkg/go-tibia/things"
 	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
 	"fmt"
-	"github.com/golang/glog"
 	"io"
+	"math/rand"
 	"net"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
+	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/things"
 )
 
 type CreatureID uint32
@@ -21,6 +25,8 @@ type Creature interface {
 	GetName() string
 	GetDir() things.CreatureDirection // TODO: move to tnet? or move tnet.Position to things?
 	SetDir(things.CreatureDirection) error
+	GetServerType() uint16
+	GetOutfitColors() [4]things.OutfitColor
 }
 
 var (
@@ -215,12 +221,23 @@ func (c *GameworldServer) serveGame(conn net.Conn, initialMessage *tnet.Message,
 
 	defPos := c.mapDataSource.Private_And_Temp__DefaultPlayerSpawnPoint(playerID)
 
-	c.mapDataSource.AddCreature(&creature{
+	playerCreature := &creature{
 		pos: defPos,
 		id:  playerID, //0xAA + 0xBB>>8 + 0xCC>>16 + 0xDD>>24,
 
-		dir: things.CreatureDirectionSouth,
-	})
+		dir:  things.CreatureDirectionSouth,
+		look: 129,
+		col: [4]things.OutfitColor{
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+		},
+	}
+	c.mapDataSource.AddCreature(playerCreature)
+
+	cols := playerCreature.GetOutfitColors()
+	glog.Infof("  -> colors %d %d %d %d", cols[0], cols[1], cols[2], cols[3])
 
 	gwConn.senderQuit = make(chan struct{})
 	gwConn.senderChan = make(chan *tnet.Message)

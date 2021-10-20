@@ -48,7 +48,8 @@ func (i *Item) ValidClientItem() bool {
 }
 
 type Creature struct {
-	outfit *dat.Outfit
+	clientID uint16
+	outfit   *dat.Outfit
 
 	parent *Things
 
@@ -81,6 +82,14 @@ func (c *Creature) IdleAnim() bool {
 func (c *Creature) AnimCount() int {
 	gfx := c.outfit.GetGraphics()
 	return int(gfx.AnimCount)
+}
+
+func (c *Creature) ClientID(clientVersion uint16) uint16 {
+	return c.clientID
+}
+
+func (c *Creature) ServerID() int {
+	return int(c.clientID)
 }
 
 type Things struct {
@@ -143,10 +152,16 @@ func (t *Things) ItemWithClientID(clientID uint16, clientVersion uint16) (*Item,
 	}, nil
 }
 
+func (t *Things) Creature(serverID uint16, clientVersion uint16) (*Creature, error) {
+	// Currently there is no distinction between client and server IDs. Yet.
+	return t.CreatureWithClientID(serverID, clientVersion)
+}
+
 func (t *Things) CreatureWithClientID(clientID uint16, clientVersion uint16) (*Creature, error) {
 	return &Creature{
-		outfit: t.dataset.Outfit(clientID),
-		parent: t,
+		clientID: clientID,
+		outfit:   t.dataset.Outfit(clientID),
+		parent:   t,
 	}, nil
 }
 

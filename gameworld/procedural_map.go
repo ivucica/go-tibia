@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/things"
@@ -23,9 +24,12 @@ func NewMapDataSource() MapDataSource {
 //////////////////////////////
 
 type creature struct {
-	pos     tnet.Position
-	id      CreatureID
-	dir     things.CreatureDirection
+	pos tnet.Position
+	id  CreatureID
+	dir things.CreatureDirection
+
+	look uint16
+	col  [4]things.OutfitColor
 }
 
 func (c *creature) GetPos() tnet.Position {
@@ -36,6 +40,12 @@ func (c *creature) GetID() CreatureID {
 }
 func (c *creature) GetName() string {
 	return "Demo Character"
+}
+func (c *creature) GetServerType() uint16 {
+	return c.look
+}
+func (c *creature) GetOutfitColors() [4]things.OutfitColor {
+	return c.col
 }
 
 func (c *creature) SetPos(p tnet.Position) error {
@@ -101,15 +111,30 @@ func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
 	ds.generatedMapTiles[tnet.Position{x, y, z}] = generatedMapTile
 
 	if x == 32768+5 && y == 32768+5 && z == 7 {
-		cr := &creature{id: 128, pos: tnet.Position{X: x, Y: y, Floor: z}}
+		cr := &creature{id: CreatureID(1234 | CreatureTypePlayer), pos: tnet.Position{X: x, Y: y, Floor: z}, look: 128, col: [4]things.OutfitColor{
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+		}}
 		ds.AddCreature(cr)
 	}
 	if x == 109 && y == 89 && z == 7 {
-		cr := &creature{id: 128, pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionNorth}
+		cr := &creature{id: CreatureID(1235 | CreatureTypeMonster), pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionNorth, look: 128, col: [4]things.OutfitColor{
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+		}}
 		ds.AddCreature(cr)
 	}
 	if x == 111 && y == 89 && z == 7 {
-		cr := &creature{id: 129, pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionWest}
+		cr := &creature{id: CreatureID(1236 | CreatureTypeNPC), pos: tnet.Position{X: x, Y: y, Floor: z}, dir: things.CreatureDirectionWest, look: 128, col: [4]things.OutfitColor{
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+			things.OutfitColor(rand.Int() % things.OutfitColorCount()),
+		}}
 		ds.AddCreature(cr)
 	}
 

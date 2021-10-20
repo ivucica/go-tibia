@@ -23,6 +23,10 @@ func (i *Item) ItemFrame(idx int, x, y, z int) image.Image {
 	}
 
 	if i.dataset == nil {
+		if i.otb == nil {
+			glog.Errorf("cannot composite image for item with unknown serverid (no i.otb set): no dat")
+			return nil
+		}
 		glog.Errorf("cannot composite image for item %d: no dat", i.otb.Attributes[itemsotb.ITEM_ATTR_SERVERID].(uint16))
 		return nil
 	}
@@ -95,6 +99,10 @@ func (col OutfitColor) RGBA() (r, g, b, a uint32) {
 	return
 }
 
+func OutfitColorCount() int {
+	return 133
+}
+
 func colorize(base image.Image, col color.Color, x, y int) color.RGBA {
 	bpx := color.RGBAModel.Convert(base.At(x, y)).(color.RGBA)
 	cpx := color.RGBAModel.Convert(col).(color.RGBA)
@@ -163,9 +171,11 @@ func (c *Creature) CreatureFrame(idx int, dir CreatureDirection, outfitOverlayMa
 	// n.b. rendersize is used for scaling.
 	gfx := c.outfit.GetGraphics()
 
+	glog.Infof("overlay mask %01x, ydiv %d", outfitOverlayMask, gfx.YDiv)
 	outfitOverlays := make([]int, 0, gfx.YDiv)
 	for i := 0; i < int(gfx.YDiv); i++ {
-		if i == 0 || outfitOverlayMask&1 != 0 && i < int(c.outfit.GetGraphics().YDiv) {
+		if i == 0 || (outfitOverlayMask&1 != 0 && i < int(gfx.YDiv)) {
+			glog.Infof(" -> add overlay mask %d", i)
 			outfitOverlays = append(outfitOverlays, i)
 		}
 		outfitOverlayMask >>= 1

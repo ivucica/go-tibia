@@ -13,44 +13,36 @@ import (
 	"runtime"
 
 	"github.com/golang/glog"
+	"github.com/gorilla/mux"
 
 	_ "golang.org/x/net/trace"
 
 	"badc0de.net/pkg/flagutil"
 
-	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/login"
 	tnet "badc0de.net/pkg/go-tibia/net"
-	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/otb/map"
 	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/secrets"
-	"badc0de.net/pkg/go-tibia/things"
-
-	"badc0de.net/pkg/go-tibia/spr"
-	"image/png"
-	"strconv"
+	"badc0de.net/pkg/go-tibia/things/full"
+	"badc0de.net/pkg/go-tibia/web"
 )
 
 var (
 	quitChan = make(chan int)
 
-	itemsOTBPath string
-	itemsXMLPath string
-	tibiaDatPath string
-	tibiaSprPath string
+	tibiaPicPath string
 	mapPath      string
 
 	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
+	muxRouter      *mux.Router
 )
 
 func setupFilePathFlags() {
-	paths.SetupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
-	paths.SetupFilePathFlag("items.xml", "items_xml_path", &itemsXMLPath)
-	paths.SetupFilePathFlag("Tibia.dat", "tibia_dat_path", &tibiaDatPath)
-	paths.SetupFilePathFlag("Tibia.spr", "tibia_spr_path", &tibiaSprPath)
+	full.SetupFilePathFlags()
 	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
+	paths.SetupFilePathFlag("tibia_pic_path", "tibia_pic_path", &tibiaPicPath)
 }
 
 func main() {
@@ -65,6 +57,10 @@ func main() {
 		http.HandleFunc("/debug/minimetrics", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "runtime.NumGoroutine(): %d\n", runtime.NumGoroutine())
 		})
+
+		muxRouter = mux.NewRouter().PathPrefix("/debug/").Subrouter()
+		http.Handle("/debug/", muxRouter)
+
 		go http.ListenAndServe(*debugWebServer, nil)
 	}
 
@@ -233,59 +229,15 @@ func games() {
 	go serveLameDuck(l.(*net.TCPListener), lameDuckStop, login, gw)
 
 	///
-	t, err := things.New()
+	t, err := full.FromFilePathFlags()
 	if err != nil {
 		glog.Errorln("creating thing registry", err)
 		return
 	}
 
-	f, err := os.Open(itemsOTBPath)
-	if err != nil {
-		glog.Errorln("opening items otb file for add", err)
-		return
-	}
-	itemsOTB, err := itemsotb.New(f)
-	f.Close()
-
-	f, err = os.Open(itemsXMLPath)
-	if err != nil {
-		glog.Errorln("opening items xml file for add", err)
-		return
-	}
-	itemsOTB.AddXMLInfo(f)
-	f.Close()
-
-	if err != nil {
-		glog.Errorln("parsing items otb for add", err)
-		return
-	}
-	t.AddItemsOTB(itemsOTB)
-
-	f, err = os.Open(tibiaDatPath)
-	if err != nil {
-		glog.Errorln("opening tibia dat file for add", err)
-		return
-	}
-	dataset, err := tdat.NewDataset(f)
-	f.Close()
-	if err != nil {
-		glog.Errorln("parsing tibia dat for add", err)
-		return
-	}
-	t.AddTibiaDataset(dataset)
-
-	hasSpr := false
-	f, err = os.Open(tibiaSprPath)
-	if err == nil { // sprites are optional
-		s, err := spr.DecodeAll(f)
-		f.Close()
-		if err != nil {
-			glog.Errorln("parsing tibia spr for add", err)
-			return
-		}
-		t.AddSpriteSet(s)
-		hasSpr = true
-	}
+	webh := web.NewHandler(t, full.PathFlagValue(full.FlagTibiaSprPath), tibiaPicPath)
+	webh.RegisterRoutes(muxRouter)
+	///
 
 	gw.SetThings(t)
 
@@ -304,58 +256,8 @@ func games() {
 			return
 		}
 	}
+	webh.RegisterMapRoute(muxRouter, m)
 	gw.SetMapDataSource(m)
-
-	if hasSpr {
-		http.HandleFunc("/debug/map", func(w http.ResponseWriter, r *http.Request) {
-			var tx, ty uint16
-			var tbot, ttop uint8
-			var tw, th int
-
-			tx = 84
-			ty = 84
-			tbot = 7
-			ttop = 0
-			tw = 18
-			th = 14
-
-			if x := r.URL.Query().Get("x"); x != "" {
-				txI, _ := strconv.Atoi(x)
-				tx = uint16(txI)
-			}
-			if y := r.URL.Query().Get("y"); y != "" {
-				tyI, _ := strconv.Atoi(y)
-				ty = uint16(tyI)
-			}
-			if w := r.URL.Query().Get("w"); w != "" {
-				tw, _ = strconv.Atoi(w)
-			}
-			if h := r.URL.Query().Get("h"); h != "" {
-				th, _ = strconv.Atoi(h)
-			}
-			if bot := r.URL.Query().Get("bot"); bot != "" {
-				tbotI, _ := strconv.Atoi(bot)
-				tbot = uint8(tbotI)
-			}
-			if top := r.URL.Query().Get("top"); top != "" {
-				ttopI, _ := strconv.Atoi(top)
-				ttop = uint8(ttopI)
-			}
-
-			if tw > 70 {
-				tw = 70
-			}
-			if th > 70 {
-				th = 70
-			}
-
-			// TODO: more input validation! never allow for number inside CompositeMap to go negative, e.g.
-			img := gameworld.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
-			w.Header().Set("Content-Type", "image/png")
-			w.WriteHeader(http.StatusOK)
-			png.Encode(w, img)
-		})
-	}
 
 	///
 

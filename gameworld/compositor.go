@@ -45,14 +45,17 @@ func compositeTile(t MapTile, th *things.Things, img *image.RGBA, bottomRight im
 
 	idx = 0
 	for creature, err := t.GetCreature(idx); err == nil; creature, err = t.GetCreature(idx) {
-		glog.Infof("creature at %d %d %d", x, y, floor)
-		thCreature, err := th.CreatureWithClientID(uint16(creature.GetID()), 854)
+		// TODO: support item look for a creature
+		glog.Infof("creature at %d %d %d (%08x) facing %v", x, y, floor, creature.GetID(), creature.GetDir())
+		thCreature, err := th.Creature(creature.GetServerType(), 854)
 		if err != nil {
-			glog.Errorf("could not get creature of type %d: %v", creature.GetID(), err)
+			glog.Errorf("could not get creature of type %d: %v", creature.GetServerType(), err)
 			continue
 		}
 
-		frame := thCreature.ColorizedCreatureFrame(0, creature.GetDir(), things.OutfitOverlayMask(0), []color.Color{things.OutfitColor(130), things.OutfitColor(90), things.OutfitColor(25), things.OutfitColor(130)})
+		cols := creature.GetOutfitColors()
+		glog.Infof("  -> look %d, colors %d %d %d %d", creature.GetServerType(), cols[0], cols[1], cols[2], cols[3])
+		frame := thCreature.ColorizedCreatureFrame(0, creature.GetDir(), things.OutfitOverlayMask(0), []color.Color{cols[0], cols[1], cols[2], cols[3]})
 
 		dst := image.Rect(
 			bottomRight.X-frame.Bounds().Size().X, bottomRight.Y-frame.Bounds().Size().Y,

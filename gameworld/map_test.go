@@ -78,6 +78,8 @@ func TestMapDescriptionRange(t *testing.T) {
 			Floor: 7,
 		},
 		dir: things.CreatureDirectionSouth,
+		look: 128,
+		col: [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
 	})
 
 	msg := tnet.NewMessage()
@@ -193,6 +195,8 @@ func TestMapDescriptionRangeMoveNorth(t *testing.T) {
 		id: 123,
 		pos: tnet.Position{X: 100,Y: 91,Floor: 7,},
 		dir: things.CreatureDirectionSouth,
+		look: 128,
+		col: [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
 	})
 
 	msg := tnet.NewMessage()

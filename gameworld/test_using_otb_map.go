@@ -71,6 +71,8 @@ func mapDescriptionEncodingInitialSpawn(t *testing.T, ds MapDataSource) {
 			Y:     100,
 			Floor: 7,
 		},
+		look: 0x88,
+		col: [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
 	})
 
 	msg := tnet.NewMessage()
@@ -303,6 +305,8 @@ func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
 			Y:     91,
 			Floor: 7,
 		},
+		look: 0x88,
+		col: [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
 	})
 
 	// First, sanity checking tile on top left: 92,84,7 (which should be 980100ff -- just item 405):
