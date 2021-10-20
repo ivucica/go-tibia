@@ -29,14 +29,38 @@ type Creature interface {
 	GetOutfitColors() [4]things.OutfitColor
 }
 
+type CreatureType uint32
+
+const (
+	CreatureTypePlayer  = CreatureType(0x10000000)
+	CreatureTypeNPC     = CreatureType(0x2000000)
+	CreatureTypeMonster = CreatureType(0x40000000)
+)
+
 var (
-	maxCreatureID CreatureID
+	maxCreatureIDPlayer      CreatureID
+	maxCreatureIDNPC         CreatureID
+	maxCreatureIDMonster     CreatureID
+	maxCreatureIDDefaultPool CreatureID
 )
 
 // TODO(ivucica): Move this to map data source
-func NewCreatureID() CreatureID {
-	maxCreatureID++
-	return maxCreatureID
+func NewCreatureID(kind CreatureType) CreatureID {
+	switch kind {
+	case CreatureTypePlayer:
+		maxCreatureIDPlayer++
+		return maxCreatureIDPlayer | CreatureID(kind)
+	case CreatureTypeNPC:
+		maxCreatureIDNPC++
+		return maxCreatureIDNPC | CreatureID(kind)
+	case CreatureTypeMonster:
+		maxCreatureIDMonster++
+		return maxCreatureIDMonster | CreatureID(kind)
+	default:
+		glog.Warningf("creature added with unknown type; client behavior unpredictable (may affect right-click options, e.g.)")
+		maxCreatureIDDefaultPool++
+		return maxCreatureIDDefaultPool
+	}
 }
 
 type GameworldConnectionID CreatureID
@@ -177,7 +201,7 @@ func (c *GameworldServer) Serve(conn net.Conn, initialMessage *tnet.Message) err
 	//pwd := "?"
 	glog.Infof("acc:%s char:%s len(pwd):%d isGM:%d\n", acc, char, len(pwd), isGM)
 
-	playerID := NewCreatureID()
+	playerID := NewCreatureID(CreatureTypePlayer)
 	gwConn := &GameworldConnection{}
 	gwConn.clientVersion = connHeader.Version
 	gwConn.server = c
