@@ -3,7 +3,6 @@ package dat
 import (
 	"fmt"
 	"math"
-	"os"
 	"testing"
 
 	"badc0de.net/pkg/go-tibia/paths"
@@ -21,14 +20,14 @@ func TestDatColor(t *testing.T) {
 	c := DatasetColor(156)
 
 	r, g, b, a := c.RGBA()
-	if r != 0 || g != 26214 || b != 43690 || a != 65535 {
+	if r != 43690 || g != 26214 || b != 0 || a != 65535 {
 		t.Errorf("got %d %d %d %d (%g %g %g %g), want %d %d %d %d",
 			r, g, b, a,
 			float64(r)/math.MaxUint16,
 			float64(g)/math.MaxUint16,
 			float64(b)/math.MaxUint16,
 			float64(a)/math.MaxUint16,
-			0, 26214, 43690, 65535)
+			43690, 26214, 0, 65535)
 	}
 }
 
