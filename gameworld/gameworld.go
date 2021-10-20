@@ -14,7 +14,9 @@ import (
 	"github.com/pkg/errors"
 
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
+	"badc0de.net/pkg/go-tibia/xmls"
 )
 
 type CreatureID uint32
@@ -704,18 +706,89 @@ func (c *GameworldConnection) outfitWindow(out *tnet.Message) error {
 		return errors.Wrap(err, "outfitWindow: getting player creature")
 	}
 
+	// TODO(ivucica): move reading the file to process startup; cache in GameworldServer or so
+	f, err := paths.Open("outfits.xml")
+	if err != nil {
+		return errors.Wrap(err, "outfitWindow: failed to open outfits.xml")
+	}
+	defer f.Close()
+
+	outfits, err := xmls.ReadOutfits(f)
+	if err != nil {
+		return errors.Wrap(err, "outfitWindow: failed to parse outfits.xml")
+	}
+
+	// TODO(ivucica): actually query player's characteristics to determine which looks are permitted
+	permittedTypes := []string{"male", "femalecm"}
+	hasPremium := true
+	unlockedIDs := []int{
+		12, // pirate
+	}
+
+	var looks []xmls.OutfitListEntry
+
+	for _, outfit := range outfits.Outfit {
+		if outfit.Default == "" {
+			outfit.Default = "1"
+		}
+
+		// If not unlocked by default, player must have unlocked it somehow.
+		if outfit.Default == "0" {
+			unlocked := false
+			for _, i := range unlockedIDs {
+				if i == outfit.ID {
+					unlocked = true
+				}
+			}
+			if !unlocked {
+				continue
+			}
+		}
+
+		// Must have premium for premium outfits.
+		if !(outfit.Premium == 0 || hasPremium) {
+			continue
+		}
+
+		// Otherwise we can proceed.
+		for _, look := range outfit.List {
+			permitted := false
+			for _, typ := range permittedTypes {
+				if typ == string(look.Type) {
+					permitted = true
+					break
+				}
+			}
+			if permitted {
+				looks = append(looks, look)
+			}
+		}
+	}
+
+	if len(looks) > 25 { // max number of outfits allowed is 25
+		looks = looks[:25]
+	}
+
 	out.WriteByte(0xC8)
 
 	if err := c.creatureOutfit(out, playerCreature); err != nil {
 		return err
 	}
 
-	out.WriteByte(0x02)       // number of wearable outfits
-	out.Write([]byte{128, 0}) // outfit type
-	out.WriteTibiaString("outfit 128")
-	out.Write([]byte{3})      // addon count
-	out.Write([]byte{129, 0}) // outfit type
-	out.WriteTibiaString("outfit 129")
-	out.Write([]byte{2}) // addon count
+	if len(looks) == 0 {
+		// TODO(ivucica): send something default
+		return fmt.Errorf("no outfits permitted for current player")
+	}
+
+	out.WriteByte(byte(len(looks))) // number of wearable outfits
+	for _, look := range looks {
+		if err := binary.Write(out, binary.LittleEndian, uint16(look.LookType)); err != nil {
+			return err
+		}
+		out.WriteTibiaString(look.Name)
+		out.Write([]byte{0}) // addon count
+		// TODO(ivucica): support addon count (by examining dat file)
+	}
+
 	return nil
 }
