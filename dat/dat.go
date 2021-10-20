@@ -135,6 +135,37 @@ func (col DatasetColor) RGBA() (r, g, b, a uint32) {
 	g = uint32(float64(uint32(float64(col)/6)%6) / 5. * math.MaxUint16)
 	b = uint32(float64(col%6) / 5. * math.MaxUint16) // color.Color.RGBA() is defined to return in range [0, 0xFFFF]
 	a = math.MaxUint16
+
+	return
+
+	// Base 6 per component. Values are 00, 33, 66, 99, cc, ff.
+	// (We run out of colors by 0xD8.)
+	//
+	// color.Color.RGBA() is defined to return in range [0, 0xFFFF]
+	lut := []uint32{
+		0x00,
+		0x33 << 8,
+		0x66 << 8,
+		0x99 << 8,
+		0xcc << 8,
+		0xff << 8,
+	}
+
+	origCol := col
+	// Values 0 through 5 (base 6).
+	b6 := col % 6
+	col /= 6
+	g6 := col % 6
+	col /= 6
+	r6 := col % 6
+
+	r = lut[r6]
+	g = lut[g6]
+	b = lut[b6]
+	a = math.MaxUint16
+
+	glog.Infof("datasetcolor[%d / %02x] = %02x%02x%02x (%d %d %d)", origCol, origCol, r, g, b, r6, g6, b6)
+
 	return
 }
 
