@@ -357,17 +357,64 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 	outMap.WriteTibiaString(cr.GetName())
 
 	outMap.Write([]byte{
-		100,                          // health
-		0,                            // dir,
-		0x88, 0x00, 0x0a, 0x0a, 0x0a, // 128, 0, 5, 2, 0, // outfit
-		0x0a, 0x00, //0, 0, // looktype ex u16
-		0, 0, // light level and color
-		0x84, 0x03, //100, 0, // step speed
+		100,                // health
+		uint8(cr.GetDir()), // dir,
+	})
+
+	c.creatureOutfit(outMap, cr)
+
+	outMap.Write([]byte{
+		0x00, 0x00, // light level and color
+		0x84, 0x03, // step speed, uint16
 		0,    //skull
 		0,    // party shield
-		0,    // 0x61, therefore send war emblem
-		0x01, //0, // player can walk through
+		0,    // 0x61, therefore required to send war emblem in 8.53+
+		0x01, // 'impassable', whether players can walk through. 8.53+
 	})
+
+	return nil
+}
+
+func (c *GameworldConnection) creatureOutfit(out *tnet.Message, cr Creature) error {
+	itemLook := uint16(0) // look like an item instead? 0 disables
+	look := cr.GetServerType()
+
+	if itemLook == 0 && look == 0 {
+		return fmt.Errorf("creature %08x's server look type is 0", cr.GetID())
+	}
+
+	if itemLook != 0 {
+		// TODO(ivucica): does this support more than just look? should full 'itemDescription' be sent?
+		out.Write([]byte{0x00, 0x00}) // uint16 zero
+		if err := binary.Write(out, binary.LittleEndian, itemLook); err != nil {
+			return err
+		}
+	} else {
+		thCr, err := c.server.things.Creature(look, c.clientVersion)
+		if err != nil {
+			return errors.Wrapf(err, "unsupported creature %08x on scene", cr.GetID())
+		}
+		cols := cr.GetOutfitColors()
+		netOutfit := struct {
+			LookType               uint16
+			Head, Body, Legs, Feet uint8
+			Addons                 uint8
+		}{
+			LookType: uint16(thCr.ClientID(c.clientVersion)),
+			Head:     uint8(cols[0]),
+			Body:     uint8(cols[1]),
+			Legs:     uint8(cols[2]),
+			Feet:     uint8(cols[3]),
+			Addons:   uint8(0),
+		}
+		if netOutfit.LookType == 0 {
+			return fmt.Errorf("creature %08x look has clientside id of 0", cr.GetID())
+		}
+		glog.Infof("sending look type %02x", netOutfit.LookType)
+		if err := binary.Write(out, binary.LittleEndian, netOutfit); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
