@@ -400,6 +400,13 @@ mainLoop:
 				}
 
 				glog.Infof("fight mode: %v; chase mode: %v; safe mode: %02x", fightMode, chaseMode, safeMode)
+			case 0xD2: // request outfit window
+				out := tnet.NewMessage()
+				if err := gwConn.outfitWindow(out); err != nil {
+					glog.Errorf("could not provide outfit window: %v", err)
+				} else {
+					gwConn.senderChan <- out
+				}
 			}
 		case <-gwConn.mainLoopQuit:
 			break mainLoop
@@ -684,5 +691,31 @@ func (c *GameworldConnection) creatureLight(out *tnet.Message, creature Creature
 func (c *GameworldConnection) playerIcons(out *tnet.Message) error {
 	// TODO: send actual flags for various icons
 	out.Write([]byte{0xA2, 0x00, 0x00})
+	return nil
+}
+
+func (c *GameworldConnection) outfitWindow(out *tnet.Message) error {
+	playerID, err := c.PlayerID()
+	if err != nil {
+		return errors.Wrap(err, "outfitWindow: attempted to open a window while playerID failed")
+	}
+	playerCreature, err := c.server.mapDataSource.GetCreatureByID(playerID)
+	if err != nil {
+		return errors.Wrap(err, "outfitWindow: getting player creature")
+	}
+
+	out.WriteByte(0xC8)
+
+	if err := c.creatureOutfit(out, playerCreature); err != nil {
+		return err
+	}
+
+	out.WriteByte(0x02)       // number of wearable outfits
+	out.Write([]byte{128, 0}) // outfit type
+	out.WriteTibiaString("outfit 128")
+	out.Write([]byte{3})      // addon count
+	out.Write([]byte{129, 0}) // outfit type
+	out.WriteTibiaString("outfit 129")
+	out.Write([]byte{2}) // addon count
 	return nil
 }
