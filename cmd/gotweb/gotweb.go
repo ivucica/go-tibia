@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	_ "net/http/pprof" // Default mux should not be served publicly; it's actually hidden behind a flag.
 
 	"flag"
@@ -179,6 +180,10 @@ func picHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	f.Seek(0, io.SeekStart)
+	var h spr.Header
+	binary.Read(f, binary.LittleEndian, &h)
+
 	var src image.Rectangle
 	var dst image.Rectangle
 	if x := r.URL.Query().Get("x"); x != "" {
@@ -197,6 +202,16 @@ func picHandler(w http.ResponseWriter, r *http.Request) {
 		src.Max.Y = src.Min.Y + dst.Max.Y
 	}
 
+	generation := 1 // bump if the way we generate it changes
+	mime := "image/png"
+	etag := fmt.Sprintf(`W/"20211019:pic:%d:%08x:%d:%d.%d.%d.%d.%s"`, generation, h.Signature, idx, src.Min.X, src.Min.Y, src.Max.X, src.Max.Y, mime)
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
 	if dst.Max.X != 0 && dst.Max.Y != 0 {
 		oldImg := img
 		img = image.NewRGBA(dst)
@@ -204,6 +219,11 @@ func picHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+	w.Header().Set("ETag", etag)
+	if s, err := os.Stat(tibiaPicPath); err == nil {
+		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
 }
@@ -227,6 +247,7 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 
 	generation := 1 // bump if the way we generate it changes
 	mime := "image/png"
+	// TODO: if we support x, y, z etc this should be supported in etag too.
 	etag := fmt.Sprintf(`W/"item:%d:%08x:%08x:%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, mime)
 
 	if r.Header.Get("If-None-Match") == etag {
@@ -248,10 +269,13 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 	w.Header().Set("ETag", etag)
-
-	w.Header().Set("Content-Type", "image/png")
+	if s, err := os.Stat(tibiaSprPath); err == nil {
+		// TODO: max of tibia.dat, tibia.spr, maybe more
+		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
 }
@@ -291,13 +315,29 @@ func citemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	generation := 1 // bump if the way we generate it changes
+	mime := "image/png"
+	etag := fmt.Sprintf(`W/"20211019:item:%d:%08x:%08x:%d:%d.%d.%d.%d.%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, p.fr, p.x, p.y, p.z, mime)
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
 	img := itm.ItemFrame(p.fr, p.x, p.y, p.z)
 	if img == nil {
 		http.Error(w, "bad image", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Cache-Control", "public; max-age=3600")
+	w.Header().Set("ETag", etag)
+	if s, err := os.Stat(tibiaSprPath); err == nil {
+		// TODO: max of tibia.dat, tibia.spr, maybe more
+		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
 }
@@ -358,13 +398,29 @@ func creatureHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	generation := 1 // bump if the way we generate it changes
+	mime := "image/png"
+	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, fr, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
 	img := cr.ColorizedCreatureFrame(fr, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 	if img == nil {
 		http.Error(w, "bad image", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Cache-Control", "public; max-age=3600")
+	w.Header().Set("ETag", etag)
+	if s, err := os.Stat(tibiaSprPath); err == nil {
+		// TODO: max of tibia.dat, tibia.spr, maybe more
+		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
 }
@@ -430,6 +486,16 @@ func creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	generation := 1 // bump if the way we generate it changes
+	mime := "image/gif"
+	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
 	for i := start; i < cr.AnimCount(); i++ {
 		img := cr.ColorizedCreatureFrame(i, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 		if img == nil {
@@ -446,7 +512,14 @@ func creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 		g.BackgroundIndex = 0 // image.Transparent
 	}
 
-	w.Header().Set("Content-Type", "image/gif")
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Cache-Control", "public; max-age=3600")
+	w.Header().Set("ETag", etag)
+	if s, err := os.Stat(tibiaSprPath); err == nil {
+		// TODO: max of tibia.dat, tibia.spr, maybe more
+		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+	}
+
 	w.WriteHeader(http.StatusOK)
 	gif.EncodeAll(w, &g)
 }
