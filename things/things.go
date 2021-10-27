@@ -40,7 +40,11 @@ func (i *Item) LightInfo() dat.LightInfo {
 
 func (i *Item) GraphicsSize() struct{ W, H int } {
 	gfx := i.dataset.GetGraphics()
-	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
+	// FIXME: multiplying .Width and .Height for client item 6469 (wooden window) and others by gfx.RenderSize gave us 128x128
+	// for 6473 (planks) we got 54x128 (which is interestingly 54x54)
+	//
+	// perhaps it is best to just use RenderSize
+	return struct{ W, H int }{W: int(gfx.RenderSize), H: int(gfx.RenderSize)}
 }
 
 func (i *Item) ValidClientItem() bool {
@@ -72,8 +76,8 @@ func (c *Creature) LightInfo() dat.LightInfo {
 
 func (c *Creature) GraphicsSize() struct{ W, H int } {
 	gfx := c.outfit.GetGraphics()
-	return struct{ W, H int }{W: int(gfx.Width * gfx.RenderSize), H: int(gfx.Height * gfx.RenderSize)}
-}
+	return struct{ W, H int }{W: int(gfx.RenderSize), H: int(gfx.RenderSize)}
+	}
 
 func (c *Creature) IdleAnim() bool {
 	return c.outfit.IdleAnim
