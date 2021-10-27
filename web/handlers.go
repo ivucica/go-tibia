@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/andybons/gogif"
+	"github.com/ericpauley/go-quantize/quantize"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 
@@ -300,7 +300,7 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	generation := 1 // bump if the way we generate it changes
+	generation := 2 // bump if the way we generate it changes
 	mime := "image/gif"
 	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
 	if r.Header.Get("If-None-Match") == etag {
@@ -310,7 +310,7 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	quantizer := gogif.MedianCutQuantizer{NumColor: 255} // Up to 255 colors plus 1 space for transparency.
+	quantizer := quantize.MedianCutQuantizer{AddTransparent: false}
 	for i := start; i < cr.AnimCount(); i++ {
 		img := cr.ColorizedCreatureFrame(i, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 		if img == nil {
@@ -318,29 +318,19 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pal := image.NewPaletted(img.Bounds(), nil)
-		quantizer.Quantize(pal, img.Bounds(), img, image.ZP)
+		palette := color.Palette(make([]color.Color, 1, 256)) // preallocate one space for transparency
+		palette[0] = image.Transparent
+		palette = quantizer.Quantize(palette, img) // quantizer.Quantize will only use the remaining space (255 colors)
+		// Had we used its AddTransparent property, the transparency would be added as the last color, meaning we would have to also clear the image with that color.
+		// Prepending it as 0th color means it'll simply be the default.
 
-		// *sigh* gogif's MedianCutQuantizer doesn't provide for calculation of the palette
-		// without also copying the image with dst.Set() on each pixel. it. Yes, we are thus
-		// copying the image twice just to preserve transparency.
-		//
-		// Even worse, gogif's Quantize() is reading the whole image to calculate how many
-		// pixels are in it before using dst.Set() on each pixel. Thanfully, our images are
-		// tiny.
+		pal := image.NewPaletted(img.Bounds(), palette)
+		draw.Draw(pal, img.Bounds(), img, image.ZP, draw.Over)
 
-		// Create a version of paletted image with color.Transparent in it. That's the first
-		// color so the empty image defaults to it.
-		palTransparent := image.NewPaletted(img.Bounds(), append(color.Palette([]color.Color{color.Transparent}), pal.Palette...))
-
-		// Now use draw.Draw() to create a version of the image which has the
-		// MedianCutQuantizer's palette plus transparent color.
-		draw.Draw(palTransparent, img.Bounds(), img, image.ZP, draw.Over)
-
-		g.Image = append(g.Image, palTransparent)
+		g.Image = append(g.Image, pal)
 		g.Delay = append(g.Delay, 50)
 		g.Disposal = append(g.Disposal, gif.DisposalBackground)
-		g.BackgroundIndex = 0 // image.Transparent
+		g.BackgroundIndex = 0 // we have set index 0 as the transparency image
 	}
 
 	w.Header().Set("Content-Type", mime)
