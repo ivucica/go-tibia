@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/color/palette"
 	"image/draw"
 	"image/gif"
 	"image/jpeg"
@@ -16,6 +15,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/andybons/gogif"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 
@@ -268,11 +268,6 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 
 	g := gif.GIF{}
 
-	// TODO: Can we do better? Can we calculate best palette for each frame?
-	imgPalette := make([]color.Color, len(palette.WebSafe)+1)
-	imgPalette[0] = image.Transparent
-	copy(imgPalette[1:], palette.WebSafe)
-
 	start := 1
 	if cr.IdleAnim() {
 		start = 0
@@ -315,6 +310,7 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	quantizer := gogif.MedianCutQuantizer{NumColor: 255} // Up to 255 colors plus 1 space for transparency.
 	for i := start; i < cr.AnimCount(); i++ {
 		img := cr.ColorizedCreatureFrame(i, things.CreatureDirection(dir), p.outfitOverlayMask, p.col[:])
 		if img == nil {
@@ -322,10 +318,26 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pal := image.NewPaletted(img.Bounds(), imgPalette)
+		pal := image.NewPaletted(img.Bounds(), nil)
+		quantizer.Quantize(pal, img.Bounds(), img, image.ZP)
 
-		draw.Draw(pal, img.Bounds(), img, image.ZP, draw.Over)
-		g.Image = append(g.Image, pal)
+		// *sigh* gogif's MedianCutQuantizer doesn't provide for calculation of the palette
+		// without also copying the image with dst.Set() on each pixel. it. Yes, we are thus
+		// copying the image twice just to preserve transparency.
+		//
+		// Even worse, gogif's Quantize() is reading the whole image to calculate how many
+		// pixels are in it before using dst.Set() on each pixel. Thanfully, our images are
+		// tiny.
+
+		// Create a version of paletted image with color.Transparent in it. That's the first
+		// color so the empty image defaults to it.
+		palTransparent := image.NewPaletted(img.Bounds(), append(color.Palette([]color.Color{color.Transparent}), pal.Palette...))
+
+		// Now use draw.Draw() to create a version of the image which has the
+		// MedianCutQuantizer's palette plus transparent color.
+		draw.Draw(palTransparent, img.Bounds(), img, image.ZP, draw.Over)
+
+		g.Image = append(g.Image, palTransparent)
 		g.Delay = append(g.Delay, 50)
 		g.Disposal = append(g.Disposal, gif.DisposalBackground)
 		g.BackgroundIndex = 0 // image.Transparent
