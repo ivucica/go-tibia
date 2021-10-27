@@ -1,0 +1,50 @@
+<a href="/map">serverside map render</a> <a href="/app/">clientside demo</a> <a href="/">items table</a> <a href="/outfits/">outfits table</a><br>
+
+<table>
+  <th>
+    id
+  </th>
+  <th>
+    name
+  </th>
+  <th>
+    img
+  </th>
+  <th>
+    requires premium
+  </th>
+  <th>
+    available without unlocks
+  </th>
+  {{range $index, $outfit :=  .OutfitsXML.Outfit}}
+  {{range $index2, $outfitListEntry := .List}} 
+  <tr>
+    <td>
+      {{$outfit.ID}}
+    </td>
+    <td>
+      {{$outfitListEntry.Name}} ({{$outfitListEntry.Type}})
+    </td>
+    <td background="/item/106" width="64" height="64">
+      <img src="/creature/{{$outfitListEntry.LookType}}-2.gif">
+    </td>
+    <td>
+      {{if gt $outfit.Premium 0}}yes{{else}}no{{end}}
+    </td>
+    <td>
+      {{if and (ne $outfit.Default "") (ne $outfit.Default "0")}}yes{{else}}no{{end}}
+    </td>
+  </tr>
+  {{end}}
+  {{end}}
+</table>
+
+<table>
+  {{range $index, $row := N2 0 7}}
+  <tr>
+    {{range $index2, $col := N2 0 19}}
+    <td bgcolor="{{ outfitColorIndexToHex (add (mul $row 19) $col)}}" width="24" height="24">{{ add (mul $row 19) $col }}</td>
+    {{end}}
+  </tr>
+  {{end}}
+</table>

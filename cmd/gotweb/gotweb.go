@@ -16,11 +16,12 @@ import (
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
-	"badc0de.net/pkg/go-tibia/otb/map" // for map loader
+	"badc0de.net/pkg/go-tibia/otb/map"   // for map loader
 	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
 	"badc0de.net/pkg/go-tibia/things/full"
 	"badc0de.net/pkg/go-tibia/web"
+	"badc0de.net/pkg/go-tibia/xmls"
 
 	"github.com/bradfitz/iter"
 	"github.com/golang/glog"
@@ -61,7 +62,8 @@ func thingsOpen() *things.Things {
 }
 
 var (
-	th *things.Things
+	th         *things.Things
+	outfitsXML *xmls.Outfits
 )
 
 func main() {
@@ -70,6 +72,21 @@ func main() {
 
 	th = thingsOpen()
 	r := mux.NewRouter()
+
+	f, err := paths.Open("outfits.xml")
+	if err != nil {
+		glog.Errorf("could not open outfits xml: %v", err)
+		outfitsXML = &xmls.Outfits{}
+	} else {
+		outfits, err := xmls.ReadOutfits(f)
+		if err != nil {
+			glog.Errorf("could not parse outfits xml: %v", err)
+			outfitsXML = &xmls.Outfits{}
+		} else {
+			outfitsXML = &outfits
+		}
+	}
+	f.Close()
 
 	funcs := template.FuncMap{
 		"N": iter.N,
@@ -125,15 +142,17 @@ func main() {
 			return x == nil
 		},
 	}
+
 	itemTableTemplate := template.New("")
 	itemTableTemplate = itemTableTemplate.Funcs(funcs)
-	itemTableTemplate, err := itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
+	itemTableTemplate, err = itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
 
 	if err != nil {
 		glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
 	} else {
 		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			// REMOVE THIS begin
+			// removeable because used only to reload itemtable.html during dev
 			itemTableTemplate := template.New("")
 			itemTableTemplate = itemTableTemplate.Funcs(funcs)
 			itemTableTemplate, err := itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
@@ -176,22 +195,44 @@ func main() {
 				PGSize: pgSize,
 			}
 
-			glog.Errorf("%v", itemTableTemplate.ExecuteTemplate(w, "itemtable.html", params))
-			return
-			fmt.Fprintf(w, "<ul>")
-			for i := 100 + pg*pgSize; i < 100+pg*pgSize+pgSize; i++ {
-				var name string
-				wid := 32
-				hei := 32
-				if itm, err := th.ItemWithClientID(uint16(i), 854); err == nil {
-					name = fmt.Sprintf("%d: %s", i, itm.Name())
-					sz := itm.GraphicsSize()
-					wid = sz.W
-					hei = sz.H
-				} else {
-					name = fmt.Sprintf("%d", i)
-				}
-				fmt.Fprintf(w, "<li><dt>%s</dt><dd><img width=%d height=%d src=/item/c%d></dd>\n", name, wid, hei, i)
+			err = itemTableTemplate.ExecuteTemplate(w, "itemtable.html", params)
+			if err != nil {
+				glog.Errorf("failed to execute itemtable.html: %v", err)
+			}
+		})
+	}
+
+	outfitTableTemplate := template.New("")
+	outfitTableTemplate = outfitTableTemplate.Funcs(funcs)
+	outfitTableTemplate, err = outfitTableTemplate.ParseFiles(paths.Find("outfittable.html"))
+
+	if err != nil {
+		glog.Errorf("not serving /outfits/, could not parse outfittable.html: %v", err)
+	} else {
+		r.HandleFunc("/outfits/", func(w http.ResponseWriter, r *http.Request) {
+			// REMOVE THIS begin
+			// removeable because used only to reload outfittable.html during dev
+			outfitTableTemplate := template.New("")
+			outfitTableTemplate = outfitTableTemplate.Funcs(funcs)
+			outfitTableTemplate, err := outfitTableTemplate.ParseFiles(paths.Find("outfittable.html"))
+			if err != nil {
+				glog.Errorf("not serving homepage, could not parse outfittable.html: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			// REMOVE THIS end
+
+			w.Header().Set("Content-Type", "text/html")
+
+			params := struct {
+				OutfitsXML *xmls.Outfits
+			}{
+				OutfitsXML: outfitsXML,
+			}
+
+			err = outfitTableTemplate.ExecuteTemplate(w, "outfittable.html", params)
+			if err != nil {
+				glog.Errorf("failed to execute outfittable.html: %v", err)
 			}
 		})
 	}
