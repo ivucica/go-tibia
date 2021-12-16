@@ -23,11 +23,19 @@ var (
 
 	creatureID = flag.Int("creature", 0, "ID of creature to print")
 
+	mapX   = flag.Int("map_x", 84, "x offset on the map (left)")
+	mapY   = flag.Int("map_y", 84, "y offset on the map (top)")
+	mapW   = flag.Int("map_w", 18, "width of rendered map")
+	mapH   = flag.Int("map_h", 14, "height of rendered map")
+	mapBot = flag.Int("map_bot", 7, "bottom of the rendered map")
+	mapTop = flag.Int("map_top", 0, "top of the rendered map")
+
 	itemsOTBPath string
 	itemsXMLPath string
 	tibiaDatPath string
 	tibiaSprPath string
 	tibiaPicPath string
+	mapPath      = flag.String("map_path", "", "path to an otbm file (e.g. 'datafiles/map.otb' or ':test:'); if empty map is not loaded or rendered")
 )
 
 type ReadSeekerCloser interface {
@@ -65,5 +73,8 @@ func main() {
 	}
 	if *picID != 0 {
 		picHandler(*picID)
+	}
+	if *mapPath != "" {
+		mapHandler(*mapPath, *mapX, *mapY, *mapW, *mapH, *mapBot, *mapTop)
 	}
 }
