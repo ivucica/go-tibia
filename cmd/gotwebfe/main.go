@@ -4,45 +4,37 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/png"
 	"io"
-	"net/http"
 	"syscall/js"
-
+	
 	"badc0de.net/pkg/go-tibia/spr"
+	"badc0de.net/pkg/go-tibia/paths"
 	"github.com/vincent-petithory/dataurl"
 )
 
-var sprBytes []byte
+// Contains single seekable buffer wrapped with a bytes.NewReader.
+//
+// TODO(ivucica): Hypothetically different goroutines could seek around it differently.
+var sprReaderSeekerCloser interface{io.ReadSeeker; io.Closer}
 
 func main() {
 
-	response, err := http.Get("Tibia.spr")
+	r, err := paths.Open("Tibia.spr")
 	if err != nil {
 		showError("opening Tibia.spr", err)
 		select {}
 	}
-	if response.StatusCode != http.StatusOK {
-		showError("opening Tibia.spr", fmt.Errorf("status code was %d", response.StatusCode))
-		select {}
-	}
 
-	buf := &bytes.Buffer{}
-	if _, err := io.Copy(buf, response.Body); err != nil {
-		showError("copying response to seekable buffer", err)
-		select {}
-	}
-	response.Body.Close()
-
-	sprBytes = buf.Bytes()
-
-	img, err := spr.DecodeOne(bytes.NewReader(buf.Bytes()), 500)
+	sprReaderSeekerCloser = r
+	
+	img, err := spr.DecodeOne(r, 500)
 	if err != nil {
 		showError("decoding a spr", err)
 		select {}
 	}
+	r.Close()
 
 	showImg(img)
 
@@ -87,7 +79,11 @@ func sayHello(this js.Value, inputs []js.Value) interface{} {
 }
 
 func showSpr(this js.Value, arg []js.Value) interface{} {
-	img, err := spr.DecodeOne(bytes.NewReader(sprBytes), arg[0].Int())
+	_, err := sprReaderSeekerCloser.Seek(0, io.SeekStart)
+	if err != nil {
+		showError("seeking spr to start", err)
+	}
+	img, err := spr.DecodeOne(sprReaderSeekerCloser, arg[0].Int())
 	if err != nil {
 		showError("decoding a spr", err)
 		select {}

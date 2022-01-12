@@ -1,6 +1,9 @@
+// +build !js,!wasm
+
 package paths
 
 import (
+	"io"
 	"os"
 )
 
@@ -9,6 +12,8 @@ import (
 //
 // For example, for "Tibia.pic" it may return
 // "mybinary.runfiles/go_tibia/datafiles/Tibia.pic".
+//
+// TODO(ivucica): Support finding over HTTP.
 func Find(fileName string) string {
 	possiblePaths := []string{
 		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
@@ -37,7 +42,9 @@ func Find(fileName string) string {
 
 // Open locates the passed file in the same locations that Find would look, and
 // opens it. If Find returns an empty string, an error is returned.
-func Open(fileName string) (*os.File, error) {
+//
+// TODO(ivucica): Support finding over HTTP.
+func Open(fileName string) (interface{io.ReadCloser; io.Seeker}, error) {	
 	path := Find(fileName)
 	if path == "" {
 		return nil, os.ErrNotExist
