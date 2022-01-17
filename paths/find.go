@@ -3,7 +3,6 @@ package paths
 import (
 	"github.com/golang/glog"
 	"io"
-	"os"
 )
 
 // Find locates the passed datafile shortname and returns an absolute or
@@ -17,10 +16,13 @@ func Find(fileName string) string {
 	possiblePaths := getPossiblePathsImp(fileName)
 
 	for _, path := range possiblePaths {
-		if f, err := os.Open(path); err == nil {
+		glog.Infof("paths.Find(%q) trying=%s", fileName, path)
+		if f, err := NoFindOpen(path); err == nil {
 			f.Close()
 			glog.Infof("paths.Find(%q)=%s", fileName, path)
 			return path
+		} else {
+			glog.Infof("paths.Find(%q) err=%v", fileName, err)
 		}
 	}
 
