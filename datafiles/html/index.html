@@ -52,7 +52,9 @@
 
     <h1>Map</h1>
     <p>
-      <button onclick="showMap();">show map</button>
+      <button onclick="loaderPromise().then((val) => console.log('loading complete'))">loaderPromise</button>
+      <button onclick="loaderPromise().then(showMap, (val) => console.error('loading failed: ' + val))">show map</button>
+      <button onclick="loaderPromise().then((val) => showMap())">show map 2</button>
     </p>
     <div id="map">
     </div>
