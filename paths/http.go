@@ -51,19 +51,19 @@ func noFindOpenHTTPImp(fileName string) (interface {
 	io.ReadCloser
 	io.Seeker
 }, error) {
-	log.Printf("find_wasm.go: NoFindOpen(%q)", fileName)
+	log.Printf("paths/http.go: NoFindOpen(%q)", fileName)
 	cacheLock.Lock()
 
 	if cache == nil {
-		log.Printf("find_wasm.go: created new http cache")
+		log.Printf("paths/http.go: created new http cache")
 		cache = make(map[string]*bytes.Buffer)
 	}
 
-	log.Printf("find_wasm.go: getting http file %q", fileName)
+	log.Printf("paths/http.go: getting http file %q", fileName)
 	response, err := http.Get(fileName)
-	log.Printf("find_wasm.go: http file %q gotten", fileName)
+	log.Printf("paths/http.go: http file %q gotten", fileName)
 	if err != nil {
-		log.Printf("[E] find_wasm.go: NoFindOpen(%q): failed to open: %v", fileName, err)
+		log.Printf("[E] paths/http.go: NoFindOpen(%q): failed to open: %v", fileName, err)
 		panic("failed to open " + fileName + ": " + err.Error())
 		return nil, errors.Wrapf(err, "go-tibia/paths/NoFindOpen(%q) on wasm: failed to open", fileName)
 	}
@@ -72,19 +72,19 @@ func noFindOpenHTTPImp(fileName string) (interface {
 		if response.StatusCode == http.StatusNotFound {
 			e = os.ErrNotExist
 		}
-		log.Printf("[E] find_wasm.go: NoFindOpen(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
+		log.Printf("[E] paths/http.go: NoFindOpen(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
 		return nil, errors.Wrapf(e, "go-tibia/paths/NoFindOpen(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
 	}
 
-	log.Printf("find_wasm.go: NoFindOpen(%q): http get complete, locking cache", fileName)
+	log.Printf("paths/http.go: NoFindOpen(%q): http get complete, locking cache", fileName)
 
 	if buf, ok := cache[fileName]; ok {
-		log.Printf("find_wasm.go: NoFindOpen(%q): returning reader for cached buffer", fileName)
+		log.Printf("paths/http.go: NoFindOpen(%q): returning reader for cached buffer", fileName)
 		cacheLock.Unlock()
 		return &bytesReaderWithDummyClose{bytes.NewReader(buf.Bytes())}, nil
 	}
 
-	log.Printf("find_wasm.go: NoFindOpen(%q): copying from response.Body to buffer", fileName)
+	log.Printf("paths/http.go: NoFindOpen(%q): copying from response.Body to buffer", fileName)
 	// TODO(ivucica): Explore using ranged reads.
 	buf := &bytes.Buffer{}
 	if _, err := io.Copy(buf, response.Body); err != nil {
@@ -95,8 +95,8 @@ func noFindOpenHTTPImp(fileName string) (interface {
 	cache[fileName] = buf
 	cacheLock.Unlock()
 
-	log.Printf("find_wasm.go: NoFindOpen(%q): returning new reader", fileName)
-	defer log.Printf("find_wasm.go: NoFindOpen(%q): done", fileName)
+	log.Printf("paths/http.go: NoFindOpen(%q): returning new reader", fileName)
+	defer log.Printf("paths/http.go: NoFindOpen(%q): done", fileName)
 	return &bytesReaderWithDummyClose{bytes.NewReader(buf.Bytes())}, nil
 }
 
