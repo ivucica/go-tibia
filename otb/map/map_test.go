@@ -46,7 +46,7 @@ func TestNew(t *testing.T) {
 }
 
 func setupThings(t testOrBenchmark) *things.Things {
-	var f, xmlf *os.File
+	var f, xmlf interface{io.ReadSeeker; io.Closer}
 	f, err := paths.Open("items.otb")
 	if err != nil {
 		t.Fatalf("failed to open items.otb: %s", err)
@@ -71,7 +71,7 @@ func setupThings(t testOrBenchmark) *things.Things {
 	// TODO(ivucica): add error handling here
 	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
 	var sz int64
-	fi, err := f.Stat()
+	fi, err := f.(hasStat).Stat()
 	if err != nil {
 		t.Errorf("error with stat: %v", err)
 	} else {
@@ -108,6 +108,10 @@ type testOrBenchmark interface {
 	Skip(...interface{})
 }
 
+type hasStat interface{
+	Stat() (os.FileInfo, error)
+}
+
 func tobNew(t testOrBenchmark, baseName string, th *things.Things) {
 	if baseName == "map.otserv.otbm" && testing.Short() {
 		t.Skip("skipping test in short mode")
@@ -129,8 +133,9 @@ func tobNew(t testOrBenchmark, baseName string, th *things.Things) {
 
 	// TODO(ivucica): add error handling here
 	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
+
 	var sz int64
-	fi, err := f.Stat()
+	fi, err := f.(hasStat).Stat()
 	if err != nil {
 		t.Errorf("error with stat: %v", err)
 	} else {
@@ -213,7 +218,7 @@ func loadOTBM(t *testing.T, fn string) *Map {
 	// TODO(ivucica): add error handling here
 	// TODO(ivucica): consider migrating otb.New() to use bufio.NewReader() instead, allowing a Peek()/UnreadByte() to replace the use of Seek()
 	var sz int64
-	fi, err := f.Stat()
+	fi, err := f.(hasStat).Stat()
 	if err != nil {
 		t.Errorf("error with stat: %v", err)
 	} else {

@@ -22,12 +22,12 @@ func ExampleDecodeOne() {
 		fmt.Printf("failed to decode spr: %s", err)
 		return
 	}
-	f, err = os.Create(os.TempDir() + "/423.png")
+	pngf, err := os.Create(os.TempDir() + "/423.png")
 	if err != nil {
 		fmt.Printf("failed to open %q for write", os.TempDir()+"/423.png")
 		return
 	}
-	png.Encode(f, img)
+	png.Encode(pngf, img)
 	f.Close()
 
 	fmt.Printf("image: %dx%d\n", img.Bounds().Size().X, img.Bounds().Size().Y)
