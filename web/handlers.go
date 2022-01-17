@@ -217,7 +217,7 @@ func (h *Handler) creatureHandler(w http.ResponseWriter, r *http.Request) {
 
 	generation := 1 // bump if the way we generate it changes
 	mime := "image/png"
-	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, fr, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
+	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, fr, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
 	if r.Header.Get("If-None-Match") == etag {
 		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 		w.Header().Set("ETag", etag)
@@ -302,7 +302,7 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 
 	generation := 2 // bump if the way we generate it changes
 	mime := "image/gif"
-	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
+	etag := fmt.Sprintf(`W/"20211019:creature:%d:%08x:%08x:%d:%d:%d:%d.%d.%d.%d:%s"`, generation, th.SpriteSetSignature(), th.TibiaDatasetSignature(), idx, dir, p.outfitOverlayMask, p.col[0], p.col[1], p.col[2], p.col[3], mime)
 	if r.Header.Get("If-None-Match") == etag {
 		w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 		w.Header().Set("ETag", etag)
