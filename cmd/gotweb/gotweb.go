@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"html/template"
 	_ "net/http/pprof" // Default mux should not be served publicly; it's actually hidden behind a flag.
 
+	"crypto/md5"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -319,14 +321,66 @@ func main() {
 			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 			http.ServeFile(w, r, paths.Find("outfits.xml"))
 		})
+		r.HandleFunc("/app/main.wasm", func(w http.ResponseWriter, r *http.Request) {
+
+			etag := genericFileEtag("html/main.wasm", "wasmfile", w, r)
+			if etag == "" {
+				// http error/headers already set in genericFileEtag
+				return
+			}
+			w.Header().Set("Cache-Control", "public; max-age=30") // 30 = 0.5 min
+			w.Header().Set("ETag", etag)
+
+			http.ServeFile(w, r, paths.Find("html/main.wasm"))
+		})
 		r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 			http.ServeFile(w, r, htmlPath+"/favicon.ico")
 		})
 		r.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			f, err := os.Open(htmlPath + "/sw.js")
+			if err != nil {
+				http.Error(w, "404", http.StatusNotFound)
+				return
+			}
+
+			buf := &bytes.Buffer{}
+			_, err = io.Copy(buf, f)
+			fi, err := f.Stat()
+			if err != nil {
+				http.Error(w, "500", http.StatusInternalServerError)
+				return
+			}
+			f.Close()
+
+			fiWasm, err := os.Stat(paths.Find("html/main.wasm"))
+			if err != nil {
+				http.Error(w, "500", http.StatusInternalServerError)
+				return
+			}
+
+			fiIndexHTML, err := os.Stat(paths.Find("html/index.html"))
+			if err != nil {
+				http.Error(w, "500", http.StatusInternalServerError)
+				return
+			}
+			
+			b := bytes.Replace(buf.Bytes(), []byte("%GO-TIBIA-CACHE-STORAGE-KEY%"), []byte(fmt.Sprintf("gotwebfe-cache-%d-%d-%d", fi.ModTime().UnixNano(), fiWasm.ModTime().UnixNano(), fiIndexHTML.ModTime().UnixNano())), -1)
+			b = bytes.Replace(b, []byte("%GO-TIBIA-DATA-CACHE-STORAGE-KEY%"), []byte(fmt.Sprintf("gotwebfe-cache-data-%x-%x-omittinghashforpic", th.TibiaDatasetSignature(), th.SpriteSetSignature())), -1)
+			replaced := bytes.NewReader(b)
+
+			etag := genericFileEtagForContent(htmlPath+"/sw.js", "javascript", replaced, w, r)
+			if etag == "" {
+				// http error/headers already set in genericFileEtag
+				return
+			}
+
+			replaced.Seek(0, io.SeekStart) // ignoring return values, should never fail for bytes.Reader
+
+			w.Header().Set("Cache-Control", "public; max-age=30") // 30 = 0.5 min
+			w.Header().Set("ETag", etag)
 			w.Header().Set("Content-Type", "application/javascript")
-			http.ServeFile(w, r, htmlPath+"/sw.js")
+			http.ServeContent(w, r, "sw.js", fi.ModTime(), replaced)
 		})
 		r.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir(htmlPath))))
 
@@ -362,4 +416,36 @@ func main() {
 
 	glog.Infof("beginning to serve")
 	glog.Fatal(http.ListenAndServe(*listenAddress, handlers.LoggingHandler(os.Stderr, r)))
+}
+
+func genericFileEtagForContent(fn, kind string, content io.ReadSeeker, w http.ResponseWriter, r *http.Request) string {
+	// TODO: do not set http error here
+	generation := 1
+	hash := md5.New()
+	_, err := io.Copy(hash, content)
+	if err != nil {
+		http.Error(w, "500", http.StatusInternalServerError)
+		return ""
+	}
+
+	etag := fmt.Sprintf(`W/"%s:%d:%x"`, kind, generation, hash.Sum(nil))
+	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("Cache-Control", "public; max-age=30") // 30 = 0.5 min
+		w.Header().Set("ETag", etag)
+		w.WriteHeader(http.StatusNotModified)
+		return ""
+	}
+	return etag
+}
+
+func genericFileEtag(fn, kind string, w http.ResponseWriter, r *http.Request) string {
+	// TODO: do not set http error here
+	f, err := paths.Open(fn)
+	if err != nil {
+		http.Error(w, "404", http.StatusNotFound)
+		return ""
+	}
+	defer f.Close()
+
+	return genericFileEtagForContent(fn, kind, f, w, r)
 }

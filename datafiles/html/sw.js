@@ -1,5 +1,6 @@
 console.log('Script loaded!')
-var cacheStorageKey = 'gotweb-fe-3'
+var cacheStorageKey = '%GO-TIBIA-CACHE-STORAGE-KEY%'
+var cacheStorageKeyTibiaData = '%GO-TIBIA-DATA-CACHE-STORAGE-KEY%'
 
 var cacheList = [
     "/app/",
@@ -10,13 +11,17 @@ var cacheList = [
     "/app/go-tibia.png",
     "/app/go-tibia-192.png",
     "/app/go-tibia-512.png",
-    "/app/Tibia.spr",
-    "/app/Tibia.pic",
-    "/app/Tibia.dat",
+
     "/app/map.otbm", // Locally renderable map.
     "/app/items.otb",
     "/app/items.xml",
     "/app/outfits.xml"
+];
+
+var cacheListTibiaData = [
+    "/app/Tibia.spr",
+    "/app/Tibia.pic",
+    "/app/Tibia.dat",
 ]
 
 self.addEventListener('install', function(e) {
@@ -26,7 +31,15 @@ self.addEventListener('install', function(e) {
             console.log('Adding to Cache:', cacheList)
             return cache.addAll(cacheList)
         }).then(function() {
-            console.log('Skip waiting!')
+            caches.open(cacheStorageKeyTibiaData).then(function(cache) {
+                console.log('Adding to Cache:', cacheListTibiaData)
+                return cache.addAll(cacheListTibiaData)
+            }).then(function() {
+                console.log('Skip waiting big data!')
+                return self.skipWaiting()
+            })
+        }).then(function() {
+            console.log('Skip waiting main!')
             return self.skipWaiting()
         })
     )
@@ -40,8 +53,8 @@ self.addEventListener('activate', function(e) {
         e.waitUntil(
             caches.keys().then(cacheNames => {
                 return cacheNames.map(key => {
-                    if (key !== cacheStorageKey) {
-                        return caches.delete(name)
+                    if (key !== cacheStorageKey && key != cacheStorageKeyTibiaData) {
+                        return caches.delete(key)
                     }
                 })
             }).then(() => {
