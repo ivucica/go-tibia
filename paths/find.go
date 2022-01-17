@@ -1,8 +1,7 @@
-// +build !js,!wasm
-
 package paths
 
 import (
+	"github.com/golang/glog"
 	"io"
 	"os"
 )
@@ -15,24 +14,12 @@ import (
 //
 // TODO(ivucica): Support finding over HTTP.
 func Find(fileName string) string {
-	possiblePaths := []string{
-		os.Getenv("GOPATH") + "/src/badc0de.net/pkg/go-tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/datafiles/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/itemsotb854/file/" + fileName,
-		os.Args[0] + ".runfiles/go_tibia/external/tibia854/" + fileName,
-		"datafiles/" + fileName,
-		fileName,
-	}
-	if os.Getenv("TEST_SRCDIR") != "" {
-		possiblePaths = append(possiblePaths,
-			os.Getenv("TEST_SRCDIR")+"/go_tibia/datafiles/"+fileName,
-			os.Getenv("TEST_SRCDIR")+"/go_tibia/external/itemsotb854/file/"+fileName,
-			os.Getenv("TEST_SRCDIR")+"/go_tibia/external/tibia854/"+fileName)
-	}
+	possiblePaths := getPossiblePathsImp(fileName)
 
 	for _, path := range possiblePaths {
 		if f, err := os.Open(path); err == nil {
 			f.Close()
+			glog.Infof("paths.Find(%q)=%s", fileName, path)
 			return path
 		}
 	}
@@ -44,10 +31,16 @@ func Find(fileName string) string {
 // opens it. If Find returns an empty string, an error is returned.
 //
 // TODO(ivucica): Support finding over HTTP.
-func Open(fileName string) (interface{io.ReadCloser; io.Seeker}, error) {	
-	path := Find(fileName)
-	if path == "" {
-		return nil, os.ErrNotExist
-	}
-	return os.Open(path)
+func Open(fileName string) (interface {
+	io.ReadCloser
+	io.Seeker
+}, error) {
+	return openImp(fileName)
+}
+
+func NoFindOpen(fileName string) (interface {
+	io.ReadCloser
+	io.Seeker
+}, error) {
+	return noFindOpenImp(fileName)
 }

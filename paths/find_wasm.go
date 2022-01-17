@@ -5,8 +5,10 @@ package paths
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -18,9 +20,14 @@ import (
 // inside the browser).
 //
 // TODO(ivucica): Fetch list of available files and compare to it. Or check with service worker's cache to see if the file is available.
-func Find(fileName string) string {
-	return fileName
+func getPossiblePathsImp(fileName string) []string {
+	return []string{fileName}
 }
+
+var (
+	cache     map[string]*bytes.Buffer
+	cacheLock sync.Mutex
+)
 
 // Open would usually locate the passed file in the same locations that Find
 // would look in, and open it. If Find were to return an empty string, an
@@ -31,19 +38,50 @@ func Find(fileName string) string {
 //
 // TODO(ivucica): Support finding the file in the 'best available' place by
 // actually implementing Find.
-func Open(fileName string) (interface{io.ReadCloser; io.Seeker}, error) {
-	response, err := http.Get("Tibia.spr")
+func openImp(fileName string) (interface {
+	io.ReadCloser
+	io.Seeker
+}, error) {
+	log.Printf("find_wasm.go: Open(%q)", fileName)
+	defer log.Printf("find_wasm.go: Open(%q) done", fileName)
+	return NoFindOpen(fileName)
+}
+
+func noFindOpenImp(fileName string) (interface {
+	io.ReadCloser
+	io.Seeker
+}, error) {
+	log.Printf("find_wasm.go: NoFindOpen(%q)", fileName)
+	cacheLock.Lock()
+
+	if cache == nil {
+		cache = make(map[string]*bytes.Buffer)
+	}
+
+	response, err := http.Get(fileName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "go-tibia/paths/Open(%q) on wasm: failed to open", fileName)
+		log.Printf("[E] find_wasm.go: NoFindOpen(%q): failed to open: %v", fileName, err)
+		panic("failed to open " + fileName + ": " + err.Error())
+		return nil, errors.Wrapf(err, "go-tibia/paths/NoFindOpen(%q) on wasm: failed to open", fileName)
 	}
 	if response.StatusCode != http.StatusOK {
 		e := os.ErrInvalid
 		if response.StatusCode == http.StatusNotFound {
 			e = os.ErrNotExist
 		}
-		return nil, errors.Wrapf(e, "go-tibia/paths/Open(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
+		log.Printf("[E] find_wasm.go: NoFindOpen(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
+		return nil, errors.Wrapf(e, "go-tibia/paths/NoFindOpen(%q) on wasm: http response.StatusCode=%v, want 200", fileName, response.StatusCode)
 	}
 
+	log.Printf("find_wasm.go: NoFindOpen(%q): http get complete, locking cache", fileName)
+
+	if buf, ok := cache[fileName]; ok {
+		log.Printf("find_wasm.go: NoFindOpen(%q): returning reader for cached buffer", fileName)
+		cacheLock.Unlock()
+		return &bytesReaderWithDummyClose{bytes.NewReader(buf.Bytes())}, nil
+	}
+
+	log.Printf("find_wasm.go: NoFindOpen(%q): copying from response.Body to buffer", fileName)
 	// TODO(ivucica): Explore using ranged reads.
 	buf := &bytes.Buffer{}
 	if _, err := io.Copy(buf, response.Body); err != nil {
@@ -51,6 +89,11 @@ func Open(fileName string) (interface{io.ReadCloser; io.Seeker}, error) {
 	}
 	response.Body.Close()
 
+	cache[fileName] = buf
+	cacheLock.Unlock()
+
+	log.Printf("find_wasm.go: NoFindOpen(%q): returning new reader", fileName)
+	defer log.Printf("find_wasm.go: NoFindOpen(%q): done", fileName)
 	return &bytesReaderWithDummyClose{bytes.NewReader(buf.Bytes())}, nil
 }
 
