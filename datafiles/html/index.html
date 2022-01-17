@@ -40,9 +40,29 @@
 
     </script>
   </head>
-  <body><input id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));">show</button></body>
+  <body>
 
-  <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })">clear sw</button>
+    <h1>Sprites</h1>
 
+    <p>
+      <input id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));">show</button>
+    </p>
+    <div id="sprites">
+    </div>
+
+    <h1>Map</h1>
+    <p>
+      <button onclick="showMap();">show map</button>
+    </p>
+    <div id="map">
+    </div>
+
+    <h1>Maintenance</h1>
+    <p>
+      <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })">clear service worker</button>
+    </p>
+
+  </body>
+  
 </html>
 

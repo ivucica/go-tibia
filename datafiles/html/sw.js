@@ -1,5 +1,5 @@
 console.log('Script loaded!')
-var cacheStorageKey = 'gotweb-fe-1'
+var cacheStorageKey = 'gotweb-fe-3'
 
 var cacheList = [
     "/app/",
@@ -11,6 +11,12 @@ var cacheList = [
     "/app/go-tibia-192.png",
     "/app/go-tibia-512.png",
     "/app/Tibia.spr",
+    "/app/Tibia.pic",
+    "/app/Tibia.dat",
+    "/app/map.otbm", // Locally renderable map.
+    "/app/items.otb",
+    "/app/items.xml",
+    "/app/outfits.xml"
 ]
 
 self.addEventListener('install', function(e) {
