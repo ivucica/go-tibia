@@ -4,6 +4,7 @@ import (
 	"html/template"
 	_ "net/http/pprof" // Default mux should not be served publicly; it's actually hidden behind a flag.
 
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
 	"badc0de.net/pkg/go-tibia/otb/map"   // for map loader
 	"badc0de.net/pkg/go-tibia/paths"
+	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
 	"badc0de.net/pkg/go-tibia/things/full"
 	"badc0de.net/pkg/go-tibia/web"
@@ -73,7 +75,7 @@ func main() {
 	th = thingsOpen()
 	r := mux.NewRouter()
 
-	f, err := paths.Open("outfits.xml")
+	f, err := paths.Open("outfits.xml") // Paths will use the outfits.xml flag.
 	if err != nil {
 		glog.Errorf("could not open outfits xml: %v", err)
 		outfitsXML = &xmls.Outfits{}
@@ -253,6 +255,69 @@ func main() {
 			w.Header().Set("ETag", etag)
 
 			http.ServeFile(w, r, full.PathFlagValue(full.FlagTibiaSprPath))
+		})
+		r.HandleFunc("/app/Tibia.dat", func(w http.ResponseWriter, r *http.Request) {
+			generation := 1 // bump if the way we generate it changes
+			mime := "application/octet-stream"
+			etag := fmt.Sprintf(`W/"datafile:%d:%08x:%s"`, generation, th.TibiaDatasetSignature(), mime)
+			if r.Header.Get("If-None-Match") == etag {
+				w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+				w.Header().Set("ETag", etag)
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			w.Header().Set("ETag", etag)
+
+			http.ServeFile(w, r, full.PathFlagValue(full.FlagTibiaDatPath))
+		})
+		r.HandleFunc("/app/Tibia.pic", func(w http.ResponseWriter, r *http.Request) {
+			generation := 1 // bump if the way we generate it changes
+			mime := "application/octet-stream"
+
+			f, err := paths.Open("Tibia.pic")
+			if err != nil {
+				http.Error(w, "failed to open pic file", http.StatusNotFound)
+				return
+			}
+			defer f.Close()
+
+			f.Seek(0, io.SeekStart)
+			var head spr.Header
+			binary.Read(f, binary.LittleEndian, &head)
+
+			etag := fmt.Sprintf(`W/"picfile:%d:%08x:%s"`, generation, head.Signature, mime)
+			if r.Header.Get("If-None-Match") == etag {
+				w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+				w.Header().Set("ETag", etag)
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			w.Header().Set("ETag", etag)
+
+			http.ServeFile(w, r, paths.Find("Tibia.pic"))
+		})
+		if mapPath != "" {
+			r.HandleFunc("/app/map.otbm", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+				http.ServeFile(w, r, mapPath)
+			})
+			glog.Warningf("map %q is served unauthenticated /app/map.otbm, careful if this is not intended", mapPath)
+		}
+		r.HandleFunc("/app/items.otb", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			http.ServeFile(w, r, paths.Find("items.otb"))
+		})
+		r.HandleFunc("/app/items.xml", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			http.ServeFile(w, r, paths.Find("items.xml"))
+		})
+		r.HandleFunc("/app/outfits.xml", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+			http.ServeFile(w, r, paths.Find("outfits.xml"))
 		})
 		r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
