@@ -42,7 +42,7 @@ var (
 func setupFilePathFlags() {
 	full.SetupFilePathFlags()
 	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
-	paths.SetupFilePathFlag("tibia_pic_path", "tibia_pic_path", &tibiaPicPath)
+	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 }
 
 func main() {
