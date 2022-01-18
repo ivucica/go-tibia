@@ -6,11 +6,48 @@
     <link rel="apple-touch-icon" href="go-tibia-192.png">
     <script src="wasm_exec.js"></script>
     <script type="text/javascript">
+
+      function progress({loaded, total}) {
+          if(document.getElementById('installProgress')) {
+              document.getElementById('installProgress').max = total;
+              document.getElementById('installProgress').value = loaded;
+              document.getElementById('installProgress').innerHTML = Math.round(loaded/total*100) + '% (' + loaded + '/' + total + ')';
+          }
+          if(document.getElementById('installProgressText')) {
+              document.getElementById('installProgressText').innerHTML = Math.round(loaded/total*100) + '% (' + loaded + '/' + total + ')';
+          }
+          console.log("Loading progress: ", loaded, "/", total)
+      }
+
       if (navigator.serviceWorker != null) {
+          navigator.serviceWorker.addEventListener('message', event => progress(event.data))
           navigator.serviceWorker.register('/sw.js', {'scope': '/'})
               .then(function(registration) {
                   console.log('Registered events at scope: ', registration.scope);
+                  registration.addEventListener('updatefound', function() {
+
+                      document.getElementById('install').innerHTML = '<h1>Installing an update...</h1><progress name="installProgress" id="installProgress"></progress><label for="installProgress" id="installProgressText"></label>';
+                      // document.getElementById('install').style.height = '100px';
+
+                      const updatedWorker = registration.installing;
+                      updatedWorker.addEventListener('statechange', function() {
+                          if (updatedWorker.state === 'installed') {
+                              document.getElementById('install').innerHTML = '<h1>New update installed</h1><a href="#" onclick="location.reload();">reload</a>';
+                          }
+                          if (updatedWorker.state === 'redundant') {
+                              document.getElementById('install').innerHTML = '<h1>New update is already</h1><a href="#" onclick="location.reload();">reload to begin new update</a>';
+                          }
+                      });
+                  });
+              })
+              .catch(function(error) {
+                  console.error('Service worker registration failed:', error)
               });
+          if (navigator.serviceWorker.controller) {
+              console.log(`Currently controlled by a service worker: ${navigator.serviceWorker.controller}`)
+          }
+      } else {
+          console.warn('Service workers not supported.')
       }
     </script>
     <script>
@@ -36,18 +73,21 @@
       } else {
          console.log("WebAssembly is not supported in your browser")
       }
-
-
     </script>
   </head>
   <body>
+
+    <div id="install" style="height: 100px;">
+      <h1>gotwebfe</h1>
+      <div id="installProgressText"></div>
+    </div>
 
     <h1>Sprites</h1>
 
     <p>
       <input id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));">show</button>
     </p>
-    <div id="sprites">
+    <div id="sprites" style="min-height: 50px;">
     </div>
 
     <h1>Map</h1>
@@ -62,6 +102,7 @@
     <h1>Maintenance</h1>
     <p>
       <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })">clear service worker</button>
+      <button onclick="caches.keys().then((k) => k.map(function(key) { return caches.delete(key) }))">clear caches</button>
     </p>
 
   </body>
