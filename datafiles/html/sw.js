@@ -242,8 +242,6 @@ function loadedMore(e) {
         console.log(clientList)
         for (var i = 0; i < clientList.length; i++) {
             var client = clientList[i];
-            console.log('posted message', client)
-            console.log(client)
             client.postMessage({loaded, total})
         }
     })
