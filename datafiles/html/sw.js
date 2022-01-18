@@ -66,25 +66,6 @@ self.addEventListener('install', function(e) {
             })
         })
     );
-    return;
-
-    e.waitUntil(
-        Promise.all([
-            caches.open(cacheStorageKey).then(function(cache) {
-                console.log('Adding to Cache:', cacheList)
-                return cache.addAll(cacheList)
-            }).then(function() {
-                console.log('Skip waiting main!')
-            }),
-            caches.open(cacheStorageKeyTibiaData).then(function(cache) {
-                console.log('Adding Tibia data to Cache:', cacheListTibiaData)
-                return cache.addAll(cacheListTibiaData)
-            }).then(function() {
-                console.log('Skip waiting big data!')
-                return self.skipWaiting()
-            })
-        ])
-    )
 })
 
 self.addEventListener('activate', function(e) {
@@ -105,25 +86,6 @@ self.addEventListener('activate', function(e) {
         )
     } else {
         console.log('No caches can be activated yet.')
-    }
-    return;
-    if (caches) {
-            console.log('caches keys: ')
-            console.log(caches.keys())
-        e.waitUntil(
-            caches.keys().then(cacheNames => {
-                return cacheNames.map(key => {
-                    if (key !== cacheStorageKey && key != cacheStorageKeyTibiaData) {
-                        return caches.delete(key)
-                    }
-                })
-            }).then(() => {
-                console.log('Clients claims.')
-                return self.clients.claim()
-            })
-        )
-    } else {
-        console.log('no caches yet');
     }
 })
 
