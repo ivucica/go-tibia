@@ -26,16 +26,38 @@
                   console.log('Registered events at scope: ', registration.scope);
                   registration.addEventListener('updatefound', function() {
 
-                      document.getElementById('install').innerHTML = '<h1>Installing an update...</h1><progress name="installProgress" id="installProgress"></progress><label for="installProgress" id="installProgressText"></label>';
+                      document.getElementById('install').innerHTML = (
+                          '<div class="titlebar">Installing an update...</div>' +
+                              '<div class="content">' +
+                                  '<progress name="installProgress" id="installProgress"></progress>' +
+                                  '<label for="installProgress" class="panelfont" style="user-select: none;" id="installProgressText"></label>' +
+                              '</div>' +
+                          '<div class="bottombar"></div>')
+
+
+
+
                       // document.getElementById('install').style.height = '100px';
 
                       const updatedWorker = registration.installing;
                       updatedWorker.addEventListener('statechange', function() {
                           if (updatedWorker.state === 'installed') {
-                              document.getElementById('install').innerHTML = '<h1>New update installed</h1><a href="#" onclick="location.reload();">reload</a>';
+                              document.getElementById('install').innerHTML = (
+                                  '<div class="titlebar">New update installed</div>' +
+                                      '<div class="content">' +
+                                        '<div class="panelfont" style="color: rgb(40%, 100%, 40%); user-select: none;" id="installProgressText">Push the button to complete the install.</div>' +
+                                        '<button onclick="location.reload()"><div>Reload</div></button>' +
+                                      '</div>' +
+                                      '<div class="bottombar"></div>')
                           }
                           if (updatedWorker.state === 'redundant') {
-                              document.getElementById('install').innerHTML = '<h1>New update is already</h1><a href="#" onclick="location.reload();">reload to begin new update</a>';
+                              document.getElementById('install').innerHTML = (
+                                  '<div class="titlebar">Another update is already ready</div>' +
+                                      '<div class="content">' +
+                                        '<div class="panelfont" style="user-select: none;" id="installProgressText">Push the button to start a new update.</div>' +
+                                        '<button onclick="location.reload()"><div>Reload</div></button>' +
+                                      '</div>' +
+                                      '<div class="bottombar"></div>')
                           }
                       });
                   });
@@ -74,38 +96,71 @@
          console.log("WebAssembly is not supported in your browser")
       }
     </script>
+    <link rel="stylesheet" href="tfont.css">
   </head>
   <body>
-
-    <div id="install" style="height: 100px;">
+    <!--
+    <div class="titleshadow">
       <h1>gotwebfe</h1>
-      <div id="installProgressText"></div>
     </div>
+    -->
 
-    <h1>Sprites</h1>
-
-    <p>
-      <input id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));">show</button>
-    </p>
-    <div id="sprites" style="min-height: 50px;">
+    <div class="window" style="margin-left: auto; margin-right: auto; width: 250px; height: 100px;" id="install">
+      <div class="titlebar">gotwebfe</div>
+      <div class="content">
+        <div class="panelfont" style="user-select: none;" id="installProgressText">Running</div>
+      </div>
+      <div class="bottombar"></div>
     </div>
+   
 
-    <h1>Map</h1>
-    <p>
-      <button onclick="loaderPromise().then((val) => console.log('loading complete'))">loaderPromise</button>
-      <button onclick="loaderPromise().then(showMap, (val) => console.error('loading failed: ' + val))">show map</button>
-      <button onclick="loaderPromise().then((val) => showMap())">show map 2</button>
-    </p>
-    <div id="map">
-    </div>
+    <div style="padding: 30px; width: 700px; height: 900px; margin-left: auto; margin-right: auto;">
+      <div class="window" style="margin-left: auto; margin-right: auto; width: 250px; height: 150px;">
+        <div class="titlebar">Sprites</div>
+        <div class="content">
+          <p>
+            <input type="text" id="sprite_id" placeholder="sprite id"><button onclick="showSpr(parseInt(document.getElementById('sprite_id').value));"><div>show</div></button>
+          </p>
+          <div id="sprites" style="min-height: 50px;">
+          </div>
+        </div>
 
-    <h1>Maintenance</h1>
-    <p>
-      <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })">clear service worker</button>
-      <button onclick="caches.keys().then((k) => k.map(function(key) { return caches.delete(key) }))">clear caches</button>
-    </p>
+        <div class="bottombar"></div>
+      </div>
+
+      <div class="window" style="margin-left: auto; margin-right: auto; width: 600px; height: 550px;">
+        <div class="titlebar">Map</div>
+        <div class="content">
+          <div id="map">
+          </div>
+          <p style="user-select: none;">
+            <button onclick="loaderPromise().then((val) => console.log('loading complete'))"><div>loaderPromise</div></button>
+            <button onclick="loaderPromise().then(showMap, (val) => console.error('loading failed: ' + val))"><div>show map</div></button>
+            <button onclick="loaderPromise().then((val) => showMap())"><div>show map 2</div></button>
+            <button onclick="addX(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>X+</div></button>
+            <button onclick="addY(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>Y+</div></button>
+            <button onclick="subX(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>X-</div></button>
+            <button onclick="subY(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>Y-</div></button>
+            <br>
+          <progress id="mapProgress" style="visibility: hidden;"></progress>
+          </p>
+        </div>
+
+        <div class="bottombar"></div>
+      </div>
+
+      <div class="window" style="margin-left: auto; margin-right: auto; width: 250px; height: 70px;">
+        <div class="titlebar">Maintenance</div>
+        <div class="content">
+          <p>
+            <button onclick="navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) {  registration.unregister()} })"><div>clear service worker</div></button>
+            <button onclick="caches.keys().then((k) => k.map(function(key) { return caches.delete(key) }))"><div>clear caches</div></button>
+          </p>
+        </div>  
+        <div class="bottombar"></div>
+      </div>
+
 
   </body>
   
 </html>
-

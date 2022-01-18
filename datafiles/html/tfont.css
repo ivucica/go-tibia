@@ -1,0 +1,235 @@
+@font-face {
+  font-family: 'Martel';
+  src: url('martel.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Verdana';
+  src: url('verdana.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arial Black';
+  src: url('ariblk.ttf') format('truetype');
+}
+
+.gamefont {
+  font-family: Verdana;
+  font-weight: bold;
+  font-size: 8pt;
+
+  font-smooth: never;
+  -webkit-font-smoothing: none;
+  text-rendering: optimizeSpeed;
+
+  /*
+  Inner stroke :(
+  -webkit-text-stroke-width: -1px;
+  -webkit-text-stroke-color: black;
+  */
+
+  /* Outer stroke */
+  text-shadow:
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+  letter-spacing: 0.60px;
+  font-kerning: none;
+  
+}
+.panelfont, input[type=text], input[type=password], label, .titlebar, .window > .content > p {
+  font-family: Verdana;
+  font-weight: bold;
+  font-size: 8pt;
+  font-kerning: none;
+  color: white;
+}
+
+label {
+  line-height: 15pt;
+}
+
+input[type=text], input[type=password] {
+  background-color: rgb(30%, 30%, 30%);
+  border: 1px solid rgb(20%, 20%, 20%);
+  border-top: 1px solid rgb(70%, 70%, 70%);
+  border-left: 1px solid rgb(70%, 70%, 70%);
+  min-height: 20px;
+
+  border-image-source: url(/pic/4?x=308&y=96&w=12&h=12);
+  border-image-source: image(/pic/4#xywh=308,96,12,12);
+  border-image-slice: 1 fill;
+  border-image-width: 1px;
+  border-image-repeat: round;
+
+  transform: translateY(1px);
+  padding-left: 3px;
+  padding-right: 3px;
+}
+input[type=text]:focus, input[type=password] {
+  outline: 0;
+  
+}
+
+.minifont, button {
+  color: rgb(75%, 75%, 75%);
+  font-family: 'Arial Black';
+  font-weight: bolder;
+  font-size: 6pt;
+  font-kerning: none;
+
+}
+button {
+  background-color: rgb(40%, 40%, 40%);
+  border: 1px solid rgb(20%, 20%, 20%);
+  border-top: 1px solid rgb(70%, 70%, 70%);
+  border-left: 1px solid rgb(70%, 70%, 70%);
+  height: 20px;
+
+  border-image-source: url(/pic/4?x=174&y=138&w=34&h=20);
+  border-image-source: image(/pic/4#xywh=174,138,34,20);
+  border-image-slice: 1 fill;
+  border-image-width: 1px;
+  border-image-repeat: round;
+
+  margin-top: 4px;
+  margin-bottom: 4px;
+  margin-left: 2px;
+  margin-right: 2px;
+}
+button div {
+  margin: 1px;
+  user-select: none;
+}
+label {
+  user-select: none;
+
+  margin-left: 4px;
+  margin-right: 4px;
+}
+button:active {
+  /*
+  border: 1px solid rgb(70%, 70%, 70%);
+  border-top: 1px solid rgb(20%, 20%, 20%);
+  border-left: 1px solid rgb(20%, 20%, 20%);
+  */
+  border-image-source: url(/pic/4?x=174&y=158&w=34&h=20);
+  border-image-source: image(/pic/4#xywh=174,158,34,20); 
+}
+button:active div {
+  text-offset: 1px;
+  transform: translateY(1px) translateX(1px);
+}
+button:focus {
+  outline: 0;
+}
+button:focus div {
+  margin: 0px;
+  border: 1px solid rgb(40%, 40%, 40%);
+}
+h1 {
+  font-family: Martel;
+  font-size: 100pt;
+  font-weight: normal;
+
+
+  background: linear-gradient(to bottom, yellow, orange, red); /* or -webkit-linear-gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+
+  -webkit-text-stroke-width: 2px;
+  -webkit-text-stroke-color: black;
+}
+body {
+  background-color: rgb(40%, 40%, 40%);
+  /* background-image: url(/pic/4?x=0&y=0&w=96&h=96); */
+  background-image: url(/pic/1);
+  background-size: 100% 100%;
+}
+.panelfont::selection, .gamefont::selection, .minifont::selection, input[type=text]::selection, input[type=password]::selection {
+  background-color: rgb(40%, 40%, 40%);
+  color: inherit;
+}
+h1::selection {
+  text-shadow: 0px 0px 2px rgb(255,0,0);
+  -webkit-text-fill-color: opaque;
+  -webkit-background-clip: none;
+  font-weight: bolder;
+  /*background: rgb(0,0,0);*/
+}
+/*
+.titleshadow {
+  filter: drop-shadow(
+      -12px -12px 0px yellow
+       12px -12px 0px yellow,
+      -12px  12px 0px orange,
+       12px  12px 0px orange);
+}
+*/
+
+.window > .titlebar {
+    border-image-source: url(/pic/4?x=106&y=183&w=8&h=17);
+    border-image-source: image(/pic/4#xywh=106,183,8,17);
+    border-image-slice: 4 fill;
+    border-image-width: 4px 4px 4px 4px;
+    border-image-repeat: round;
+
+    background-image: url(/pic/4?x=114&y=183&w=96&h=17);
+
+    text-align: center;
+    color: rgb(60%, 60%, 60%);
+
+    width: 100%;
+
+    user-select: none;
+    border: 2px 4px 2px 4px;
+    min-width: 8px;
+    height: 17px;
+    line-height: 17px;
+}
+.window {
+    border-image-source: url(/pic/4?x=256&y=0&w=8&h=96);
+    border-image-source: image(/pic/4#xywh=256,0,8,96);
+    border-image-slice: 0 4 0 4 fill;
+    border-image-width: 0px 4px 0px 4px;
+    border-image-repeat: round;
+
+    background-image: url(/pic/4?x=0&y=0&w=96&h=96);
+
+    min-width: 100px;
+
+    position: relative;
+}
+.window > .content {
+    margin: 10px;
+}
+.window > .bottombar {
+    border-image-source: url(/pic/4?x=98&y=193&w=8&h=4);
+    border-image-source: image(/pic/4#xywh=98,193,8,4);
+    border-image-slice: 4 fill;
+    border-image-width: 4px 4px 4px 4px;
+    border-image-repeat: round;
+
+    background-image: url(/pic/4?x=2&y=193&w=96&h=4);
+
+    width: 100%;
+    height: 4px;
+
+    position: absolute;
+    bottom: 0;
+}
+
+.background {
+    border-image-source: url(/pic/4?x=0&y=0&w=96&h=96);
+    border-image-source: image(/pic/4#xywh=0,0,96,96);
+    border-image-slice: 1 fill;
+    border-image-width: 1px;
+    border-image-repeat: round;
+}
+.button {
+    border-image-source: url(/pic/4?x=174&y=138&w=34&h=20);
+    border-image-source: image(/pic/4#xywh=174,138,34,20);
+    border-image-slice: 1 fill;
+    border-image-width: 1px;
+    border-image-repeat: round;
+}

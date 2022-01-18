@@ -10,6 +10,11 @@ var cachesSpec = [
             "/favicon.ico",
             "/app/manifest.json",
 
+            "/app/tfont.css",
+            "/app/martel.ttf",
+            "/app/verdana.ttf",
+            "/app/ariblk.ttf",
+
             "/app/main.wasm",
             "/app/wasm_exec.js",
             "/app/go-tibia.png",
@@ -28,6 +33,25 @@ var cachesSpec = [
             "/app/Tibia.spr",
             "/app/Tibia.pic",
             "/app/Tibia.dat",
+
+            /* sed -E 's@.+(/pic/4?[^\)]+).+@\1@' tfont.css | grep \/pic | sort | uniq | sed -E 's@(.+)@            "\1",@' */
+            "/pic/1",
+            "/pic/4?x=0&y=0&w=96&h=96",
+            "/pic/4?x=106&y=183&w=8&h=17",
+            "/pic/4?x=114&y=183&w=96&h=17",
+            "/pic/4?x=174&y=138&w=34&h=20",
+            "/pic/4?x=174&y=158&w=34&h=20",
+            "/pic/4?x=256&y=0&w=8&h=96",
+            "/pic/4?x=2&y=193&w=96&h=4",
+            "/pic/4?x=308&y=96&w=12&h=12",
+            "/pic/4?x=98&y=193&w=8&h=4",
+            "/pic/4#xywh=0,0,96,96",
+            "/pic/4#xywh=106,183,8,17",
+            "/pic/4#xywh=174,138,34,20",
+            "/pic/4#xywh=174,158,34,20",
+            "/pic/4#xywh=256,0,8,96",
+            "/pic/4#xywh=308,96,12,12",
+            "/pic/4#xywh=98,193,8,4",
         ]
     }
 ];
@@ -191,7 +215,7 @@ function fetchAndStore(e) {
         }
 
         var url = e.request.url
-        if (url.endsWith('Tibia.dat') || url.endsWith('Tibia.pic') || url.endsWith('Tibia.spr')) {
+        if (url.endsWith('Tibia.dat') || url.endsWith('Tibia.pic') || url.endsWith('Tibia.spr') || url.startsWith('/pic/')) {
             console.warn('Override: Storing ' + url + ' for later use into', cacheStorageKeyTibiaData)
             caches.open(cacheStorageKeyTibiaData).then(function(cacheTD) {
                 return cacheTD.put(url, response).then(_ => console.log('Stored', url, 'into TD cache', cacheStorageKeyTibiaData))

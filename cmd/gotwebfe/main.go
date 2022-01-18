@@ -40,11 +40,23 @@ func (*console) Write(p []byte) (n int, err error) {
 var (
 	globalThings *things.Things
 	globalMap    gameworld.MapDataSource
+
+	// TODO
+	tx, ty uint16
+	tbot, ttop uint8
+	tw, th int
 )
 
 const mapPath = ":test:"
 
 func main() {
+
+	tx = 84
+	ty = 83 // 84
+	tbot = 7
+	ttop = 0
+	tw = 18
+	th = 14
 
 	flag.Set("logtostderr", "true")
 	flag.Parse()
@@ -76,6 +88,10 @@ func main() {
 	js.Global().Set("showSpr", js.FuncOf(showSpr))
 	js.Global().Set("showMap", js.FuncOf(showMap))
 	js.Global().Set("loaderPromise", js.FuncOf(loaderPromise))
+	js.Global().Set("addX", js.FuncOf(addX))
+	js.Global().Set("addY", js.FuncOf(addY))
+	js.Global().Set("subX", js.FuncOf(subX))
+	js.Global().Set("subY", js.FuncOf(subY))
 
 	// Prevent go program from exiting.
 	select {}
@@ -99,9 +115,20 @@ func showImg(in image.Image, parentElementID string, replace bool) {
 	if parent.IsNull() || parent.IsUndefined() {
 		log.Printf("[W] showImg: appending to body, because %q cannot be found", parentElementID)
 		parent = document.Get("body")
-	}
-	if replace {
-		log.Printf("[W] showImg: replace not supported yet, just appending")
+	} else if replace {
+		safety := 50
+		for {
+			lastChild := parent.Get("lastChild")
+			if !lastChild.Truthy() {
+				break
+			}
+			parent.Call("removeChild", parent.Get("lastChild"))
+			safety--
+			if safety <= 0 {
+				log.Printf("[W] showImg: more than 50 children or a bug; aborting replace")
+				break
+			}
+		}
 	}
 	parent.Call("appendChild", img)
 
@@ -222,17 +249,6 @@ func loaderImp(resolve, reject js.Value) {
 }
 
 func showMap(this js.Value, arg []js.Value) interface{} {
-	// TODO
-	var tx, ty uint16
-	var tbot, ttop uint8
-	var tw, th int
-
-	tx = 84
-	ty = 84
-	tbot = 7
-	ttop = 0
-	tw = 18
-	th = 14
 
 	//log.Println("loaded, now compositing")
 	m := globalMap
@@ -242,5 +258,25 @@ func showMap(this js.Value, arg []js.Value) interface{} {
 
 	showImg(img, "map", true)
 
+	return nil
+}
+
+func addX(this js.Value, arg []js.Value) interface{} {
+	tx++
+	return nil
+}
+
+func addY(this js.Value, arg []js.Value) interface{} {
+	ty++
+	return nil
+}
+
+func subX(this js.Value, arg []js.Value) interface{} {
+	tx--
+	return nil
+}
+
+func subY(this js.Value, arg []js.Value) interface{} {
+	ty--
 	return nil
 }
