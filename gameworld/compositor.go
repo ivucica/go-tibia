@@ -89,9 +89,9 @@ var (
 	//nightAmbient = color.RGBA{0, 0, 20, 240}
 	//nightAmbient = color.RGBA{20, 20, 40, 240}
 	nightAmbient      = dat.DatasetColor(0xD7)
-	nightAmbientLevel = 40
+	nightAmbientLevel = uint8(40)
 	dayAmbient        = dat.DatasetColor(0xD7)
-	dayAmbientLevel   = 250
+	dayAmbientLevel   = uint8(250)
 )
 
 type compositeLightOverlay struct {
@@ -205,17 +205,7 @@ func (o *lightOverlay) At(x, y int) color.Color {
 	// Pick the light.
 	l := o.light
 
-	// Vector of distance to the light.
-	dX := float64(l.Center.X - x)
-	dY := float64(l.Center.Y - y)
-
-	// Length of the vector.
-	dSquare := dX*dX + dY*dY
-	if dSquare < 0 {
-		dSquare = 0
-	}
-	d := math.Sqrt(dSquare)
-
+	//////
 	// Radius of effect.
 	//radius := float64(l.LightInfo.Strength-1) * 32
 	//bonusRadiusMultiplier := float64(16)
@@ -226,21 +216,39 @@ func (o *lightOverlay) At(x, y int) color.Color {
 	//radius := float64(l.LightInfo.Strength-1)
 	radius *= bonusRadiusMultiplier
 
-	// Clamped attenuation.
-	attenuation := radius / dSquare
-	if attenuation < 0 {
-		attenuation = 0
-	}
-	if attenuation > 1.0 {
-		attenuation = 1.0
-	}
+	//////
+	// Vector of distance to the light.
+	dX := float64(l.Center.X - x)
+	dY := float64(l.Center.Y - y)
 
+	// Length of the vector.
+	dSquare := dX*dX + dY*dY
+	if dSquare < 0 {
+		dSquare = 0
+	}
+	//const falloffGrant = 2.0 // Extra grant for falloff (let's not have too strong cutoff).
+	//if dSquare > radius*radius*falloffGrant {
+	// Very far out of range. Skip expensive operations like square root.
+	//	return c
+	//}
+	d := math.Sqrt(dSquare)
+
+	//////
+	// Calculate influence.
 	var influence float64
 	if false {
+		// Clamped attenuation.
+		attenuation := radius / dSquare
+		if attenuation < 0 {
+			attenuation = 0
+		}
+		if attenuation > 1.0 {
+			attenuation = 1.0
+		}
 		influence = attenuation
 	} else {
 		//influence = (d + 16) / (radius)
-		d += 16
+		d += 32
 		d2 := math.Max(d-radius, 0)
 		denominator := d2/radius + 1.0
 		influence = 1.0 / (denominator * denominator)
@@ -257,6 +265,7 @@ func (o *lightOverlay) At(x, y int) color.Color {
 		glog.Infof("radius of light is %g; distance is %g; influence is %g", radius, d, influence)
 	}
 
+	//////
 	// Additive light.
 	// 16-bit R, G, B, A (though underlying precision is likely 8-bit).
 	r, g, b, a := l.LightInfo.Color.RGBA()
@@ -286,6 +295,12 @@ type additiveOverlay struct {
 	overlays []image.Image
 	bounds   image.Rectangle
 	base     image.Image
+
+	ambientColor color.Color
+	ambientLevel uint8
+
+	// precomputed from ambientColor and ambientLevel:
+	acR, acG, acB, acA uint32
 }
 
 func (*additiveOverlay) ColorModel() color.Model {
@@ -296,22 +311,39 @@ func (o *additiveOverlay) Bounds() image.Rectangle {
 	return o.bounds
 }
 
+func (o *additiveOverlay) precomputeAmbient() {
+	// Ambient contains alpha-premultiplied RGBA.
+	// 16-bit range integers stored in uint32.
+	// o stands for output.
+	//
+	// We'll precompute this because uint<->float conversions might be
+	// tedious on some platforms.
+	or, og, ob, oa := o.ambientColor.RGBA()
+
+	brightness := float64(o.ambientLevel) / 255.0
+	oaF := float64(oa) * brightness
+
+	oa = uint32(oaF)
+
+	oaF /= 65535
+	or = uint32(float64(or) * brightness * oaF)
+	og = uint32(float64(og) * brightness * oaF)
+	ob = uint32(float64(ob) * brightness * oaF)
+
+	o.acR, o.acG, o.acB, o.acA = or, og, ob, oa
+}
+
 func (o *additiveOverlay) At(x, y int) color.Color {
 	if _, _, _, a := o.base.At(x, y).RGBA(); a == 0 {
 		return color.RGBA{0, 0, 0, 0}
 	}
 
-	// Start with night ambient, containing alpha-premultiplied RGBA.
-	// 16-bit range integers stored in uint32.
+	// Rather than computing every time, expect that these are precomputed.
 	// o stands for output.
-	or, og, ob, oa := nightAmbient.RGBA()
-
-	brightness := float64(nightAmbientLevel) / 255.0
-	or = uint32(float64(or) * brightness)
-	og = uint32(float64(og) * brightness)
-	ob = uint32(float64(ob) * brightness)
-	oa = uint32(float64(oa) * brightness)
-
+	//
+	// 16-bit-range integers stored in uint32. (65535 is the brightest
+	// value, despite the extra range.)
+	or, og, ob, oa := o.acR, o.acG, o.acB, o.acA
 	for _, overlay := range o.overlays {
 		if oa > 65535 {
 			oa = 65535
@@ -407,11 +439,13 @@ func (o *additiveOverlay) At(x, y int) color.Color {
 	}
 }
 
-func additiveOverlayGen(width, height int, tileW, tileH int, overlays []image.Image, base image.Image) image.Image {
+func additiveOverlayGen(ambientColor color.Color, ambientLevel uint8, width, height int, tileW, tileH int, overlays []image.Image, base image.Image) image.Image {
 	fullSize := image.Rect(0, 0, width*tileW, height*tileH)
-	overlay := &additiveOverlay{bounds: fullSize, overlays: overlays, base: base}
+	overlay := &additiveOverlay{bounds: fullSize, overlays: overlays, base: base, ambientColor: ambientColor, ambientLevel: ambientLevel}
+	overlay.precomputeAmbient()
 	return overlay
 
+	// dead code:
 	img := image.NewRGBA(fullSize)
 
 	draw.Draw(img, fullSize, overlay, image.ZP, draw.Src)
@@ -425,6 +459,28 @@ func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, flo
 
 	var bottomRight image.Point
 
+	ambientColor := nightAmbient
+	ambientLevel := nightAmbientLevel
+
+	// BUGS:
+	//
+	// Light is not quite calculated per floor.
+	// 1) Lights on higher floors, if rendered, should affect lower floors
+	//    as well.
+	//
+	//    On OT map, see around x=111&y=108&bot=7&top=0: the light from
+	//    floor 6 is clearly visible until the character steps under the
+	//    house. Hence, lightmap should not enshroud floor 7 with config
+	//    x=111&y=108&bot=7&top=0 or x=111&y=108&bot=7&top=6, but it should
+	//    do so with x=111&y=108&bot=7&top=7.
+	// 2) Light sometimes penetrates from the lower floors. For instance,
+	//    fences on upper floors do get some light from the bottom floor,
+	//    but just one tile further away, the light is no longer visible.
+	// 3) While most light items seem to be behaving fine, the 'void'
+	//    (client item 100 on 8.54) is not emitting any light into the light
+	//    map, despite being marked as such in .dat (a brown color light
+	//    with strength).
+		
 	for tz := int(floorBottom); tz >= int(floorTop); tz-- {
 		off := int(tz - int(floorBottom))
 		lights := []*Light{}
@@ -447,14 +503,16 @@ func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, flo
 
 				// Add extra character for decoration.
 				if (tx == int(x)+width/2) && (ty == int(y)+height/2) && tz == int(floorBottom) {
-					light = &Light{
-						Center: image.Point{125, 125},
-						LightInfo: dat.LightInfo{
-							Color:    dat.DatasetColor(0xD7),
-							Strength: 3,
-						},
-					}
-					lights = append(lights, light)
+					/*
+						light = &Light{
+							Center: image.Point{width/2 * 32 + 32/2, height/2 * 32 + 32/2},
+							LightInfo: dat.LightInfo{
+								Color:    dat.DatasetColor(0xD7),
+								Strength: 3,
+							},
+						}
+						lights = append(lights, light)
+					*/
 
 					cr, err := th.CreatureWithClientID(128, 854)
 					if err == nil {
@@ -481,7 +539,7 @@ func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, flo
 					overlays = append(overlays, overlay)
 				}
 
-				overlay = additiveOverlayGen(width, height, tileW, tileH, overlays, floorImg)
+				overlay = additiveOverlayGen(ambientColor, ambientLevel, width, height, tileW, tileH, overlays, floorImg)
 			}
 			draw.Draw(floorImg, fullSize, overlay, image.ZP, draw.Over)
 		} else {
