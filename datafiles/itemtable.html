@@ -40,3 +40,11 @@
   {{end}}
 </table>
 
+<table>
+  {{range $index, $row := N2 0 7}}
+  <tr>
+    {{range $index2, $col := N2 0 36}}
+    <td bgcolor="{{ datasetColorIndexToHex (add (mul $row 36) $col)}}" width="24" height="24">{{ add (mul $row 36) $col }}</td>
+    {{end}}
+  </tr>
+  {{end}}
