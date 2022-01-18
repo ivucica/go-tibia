@@ -215,25 +215,31 @@ function fetchAndStore(e) {
         }
 
         var url = e.request.url
-        if (url.endsWith('Tibia.dat') || url.endsWith('Tibia.pic') || url.endsWith('Tibia.spr') || url.startsWith('/pic/')) {
-            console.warn('Override: Storing ' + url + ' for later use into', cacheStorageKeyTibiaData)
-            caches.open(cacheStorageKeyTibiaData).then(function(cacheTD) {
-                return cacheTD.put(url, response).then(_ => console.log('Stored', url, 'into TD cache', cacheStorageKeyTibiaData))
-            })
+        if (!url.startsWith('chrome-extension://')) {
+            if (url.endsWith('Tibia.dat') || url.endsWith('Tibia.pic') || url.endsWith('Tibia.spr') || url.startsWith('/pic/')) {
+                console.warn('Override: Storing ' + url + ' for later use into', cacheStorageKeyTibiaData)
+                caches.open(cacheStorageKeyTibiaData).then(function(cacheTD) {
+                    return cacheTD.put(url, response).then(_ => console.log('Stored', url, 'into TD cache', cacheStorageKeyTibiaData))
+                })
+                return response.clone()
+            } else {
+                console.warn('Override: Storing ' + url + ' for later use into', cacheStorageKey)
+                caches.open(cacheStorageKey).then(function(cacheMain) {
+                    return cacheMain.put(url, response).then(_ => console.log('Stored', url, 'into main cache', cacheStorageKey))
+                })
+                return response.clone()
+            }
+
+            // n.b. We can also just return response without cache.put if it's a noncacheable request.
+
+            console.warn('Storing', url, 'for later use into', cacheKey)
+            cache.put(url, response).then(_ => console.log('Stored', url, 'into', cacheKey))
             return response.clone()
         } else {
-            console.warn('Override: Storing ' + url + ' for later use into', cacheStorageKey)
-            caches.open(cacheStorageKey).then(function(cacheMain) {
-                return cacheMain.put(url, response).then(_ => console.log('Stored', url, 'into main cache', cacheStorageKey))
-            })
-            return response.clone()
+            // Seriously. Sometimes Chrome sends chrome-extension:// URLs through here.
+            // Ideally we should not even use e.respondWith in this case.
+            return response;
         }
-
-        // n.b. We can also just return response without cache.put if it's a noncacheable request.
-
-        console.warn('Storing', url, 'for later use into', cacheKey)
-        cache.put(url, response).then(_ => console.log('Stored', url, 'into', cacheKey))
-        return response.clone()
 
     }).then(function(response) {
         if (false && e.clientId) {
