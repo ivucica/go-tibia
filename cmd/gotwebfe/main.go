@@ -13,6 +13,7 @@ import (
 	"runtime/debug"
 	"syscall/js"
 
+	"badc0de.net/pkg/go-tibia/compositor"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/otb/map"
 	"badc0de.net/pkg/go-tibia/paths"
@@ -43,9 +44,9 @@ var (
 	globalMap    gameworld.MapDataSource
 
 	// TODO
-	tx, ty uint16
+	tx, ty     uint16
 	tbot, ttop uint8
-	tw, th int
+	tw, th     int
 )
 
 const mapPath = ":test:"
@@ -255,7 +256,7 @@ func showMap(this js.Value, arg []js.Value) interface{} {
 	//log.Println("loaded, now compositing")
 	m := globalMap
 	t := globalThings
-	img := gameworld.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
+	img := compositor.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
 	//log.Println("composited")
 
 	showImg(img, "map", true)

@@ -19,6 +19,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 
+	"badc0de.net/pkg/go-tibia/compositor"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
@@ -485,7 +486,7 @@ func (h *Handler) mapHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: more input validation! never allow for number inside CompositeMap to go negative, e.g.
-	img := gameworld.CompositeMap(h.mapDataSource, t, tx, ty, ttop, tbot, tw, th, 32, 32)
+	img := compositor.CompositeMap(h.mapDataSource, t, tx, ty, ttop, tbot, tw, th, 32, 32)
 	if true {
 		w.Header().Set("Content-Type", "image/png")
 		w.WriteHeader(http.StatusOK)

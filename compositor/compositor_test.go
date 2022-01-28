@@ -1,4 +1,4 @@
-package gameworld
+package compositor
 
 import (
 	"testing"
@@ -7,10 +7,10 @@ import (
 	"badc0de.net/pkg/go-tibia/things/full"
 
 	"fmt"
-	"os"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/ssh/terminal"
 	"image"
+	"os"
 )
 
 func downsize(_ *testing.T, img image.Image, scale float32) image.Image {
@@ -30,7 +30,7 @@ func TestCompositeMap(t *testing.T) {
 		t.Fatalf("failed setting up things: %v", err)
 	}
 
-	procMDS := NewMapDataSource()
+	procMDS := gameworld.NewMapDataSource()
 	img := CompositeMap(procMDS, th, 100, 100, 7, 7, 18, 16, 32, 32)
 
 	dsimg := downsize(t, img, 1.0)

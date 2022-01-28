@@ -6,8 +6,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
-	"badc0de.net/pkg/go-tibia/otb/map"   // for map loader
+	"badc0de.net/pkg/go-tibia/compositor" // for map compositor
+	"badc0de.net/pkg/go-tibia/gameworld"  // for map compositor
+	"badc0de.net/pkg/go-tibia/otb/map"    // for map loader
 )
 
 func mapHandler(mapPath string, x, y, w, h, bot, top int) {
@@ -18,7 +19,7 @@ func mapHandler(mapPath string, x, y, w, h, bot, top int) {
 	}
 
 	// TODO: more input validation! never allow for number inside CompositeMap to go negative, e.g.
-	img := gameworld.CompositeMap(m, th, uint16(x), uint16(y), uint8(top), uint8(bot), w, h, 32, 32)
+	img := compositor.CompositeMap(m, th, uint16(x), uint16(y), uint8(top), uint8(bot), w, h, 32, 32)
 
 	out(img)
 

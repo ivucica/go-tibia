@@ -1,4 +1,4 @@
-package gameworld
+package compositor
 
 import (
 	"image"
@@ -7,11 +7,12 @@ import (
 	"math"
 
 	"badc0de.net/pkg/go-tibia/dat"
+	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/things"
 	"github.com/golang/glog"
 )
 
-func compositeTile(t MapTile, th *things.Things, img *image.RGBA, bottomRight image.Point, x, y uint16, floor uint8, tileW, tileH int) *Light {
+func compositeTile(t gameworld.MapTile, th *things.Things, img *image.RGBA, bottomRight image.Point, x, y uint16, floor uint8, tileW, tileH int) *Light {
 
 	var light *Light
 
@@ -453,7 +454,7 @@ func additiveOverlayGen(ambientColor color.Color, ambientLevel uint8, width, hei
 	return img
 }
 
-func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) image.Image {
+func CompositeMap(m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) image.Image {
 	fullSize := image.Rect(0, 0, width*tileW, height*tileH)
 	img := image.NewRGBA(fullSize)
 
@@ -480,7 +481,7 @@ func CompositeMap(m MapDataSource, th *things.Things, x, y uint16, floorTop, flo
 	//    (client item 100 on 8.54) is not emitting any light into the light
 	//    map, despite being marked as such in .dat (a brown color light
 	//    with strength).
-		
+
 	for tz := int(floorBottom); tz >= int(floorTop); tz-- {
 		off := int(tz - int(floorBottom))
 		lights := []*Light{}
