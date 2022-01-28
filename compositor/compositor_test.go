@@ -3,6 +3,7 @@ package compositor
 import (
 	"testing"
 
+	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/imageprint"
 	"badc0de.net/pkg/go-tibia/things/full"
 
