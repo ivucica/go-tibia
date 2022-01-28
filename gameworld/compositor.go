@@ -333,7 +333,7 @@ func (o *additiveOverlay) precomputeAmbient() {
 	o.acR, o.acG, o.acB, o.acA = or, og, ob, oa
 }
 
-func (o *additiveOverlay) At(x, y int) color.Color {
+func (o additiveOverlay) At(x, y int) color.Color {
 	if _, _, _, a := o.base.At(x, y).RGBA(); a == 0 {
 		return color.RGBA{0, 0, 0, 0}
 	}

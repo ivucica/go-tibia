@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"runtime"
+	"runtime/debug"
 	"syscall/js"
 
 	"badc0de.net/pkg/go-tibia/gameworld"
@@ -244,6 +245,7 @@ func loaderImp(resolve, reject js.Value) {
 	log.Printf("loaded global map %p and things %p", m, t)
 
 	runtime.GC()
+	debug.FreeOSMemory()
 
 	resolve.Invoke(nil)
 }
