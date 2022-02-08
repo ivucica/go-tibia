@@ -75,20 +75,28 @@ func (msg *Message) RSADecryptRemainder(pk *rsa.PrivateKey) error {
 		msg.Buffer = *bytes.NewBuffer(plaintext)
 	*/
 
-	// stolen from DecryptOAEP.
-	// This is done because it looks like all public functions in crypto/rsa
-	// are performing extra checks. And we need just pk.decrypt() which is, as you
-	// can see in the name, unexported.
+	// Taken from Go stdlib's crypto/rsa:DecryptOAEP at 850e55b / v1.8.7, lines
+	// 595-600 plus, for invocation of leftPad, line 611.
+	//
+	// Copying was done because it looks like all public functions in crypto/rsa
+	// are performing extra checks. And out of all of DecryptOAEP, we need just
+	// `decrypt` which is, as you can see in its name, unexported (and therefore
+	// copied into `rsaGoDecrypt`).
+	//
+	// See <LICENSE.rsa-go> for license and copyright information of the snippet.
 	c := new(big.Int).SetBytes(msg.Bytes())
-	m, err := RSA___decrypt(rand.Reader, pk, c)
+	m, err := rsaGoDecrypt(rand.Reader, pk, c)
 	if err != nil {
 		return fmt.Errorf("rsa decrypt: %s", err)
 	}
 	k := 128
 
-	// stolen from golang rsa.
 	// leftPad returns a new slice of length size. The contents of input are right
 	// aligned in the new slice.
+	//
+	// Taken from Go stdlib's crypto/rsa:leftPad.
+	//
+	// See <LICENSE.rsa-go> for license and copyright information of the snippets.
 	leftPad := func(input []byte, size int) (out []byte) {
 		n := len(input)
 		if n > size {

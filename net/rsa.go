@@ -25,14 +25,14 @@ var bigOne = big.NewInt(1)
 // random source is given, RSA blinding is used.
 //
 // Note: This function comes out of standard library's crypto/rsa/rsa.go, where
-// it lives as a private function. This is done because, at the time when it
-// was copied, all the public functions were doing additional checks that would
-// fail for decrypting the Tibia/OpenTibia protocol. Based on history of the
-// file you are reading, this likely happened with version present in Go's
-// commit 850e55b, present in go1.8.7.
+// it lives as a private function named `decrypt`. Copying was done because, at
+// the time when it was copied, all the public functions were doing additional
+// checks that would fail for decrypting the Tibia/OpenTibia protocol. Based on
+// history of the file you are reading, this likely happened with version
+// present in Go's commit 850e55b, present in go1.8.7.
 //
 // Same sourcing goes for the modInverse function in this file.
-func RSA___decrypt(random io.Reader, priv *rsa.PrivateKey, c *big.Int) (m *big.Int, err error) {
+func rsaGoDecrypt(random io.Reader, priv *rsa.PrivateKey, c *big.Int) (m *big.Int, err error) {
 	// TODO(agl): can we get away with reusing blinds?
 	if c.Cmp(priv.N) > 0 {
 		err = ErrDecryption
