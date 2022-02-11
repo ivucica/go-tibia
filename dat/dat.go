@@ -397,17 +397,36 @@ func (d *Dataset) load780OptBytes(r io.Reader, e DatasetEntry) error {
 // load780OptByte reads a single option byte from the passed reader and configures the passed dataset entry.
 //
 // Byte that was just read is returned.
-func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
+func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error) {
 	var optByte uint8
 	err := binary.Read(r, binary.LittleEndian, &optByte)
 	if err != nil {
 		return 0, fmt.Errorf("error reading the opt byte: %v", err)
 	}
 
+	var (
+		i *Item
+		o *Outfit
+		e *Effect
+		s *DistanceEffect // "shot"
+	)
+
+	switch v := entry.(type) {
+	case *Item:
+		i = v
+	case *Outfit:
+		o = v
+	case *Effect:
+		e = v
+	case *DistanceEffect:
+		s = v
+	default:
+		return 0, fmt.Errorf("unknown type of dataset entry (want item, outfit, effect or distanceeffect")
+	}
+
 	switch optByte {
 	case 0x00: // Ground tile.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item ground tile")
 		}
 		err := binary.Read(r, binary.LittleEndian, &i.GroundSpeed)
@@ -416,64 +435,55 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		}
 
 	case 0x01: // On-top items.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item on-top entry")
 		}
 		i.SortOrder = 1
 
 	case 0x02: // Walk-through items (e.g. doors).
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item walk-through-1 entry")
 		}
 		i.SortOrder = 2
 
 	case 0x03: // Higher walk-through items (e.g. arches).
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item walk-through-2 entry")
 		}
 		i.SortOrder = 3
 
 	case 0x04: // Container item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item container entry")
 		}
 		i.Container = true
 
 	case 0x05: // Stackable item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item stackable entry")
 		}
 		i.Stackable = true
 
 	case 0x06: // Always used. (e.g. ladders)
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item always-used entry")
 		}
 		i.AlwaysUsed = true
 
 	case 0x07: // Usable.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item usable entry")
 		}
 		i.Usable = true
 
 	case 0x08: // Rune.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item usable entry")
 		}
 		i.Rune = true
 
 	case 0x09: // R/W item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item RW item entry")
 		}
 		i.Readable = true
@@ -484,8 +494,7 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		}
 
 	case 0x0A: // RO item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item RO item entry")
 		}
 		i.Readable = true
@@ -495,133 +504,112 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		}
 
 	case 0x0B: // Fluid container.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item fluid container")
 		}
 		i.FluidContainer = true
 
 	case 0x0C: // Splash.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item splash")
 		}
 		i.Splash = true
 
 	case 0x0D: // Blocking player.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker")
 		}
 		i.BlockingPlayer = true
 
 	case 0x0E: // Immobile item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item immobile")
 		}
 		i.Immobile = true
 
 	case 0x0F: // Blocking missiles.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker for missiles")
 		}
 		i.BlockingMissiles = true
 
 	case 0x10: // Blocking monsters.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker for monsters")
 		}
 		i.BlockingMonsters = true
 
 	case 0x11: // Equipable.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item equipable")
 		}
 		i.Equipable = true
 
 	case 0x12: // Hangable.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item equipable")
 		}
 		i.Hangable = true
 
 	case 0x13: // Horizontal item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item horizontal")
 		}
 		i.HorizontalItem = true
 
 	case 0x14: // Vertical item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item vertical")
 		}
 		i.VerticalItem = true
 
 	case 0x15: // Rotatable item.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item rotatable")
 		}
 		i.RotatableItem = true
 
 	case 0x16: // Lightcaster.
-		if i, ok := e.(*Item); ok {
-			err := binary.Read(r, binary.LittleEndian, &i.LightInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading light info: %v", err)
-			}
-		} else if o, ok := e.(*Outfit); ok {
-			err := binary.Read(r, binary.LittleEndian, &o.LightInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading light info: %v", err)
-			}
-		} else if ef, ok := e.(*Effect); ok {
-			err := binary.Read(r, binary.LittleEndian, &ef.LightInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading light info: %v", err)
-			}
-		} else if de, ok := e.(*DistanceEffect); ok {
-			err := binary.Read(r, binary.LittleEndian, &de.LightInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading light info: %v", err)
-			}
-		} else {
+		var err error
+		switch {
+		case i != nil:
+			err = binary.Read(r, binary.LittleEndian, &i.LightInfo)
+		case o != nil:
+			err = binary.Read(r, binary.LittleEndian, &o.LightInfo)
+		case e != nil:
+			err = binary.Read(r, binary.LittleEndian, &e.LightInfo)
+		case s != nil:
+			err = binary.Read(r, binary.LittleEndian, &s.LightInfo)
+		default:
 			return optByte, fmt.Errorf("non-item/outfit/effect/distanceeffect lightcaster")
+		}
+		if err != nil {
+			return optByte, fmt.Errorf("error reading light info: %v", err)
 		}
 
 	case 0x17: // Floor changing item.
-		_, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item floor changer")
 		}
 
 	case 0x18: // Unknown information field.
 
 	case 0x19: // Has offset.
-		if i, ok := e.(*Item); ok {
-			err := binary.Read(r, binary.LittleEndian, &i.OffsetInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading offset info: %v", err)
-			}
-		} else if o, ok := e.(*Outfit); ok {
-			err := binary.Read(r, binary.LittleEndian, &o.OffsetInfo)
-			if err != nil {
-				return optByte, fmt.Errorf("error reading offset info: %v", err)
-			}
-		} else {
+		var err error
+		switch {
+		case i != nil:
+			err = binary.Read(r, binary.LittleEndian, &i.OffsetInfo)
+		case o != nil:
+			err = binary.Read(r, binary.LittleEndian, &o.OffsetInfo)
+		default:
 			return optByte, fmt.Errorf("non-item/outfit with offset (type %T)", e)
+		}
+		if err != nil {
+			return optByte, fmt.Errorf("error reading offset info: %v", err)
 		}
 
 	case 0x1A: // Player offset. Usually 8px
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item with player offset")
 		}
 		err := binary.Read(r, binary.LittleEndian, &i.PlayerOffset)
@@ -630,24 +618,23 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		}
 
 	case 0x1B: // Draw with height offset for all parts of the sprite (usually a 2x2 block).
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item with large height offset")
 		}
 		i.LargeOffset = true
 
 	case 0x1C: // Animate while idling.
-		if i, ok := e.(*Item); ok {
+		switch {
+		case i != nil:
 			i.IdleAnim = true
-		} else if o, ok := e.(*Outfit); ok {
+		case o != nil:
 			o.IdleAnim = true
-		} else {
+		default:
 			return optByte, fmt.Errorf("non-item/outfit idler (%T)", e)
 		}
 
 	case 0x1D: // Map color.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item with map color")
 		}
 		err := binary.Read(r, binary.LittleEndian, &i.MapColor)
@@ -657,8 +644,7 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 		i.MapColorOK = true
 
 	case 0x1E: // Line spot.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item line spot")
 		}
 		var tmp uint8
@@ -692,8 +678,7 @@ func (d *Dataset) load780OptByte(r io.Reader, e DatasetEntry) (uint8, error) {
 	case 0x1F: // Unknown information field.
 
 	case 0x20: // Look through.
-		i, ok := e.(*Item)
-		if !ok {
+		if i == nil {
 			return optByte, fmt.Errorf("non-item that can be looked-through")
 		}
 		i.LookThrough = true
