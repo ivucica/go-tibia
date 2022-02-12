@@ -17,6 +17,44 @@ const (
 	CLIENT_VERSION_854
 )
 
+type OptByte780 int
+
+const (
+	OptByte780Ground                = OptByte780(0x00) // 0, Proto name: bank
+	OptByte780OnTop                 = OptByte780(0x01) // 1, Proto name: clip
+	OptByte780WalkthroughItem       = OptByte780(0x02) // 2, Proto name: bottom
+	OptByte780HigherWalkthroughItem = OptByte780(0x03) // 3, Proto name: top
+	OptByte780Container             = OptByte780(0x04) // 4, Proto name: container
+	OptByte780Stackable             = OptByte780(0x05) // 5, Proto name: cumulative
+	OptByte780AlwaysUsed            = OptByte780(0x06) // 6, Proto name: usable
+	OptByte780Usable                = OptByte780(0x07) // 7, Proto name: forceuse
+	OptByte780Rune                  = OptByte780(0x08) // 8, Proto name: multiuse
+	OptByte780RW                    = OptByte780(0x09) // 9, Proto name: write
+	OptByte780RO                    = OptByte780(0x0A) // 10, Proto name: write_once
+	OptByte780FluidContainer        = OptByte780(0x0B) // 11, Proto name: liquidpool
+	OptByte780Splash                = OptByte780(0x0C) // 12, Proto name: unpass
+	OptByte780BlockingPlayer        = OptByte780(0x0D) // 13, Proto name: unmove
+	OptByte780ImmobileItem          = OptByte780(0x0E) // 14, Proto name: unsight
+	OptByte780BlockingMissiles      = OptByte780(0x0F) // 15, Proto name: avoid
+	OptByte780BlockingMonsters      = OptByte780(0x10) // 16, Proto name: no_movement_animation
+	OptByte780Equipable             = OptByte780(0x11) // 16, Proto name: take
+	OptByte780Hangable              = OptByte780(0x12) // 17, Proto name: liquidcontainer
+	OptByte780HorizontalItem        = OptByte780(0x13) // 18, Proto name: hang
+	OptByte780VerticalItem          = OptByte780(0x14) // 19, Proto name: hook
+	OptByte780RotatableItem         = OptByte780(0x15) // 20, Proto name: rotate
+	OptByte780Lightcaster           = OptByte780(0x16) // 21, Proto name: light
+	OptByte780FloorChangingItem     = OptByte780(0x17) // 22, Proto name: dont_hide
+	OptByte780Unknown0x18           = OptByte780(0x18) // 23, Proto name: translucent
+	OptByte780HasOffset             = OptByte780(0x19) // 24, Proto name: shift
+	OptByte780PlayerOffset          = OptByte780(0x1A) // 25, Proto name: height
+	OptByte780HeightOffsetAllParts  = OptByte780(0x1B) // 26, Proto name: lying_object
+	OptByte780IdleAnim              = OptByte780(0x1C) // 27, Proto name: animate_always
+	OptByte780MapColor              = OptByte780(0x1D) // 28, Proto name: automap
+	OptByte780LineSpot              = OptByte780(0x1E) // 29, Proto name: lenshelp
+	OptByte780Unknown0x1F           = OptByte780(0x1F) // 30, Proto name: fullbank
+	OptByte780LookThrough           = OptByte780(0x20) // 31, Proto name: ignore_look
+)
+
 // Dataset represents a set of items, outfits, effects and distance
 // effects read from a Tibia dataset file ('things' or 'dataset entries').
 type Dataset struct {
@@ -94,6 +132,9 @@ type Item struct {
 	MapColor     DatasetColor
 	MapColorOK   bool
 	LookThrough  bool
+
+	// Raw bytes read from 7.80+ datafile.
+	OptBytes780 []OptByte780
 }
 
 // Outfit represents a dataset entry describing a possible appearance for an in-game character, whether NPC or player.
@@ -105,6 +146,9 @@ type Outfit struct {
 	OffsetInfo
 	IdleAnim bool
 	LightInfo
+
+	// Raw bytes read from 7.80+ datafile.
+	OptBytes780 []OptByte780
 }
 
 // Effect represents a temporarily-appearing in-game effect, such as a poof of smoke, then disappears.
@@ -114,6 +158,9 @@ type Effect struct {
 
 	Id int
 	LightInfo
+
+	// Raw bytes read from 7.80+ datafile.
+	OptBytes780 []OptByte780
 }
 
 // DistanceEffect represents an in-game effect which moves from one tile to another over a period of time, then diappears.
@@ -123,6 +170,9 @@ type DistanceEffect struct {
 
 	Id int
 	LightInfo
+
+	// Raw bytes read from 7.80+ datafile.
+	OptBytes780 []OptByte780
 }
 
 // DatasetColor fulfills the color.Color interface on top of the stored uint16 value.
@@ -414,18 +464,22 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 	switch v := entry.(type) {
 	case *Item:
 		i = v
+		i.OptBytes780 = append(i.OptBytes780, OptByte780(optByte))
 	case *Outfit:
 		o = v
+		o.OptBytes780 = append(o.OptBytes780, OptByte780(optByte))
 	case *Effect:
 		e = v
+		e.OptBytes780 = append(e.OptBytes780, OptByte780(optByte))
 	case *DistanceEffect:
 		s = v
+		s.OptBytes780 = append(s.OptBytes780, OptByte780(optByte))
 	default:
 		return 0, fmt.Errorf("unknown type of dataset entry (want item, outfit, effect or distanceeffect")
 	}
 
-	switch optByte {
-	case 0x00: // Ground tile.
+	switch OptByte780(optByte) {
+	case OptByte780Ground: // 0x00: Ground tile.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item ground tile")
 		}
@@ -434,55 +488,55 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading the ground tile speed: %v", err)
 		}
 
-	case 0x01: // On-top items.
+	case OptByte780OnTop: // 0x01, 1: On-top items.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item on-top entry")
 		}
 		i.SortOrder = 1
 
-	case 0x02: // Walk-through items (e.g. doors).
+	case OptByte780WalkthroughItem: // 0x02, 2: Walk-through items (e.g. doors).
 		if i == nil {
 			return optByte, fmt.Errorf("non-item walk-through-1 entry")
 		}
 		i.SortOrder = 2
 
-	case 0x03: // Higher walk-through items (e.g. arches).
+	case OptByte780HigherWalkthroughItem: // 0x03, 3: Higher walk-through items (e.g. arches).
 		if i == nil {
 			return optByte, fmt.Errorf("non-item walk-through-2 entry")
 		}
 		i.SortOrder = 3
 
-	case 0x04: // Container item.
+	case OptByte780Container: // 0x04, 4: Container item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item container entry")
 		}
 		i.Container = true
 
-	case 0x05: // Stackable item.
+	case OptByte780Stackable: // 0x05, 5: Stackable item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item stackable entry")
 		}
 		i.Stackable = true
 
-	case 0x06: // Always used. (e.g. ladders)
+	case OptByte780AlwaysUsed: // 0x06, 6: Always used. (e.g. ladders)
 		if i == nil {
 			return optByte, fmt.Errorf("non-item always-used entry")
 		}
 		i.AlwaysUsed = true
 
-	case 0x07: // Usable.
+	case OptByte780Usable: // 0x07, 7: Usable.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item usable entry")
 		}
 		i.Usable = true
 
-	case 0x08: // Rune.
+	case OptByte780Rune: // 0x08, 8: Rune.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item usable entry")
 		}
 		i.Rune = true
 
-	case 0x09: // R/W item.
+	case OptByte780RW: // 0x09, 9: R/W item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item RW item entry")
 		}
@@ -493,7 +547,7 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading RW item info: %v", err)
 		}
 
-	case 0x0A: // RO item.
+	case OptByte780RO: // 0x0A, 10: RO item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item RO item entry")
 		}
@@ -503,73 +557,73 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading RO item info: %v", err)
 		}
 
-	case 0x0B: // Fluid container.
+	case OptByte780FluidContainer: // 0x0B, 11: Fluid container.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item fluid container")
 		}
 		i.FluidContainer = true
 
-	case 0x0C: // Splash.
+	case OptByte780Splash: // 0x0C, 12: Splash.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item splash")
 		}
 		i.Splash = true
 
-	case 0x0D: // Blocking player.
+	case OptByte780BlockingPlayer: // 0x0D, 13: Blocking player.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker")
 		}
 		i.BlockingPlayer = true
 
-	case 0x0E: // Immobile item.
+	case OptByte780ImmobileItem: // 0x0E, 14: Immobile item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item immobile")
 		}
 		i.Immobile = true
 
-	case 0x0F: // Blocking missiles.
+	case OptByte780BlockingMissiles: // 0x0F, 15: Blocking missiles.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker for missiles")
 		}
 		i.BlockingMissiles = true
 
-	case 0x10: // Blocking monsters.
+	case OptByte780BlockingMonsters: // 0x10, 16: Blocking monsters.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item blocker for monsters")
 		}
 		i.BlockingMonsters = true
 
-	case 0x11: // Equipable.
+	case OptByte780Equipable: // 0x11, 17: Equipable.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item equipable")
 		}
 		i.Equipable = true
 
-	case 0x12: // Hangable.
+	case OptByte780Hangable: // 0x12, 18: Hangable.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item equipable")
 		}
 		i.Hangable = true
 
-	case 0x13: // Horizontal item.
+	case OptByte780HorizontalItem: // 0x13, 19: Horizontal item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item horizontal")
 		}
 		i.HorizontalItem = true
 
-	case 0x14: // Vertical item.
+	case OptByte780VerticalItem: // 0x14, 20: Vertical item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item vertical")
 		}
 		i.VerticalItem = true
 
-	case 0x15: // Rotatable item.
+	case OptByte780RotatableItem: // 0x15, 21: Rotatable item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item rotatable")
 		}
 		i.RotatableItem = true
 
-	case 0x16: // Lightcaster.
+	case OptByte780Lightcaster: // 0x16, 22: Lightcaster.
 		var err error
 		switch {
 		case i != nil:
@@ -587,14 +641,14 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading light info: %v", err)
 		}
 
-	case 0x17: // Floor changing item.
+	case OptByte780FloorChangingItem: // 0x17, 23: Floor changing item.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item floor changer")
 		}
 
-	case 0x18: // Unknown information field.
+	case OptByte780Unknown0x18: // 0x18, 24: Unknown information field.
 
-	case 0x19: // Has offset.
+	case OptByte780HasOffset: // 0x19, 25: Has offset.
 		var err error
 		switch {
 		case i != nil:
@@ -608,7 +662,7 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading offset info: %v", err)
 		}
 
-	case 0x1A: // Player offset. Usually 8px
+	case OptByte780PlayerOffset: // 0x1A, 26: Player offset. Usually 8px
 		if i == nil {
 			return optByte, fmt.Errorf("non-item with player offset")
 		}
@@ -617,13 +671,13 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("error reading player offset info: %v", err)
 		}
 
-	case 0x1B: // Draw with height offset for all parts of the sprite (usually a 2x2 block).
+	case OptByte780HeightOffsetAllParts: // 0x1B, 27: Draw with height offset for all parts of the sprite (usually a 2x2 block).
 		if i == nil {
 			return optByte, fmt.Errorf("non-item with large height offset")
 		}
 		i.LargeOffset = true
 
-	case 0x1C: // Animate while idling.
+	case OptByte780IdleAnim: // 0x1C, 28: Animate while idling.
 		switch {
 		case i != nil:
 			i.IdleAnim = true
@@ -633,7 +687,7 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("non-item/outfit idler (%T)", e)
 		}
 
-	case 0x1D: // Map color.
+	case OptByte780MapColor: // 0x1D, 29: Map color.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item with map color")
 		}
@@ -643,7 +697,7 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 		}
 		i.MapColorOK = true
 
-	case 0x1E: // Line spot.
+	case OptByte780LineSpot: // 0x1E, 30: Line spot.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item line spot")
 		}
@@ -675,9 +729,9 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 			return optByte, fmt.Errorf("unknown linespot value 0x%x (expected 0x04)", tmp)
 		}
 
-	case 0x1F: // Unknown information field.
+	case OptByte780Unknown0x1F: // 0x1F, 31: Unknown information field.
 
-	case 0x20: // Look through.
+	case OptByte780LookThrough: // 0x20, 32: Look through.
 		if i == nil {
 			return optByte, fmt.Errorf("non-item that can be looked-through")
 		}
