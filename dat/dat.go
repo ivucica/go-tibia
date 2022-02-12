@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -17,8 +18,63 @@ const (
 	CLIENT_VERSION_854
 )
 
-type OptByte780 int
+// Field names in AppearanceFlag proto message in 12.x.
+//
+// TODO: generate from the proto instead.
+var protoFieldNames12x = []string{
+	"", // 0, invalid
 
+	"bank",                  // 1
+	"clip",                  // 2
+	"bottom",                // 3
+	"top",                   // 4
+	"container",             // 5
+	"cumulative",            // 6
+	"usable",                // 7
+	"forceuse",              // 8
+	"multiuse",              // 9
+	"write",                 // 10
+	"write_once",            // 11
+	"liquidpool",            // 12
+	"unpass",                // 13
+	"unmove",                // 14
+	"unsight",               // 15
+	"avoid",                 // 16
+	"no_movement_animation", // 17
+	"take",                  // 18
+	"liquidcontainer",       // 19
+	"hang",                  // 20
+	"hook",                  // 21
+	"rotate",                // 22
+	"light",                 // 23
+	"dont_hide",             // 24
+	"translucent",           // 25
+	"shift",                 // 26
+	"height",                // 27
+	"lying_object",          // 28
+	"animate_always",        // 29
+	"automap",               // 30
+	"lenshelp",              // 31
+	"fullbank",              // 32
+	"ignore_look",           // 33
+	"clothes",               // 34
+	"default_action",        // 35
+	"market",                // 36
+	"wrap",                  // 37
+	"unwrap",                // 38
+	"topeffect",             // 39
+	"npcsaledata",           // 40
+	"changedtoexpire",       // 41
+	"corpse",                // 42
+	"player_corpse",         // 43
+	"cyclopediaitem",        // 44
+}
+
+type OptByte780 byte
+
+// Note: proto field number mappings are temporary, and generally just 'i+1'.
+// They need to be closely examined before they can be used and guaranteed
+// a semantic match.
 const (
 	OptByte780Ground                = OptByte780(0x00) // 0, Proto name: bank
 	OptByte780OnTop                 = OptByte780(0x01) // 1, Proto name: clip
@@ -53,7 +109,113 @@ const (
 	OptByte780LineSpot              = OptByte780(0x1E) // 29, Proto name: lenshelp
 	OptByte780Unknown0x1F           = OptByte780(0x1F) // 30, Proto name: fullbank
 	OptByte780LookThrough           = OptByte780(0x20) // 31, Proto name: ignore_look
+	OptByte780Max                   = iota
 )
+
+// Note: proto field number mappings are temporary, and generally just 'i+1'.
+// They need to be closely examined before they can be used and guaranteed
+// a semantic match.
+//
+// TODO: add validFor validity bitmask, specifying if it's permitted for item,
+// outfit, effect or distance effect, so validation is simplified.
+var optByte780Names = []struct {
+	constSuff, ot string
+	b             byte
+	protoFieldID  int
+}{
+	{"Ground", "ground tile", 0x00 /*0*/, 1},
+	{"OnTop", "on-top items", 0x01 /*1*/, 2},
+	{"WalkthroughItem", "walk-through items (e.g. doors)", 0x02 /*2*/, 3},
+	{"HigherWalkthroughItem", "higher walk-through items (e.g. arches)", 0x03 /*3*/, 4},
+	{"Container", "container item", 0x04 /*4*/, 5},
+	{"Stackable", "stackable", 0x05 /*5*/, 6},
+	{"AlwaysUsed", "always used (e.g. ladders)", 0x06 /*6*/, 7},
+	{"Usable", "usable", 0x07 /*7*/, 8},
+	{"Rune", "rune", 0x08 /*8*/, 9},
+	{"RW", "R/W item", 0x09 /*9*/, 10},
+	{"RO", "RO item", 0x0A /*10*/, 11},
+	{"FluidContainer", "fluid container", 0x0B /*11*/, 12},
+	{"Splash", "splash", 0x0C /*12*/, 13},
+	{"BlockingPlayer", "blocking player", 0x0D /*13*/, 14},
+	{"ImmobileItem", "immobile item", 0x0E /*14*/, 15},
+	{"BlockingMissiles", "blocking missiles", 0x0F /*15*/, 16},
+	{"BlockingMonsters", "blocking monsters", 0x10 /*16*/, 17},
+	{"Equipable", "equipable", 0x11 /*17*/, 18},
+	{"Hangable", "hangable", 0x12 /*18*/, 19},
+	{"HorizontalItem", "horizontal item", 0x13 /*19*/, 20},
+	{"VerticalItem", "vertical item", 0x14 /*20*/, 21},
+	{"RotatableItem", "rotatable item", 0x15 /*21*/, 22},
+	{"Lightcaster", "lightcaster", 0x16 /*22*/, 23},
+	{"FloorChangingItem", "floor changing item", 0x17 /*23*/, 24},
+	{"Unknown0x18", "unknown information field 0x18", 0x18 /*24*/, 25},
+	{"HasOffset", "has offset", 0x19 /*25*/, 26},
+	{"PlayerOffset", "player offset (usually 8px)", 0x1A /*26*/, 27},
+	{"HeightOffsetAllParts", "draw with height offset for all parts of the sprite (usually a 2x2 block)", 0x1B /*27*/, 28},
+	{"IdleAnim", "animate while idling", 0x1C /*28*/, 29},
+	{"MapColor", "map color", 0x1D /*29*/, 30},
+	{"LineSpot", "line spot", 0x1E /*30*/, 31},
+	{"Unknown0x1F", "unknown information field 0x1f", 0x1F /*31*/, 32},
+	{"LookThrough", "look through", 0x20 /*32*/, 33},
+}
+
+// OTStyleDescription returns a human readable description consisting of hex
+// and dec representation of a byte, and a sentence-formatted short description
+// of the byte.
+func (b OptByte780) OTStyleDescription() string {
+	if b >= OptByte780Max {
+		return ""
+	}
+	ob := optByte780Names[b]
+	d := ob.ot
+	return fmt.Sprintf("0x%02x, %d: %s.", ob.b, ob.b, strings.ToTitle(d[:1])+d[1:])
+}
+
+// ConstName returns the name used for the constant in the source code.
+func (b OptByte780) ConstName() string {
+	if b >= OptByte780Max {
+		return ""
+	}
+	return "OptByte780" + optByte780Names[b].constSuff
+}
+
+// ProtoFieldID returns 12.x's equivalent proto field number, or 0 if not
+// mappable.
+//
+// Note: proto field number mappings are temporary, and generally just 'i+1'.
+// They need to be closely examined before they can be used and guaranteed
+// a semantic match.
+func (b OptByte780) ProtoFieldID() int {
+	if b >= OptByte780Max {
+		return 0
+	}
+	return optByte780Names[b].protoFieldID
+}
+
+// ProtoFieldID returns 12.x's equivalent proto field name, or empty if not
+// mappable.
+//
+// Note: proto field number mappings are temporary, and generally just 'i+1'.
+// They need to be closely examined before they can be used and guaranteed
+// a semantic match.
+func (b OptByte780) ProtoFieldName() string {
+	if b >= OptByte780Max {
+		return ""
+	}
+	if optByte780Names[b].protoFieldID < 0 || optByte780Names[b].protoFieldID >= len(protoFieldNames12x) {
+		return ""
+	}
+	return protoFieldNames12x[optByte780Names[b].protoFieldID]
+}
+
+// String returns a human-readable string detailing the information known about
+// this byte: its hex and dec numbers, a short description, in-code enum const
+// name, equivalent proto field id (if any) and the name (if any)
+func (b OptByte780) String() string {
+	if b.ProtoFieldID() > 0 && b.ProtoFieldID() < len(protoFieldNames12x) {
+		return fmt.Sprintf("<0x%02x :: %s :: %s :: proto: %s = %d>", int(b), b.ConstName(), b.OTStyleDescription(), b.ProtoFieldName(), b.ProtoFieldID())
+	}
+	return fmt.Sprintf("<0x%02x :: %s :: %s>", int(b), b.ConstName(), b.OTStyleDescription())
+}
 
 // Dataset represents a set of items, outfits, effects and distance
 // effects read from a Tibia dataset file ('things' or 'dataset entries').
@@ -464,16 +626,24 @@ func (d *Dataset) load780OptByte(r io.Reader, entry DatasetEntry) (uint8, error)
 	switch v := entry.(type) {
 	case *Item:
 		i = v
-		i.OptBytes780 = append(i.OptBytes780, OptByte780(optByte))
+		if optByte != 0xFF {
+			i.OptBytes780 = append(i.OptBytes780, OptByte780(optByte))
+		}
 	case *Outfit:
 		o = v
-		o.OptBytes780 = append(o.OptBytes780, OptByte780(optByte))
+		if optByte != 0xFF {
+			o.OptBytes780 = append(o.OptBytes780, OptByte780(optByte))
+		}
 	case *Effect:
 		e = v
-		e.OptBytes780 = append(e.OptBytes780, OptByte780(optByte))
+		if optByte != 0xFF {
+			e.OptBytes780 = append(e.OptBytes780, OptByte780(optByte))
+		}
 	case *DistanceEffect:
 		s = v
-		s.OptBytes780 = append(s.OptBytes780, OptByte780(optByte))
+		if optByte != 0xFF {
+			s.OptBytes780 = append(s.OptBytes780, OptByte780(optByte))
+		}
 	default:
 		return 0, fmt.Errorf("unknown type of dataset entry (want item, outfit, effect or distanceeffect")
 	}
