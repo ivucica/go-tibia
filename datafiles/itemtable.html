@@ -32,7 +32,7 @@
   <tr>
     <td>{{$cid}}</td>
     <td>{{ $itm.Name }}</td>
-    <td><img src="/item/c{{ $cid }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);"></td>
+    <td><img src="/item/c{{ $cid }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);" title="{{ $itm.RawClientDatasetItem780.OptBytes780 }}"></td>
     <td>{{ if ne $itm.LightInfo.Strength 0 }}{{ $itm.LightInfo.Strength }} <div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.LightInfo.Color }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
     <td>{{ if $itm.MapColorOK }}<div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.MapColor }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
   </tr>

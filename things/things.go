@@ -51,6 +51,16 @@ func (i *Item) ValidClientItem() bool {
 	return i.dataset != nil
 }
 
+// RawClientDatasetItem780 is for debug or viewing use only; please do not
+// access it outside these scenarios, as it may disappear anytime.
+//
+// It is currently used for showing opt byte descriptions in the web UI.
+//
+// It may return nil.
+func (i *Item) RawClientDatasetItem780() *dat.Item {
+	return i.dataset
+}
+
 type Creature struct {
 	clientID uint16
 	outfit   *dat.Outfit
