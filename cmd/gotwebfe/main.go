@@ -261,6 +261,10 @@ func showMap(this js.Value, arg []js.Value) interface{} {
 
 	showImg(img, "map", true)
 
+	// TODO(ivucica): clear images from globalThings
+	runtime.GC()
+	debug.FreeOSMemory()
+
 	return nil
 }
 
