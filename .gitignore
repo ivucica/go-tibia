@@ -10,3 +10,4 @@ bazel-out
 bazel-genfiles
 bazel-testlogs
 bazel-gotibia
+vapid.inc.sh
