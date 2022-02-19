@@ -20,6 +20,13 @@ const (
 
 // Field names in AppearanceFlag proto message in 12.x.
 //
+// TODO: find out where the names come from. They may be coming from otc
+// c3deadf916 const.h or such; if so, they should only stay as names for
+// proto fields. It's perhaps possible to come up with better names than
+// either OTS or OTC (e.g. 'clip' likely refers to overlaid ground
+// borders, but why 'bank' instead of ground? what's 'forceuse' vs
+// 'usable'?)
+//
 // TODO: generate from the proto instead.
 var protoFieldNames12x = []string{
 	"", // 0, invalid
