@@ -4,6 +4,8 @@ badc0de.net/pkg/flagutil v1.0.0 h1:vlXXXQMqp2XRYwwrZiMdYPCHFWk46zZiIx1cXyuId2Q=
 badc0de.net/pkg/flagutil v1.0.0/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
 github.com/BourgeoisBear/rasterm v1.0.3 h1:k3/mcjyo3ukAkMA2PDdtrBGv16NvJ26ABd9p9hIzbp8=
 github.com/BourgeoisBear/rasterm v1.0.3/go.mod h1:wpcJbTo13ssx5lk+7Ovb7MVR6qvgHFW5lrjNXlxBInY=
+github.com/SherClockHolmes/webpush-go v1.2.0 h1:sGv0/ZWCvb1HUH+izLqrb2i68HuqD/0Y+AmGQfyqKJA=
+github.com/SherClockHolmes/webpush-go v1.2.0/go.mod h1:w6X47YApe/B9wUz2Wh8xukxlyupaxSSEbu6yKJcHN2w=
 github.com/andybons/gogif v0.0.0-20140526152223-16d573594812 h1:WBBv0ka2SO7Ut4bpskb87E9cHNnJabqA6VoBTex0Jng=
 github.com/andybons/gogif v0.0.0-20140526152223-16d573594812/go.mod h1:lkVwYUDYv/mJZK69J7BP7HRUhHEAone7OQHFBRnhQdQ=
 github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 h1:GKTyiRCL6zVf5wWaqKnf+7Qs6GbEPfd4iMOitWzXJx8=
@@ -14,6 +16,8 @@ github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4 h1:BBade+Jl
 github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4/go.mod h1:H7chHJglrhPPzetLdzBleF8d22WYOv7UM/lEKYiwlKM=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
+github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/gookit/color v1.2.3 h1:2Si0/JAEE2+1hkNYuTszu54Ti9wfp+M4JNNrknf9/D0=
@@ -36,6 +40,7 @@ github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 h1:uxE3G
 github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50/go.mod h1:FHafX5vmDzyP+1CQATJn7WFKc9CvnvxyvZy6I1MrG/U=
 github.com/yuin/goldmark v1.2.1 h1:ruQGxdhGHe7FWOJPT0mKs5+pD2Xs1Bm/kdGlHO04FmM=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 h1:VklqNMn3ovrHsnt90PveolxSbWFaJdECFbxSq0Mqo2M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
