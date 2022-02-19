@@ -1,7 +1,14 @@
 #!/bin/bash
 set -e
 export GOPATH="${GOPATH:-${HOME}/projects/go-tibia}"
+
+VAPID_ARGS=
+if [[ -e "${GOPATH}"/src/badc0de.net/pkg/go-tibia/vapid.inc.sh ]] ; then
+	 . "${GOPATH}"/src/badc0de.net/pkg/go-tibia/vapid.inc.sh
+	VAPID_ARGS="--vapid_private=${GOTIBIA_VAPID_PRIVATE} --vapid_public=${GOTIBIA_VAPID_PUBLIC}"
+fi
+
 go get -v badc0de.net/pkg/go-tibia/cmd/gotweb
 ${GOPATH}/src/badc0de.net/pkg/go-tibia/build-wasm.sh
-${GOPATH}/bin/gotweb --logtostderr --listen_address :9444 "$@"
+${GOPATH}/bin/gotweb --logtostderr --listen_address :9444 ${VAPID_ARGS} "$@"
 

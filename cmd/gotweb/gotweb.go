@@ -37,6 +37,10 @@ var (
 	listenAddress      = flag.String("listen_address", ":8080", "http listen address for gotweb")
 	debugListenAddress = flag.String("debug_listen_address", "", "http listen address for pprof (and other stuff registered on default serve mux)")
 
+	vapidPrivate           = flag.String("vapid_private", "", "vapid private key for use with push notifications; empty disables push to service worker; use cmd/vapidgen to generate")
+	vapidPublic            = flag.String("vapid_public", "", "vapid public key for use with push notifications; empty disables push to service worker; use cmd/vapidgen to generate")
+	vapidSubscriptionsPath string
+
 	tibiaPicPath string
 	mapPath      string
 	htmlPath     string
@@ -57,6 +61,7 @@ func setupFilePathFlags() {
 	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
 	paths.SetupFilePathFlag("html/index.html", "index_html_path", &htmlPath)
+	paths.SetupFilePathFlag("vapid_subscriptions.json", "writable_vapid_subscriptions_json_path", &vapidSubscriptionsPath)
 	htmlPath = filepath.Dir(htmlPath)
 }
 
@@ -364,7 +369,7 @@ func main() {
 				http.Error(w, "500", http.StatusInternalServerError)
 				return
 			}
-			
+
 			b := bytes.Replace(buf.Bytes(), []byte("%GO-TIBIA-CACHE-STORAGE-KEY%"), []byte(fmt.Sprintf("gotwebfe-cache-%d-%d-%d", fi.ModTime().UnixNano(), fiWasm.ModTime().UnixNano(), fiIndexHTML.ModTime().UnixNano())), -1)
 			b = bytes.Replace(b, []byte("%GO-TIBIA-DATA-CACHE-STORAGE-KEY%"), []byte(fmt.Sprintf("gotwebfe-cache-data-%x-%x-omittinghashforpic", th.TibiaDatasetSignature(), th.SpriteSetSignature())), -1)
 			replaced := bytes.NewReader(b)
@@ -408,6 +413,36 @@ func main() {
 		}
 		h.RegisterMapRoute(r, m)
 	}()
+
+	if *vapidPrivate != "" {
+		glog.Errorf("vapid private key specified, but push notifications are not implemented yet")
+	}
+	if *vapidPublic != "" {
+		glog.Errorf("vapid public key specified, but push notifications are not implemented yet")
+	}
+	if *vapidPrivate != "" && *vapidPublic != "" {
+		// not functional yet.
+		f, err := os.Open(vapidSubscriptionsPath)
+		var sm *web.SubscriptionManager
+		if err != nil {
+			sm, err = web.NewSubscriptionManager(nil)
+			if err != nil {
+				sm = nil
+				glog.Errorf("web push notification subscription manager could not be spun up: %v", err)
+			}
+		} else {
+			sm, err = web.NewSubscriptionManager(f)
+			if err != nil {
+				sm = nil
+				glog.Errorf("web push notification subscription manager could not be spun up: %v", err)
+			}
+			f.Close()
+		}
+
+		if sm != nil {
+			h.RegisterSubscriptionCreateRoute(r, sm)
+		}
+	}
 
 	if *debugListenAddress != "" {
 		// TODO(ivucica): have a mux that includes /debug URLs.

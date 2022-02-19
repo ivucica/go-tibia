@@ -24,6 +24,17 @@
           navigator.serviceWorker.register('/sw.js', {'scope': '/'})
               .then(function(registration) {
                   console.log('Registered events at scope: ', registration.scope);
+
+                  // TODO: return registration.pushManager.getSubscription(), and on that .then(function(subscription)) where if !subscription, subscribe, else register with the server with xmlhttprequest
+                  // to subscribe, navigator.serviceWorker.ready.then(function(registration) { return registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(pubkey)})}).then(function(subscription) {  /* push using xmlhttprequest */ }), and finally .catch(err => console.error(err)) or whatever
+                  // Idea: do this in a separate .js file which can be generated from a template, and thus include the vapid keys.
+                  // Service worker should self.addEventListener("push", functionhere) where the function uses event.data.text() and event.waitUntil(self.registration.showNotification(title, options={body:event.data.text()})) or something
+
+                  // In general it might be nicer to rework this based on navigator.serviceWorker.ready.then(...) approach.
+                  //
+                  // Also, the above assumes immediate registration for notifications. A better approach would be to offer a UI element to start receiving notifications.
+                  // Presumably it would then call navigator.serviceWorker.ready.then(...) in the UI element.
+
                   registration.addEventListener('updatefound', function() {
 
                       document.getElementById('install').innerHTML = (

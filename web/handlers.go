@@ -33,6 +33,9 @@ type Handler struct {
 
 	tibiaSprPath string
 	tibiaPicPath string
+
+	// WebPush subscriptions manager.
+	subscriptionManager *SubscriptionManager
 }
 
 // NewHandler constructs web handler for the passed things. It also needs access
@@ -499,6 +502,10 @@ func (h *Handler) mapHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// RegisterRoutes registers routes allowing fetching of various images derived
+// from raw data files.
+//
+// TODO: Rename to RegisterImageRoutes.
 func (h *Handler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/spr/{idx:[0-9]+}", h.sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", h.itemHandler)
@@ -506,10 +513,14 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}-{fr:[0-9]+}", h.creatureHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}.gif", h.creatureGIFHandler)
 	r.HandleFunc("/pic/{idx:[0-9]+}", h.picHandler)
-
 }
 
 func (h *Handler) RegisterMapRoute(r *mux.Router, mapDataSource gameworld.MapDataSource) {
 	h.mapDataSource = mapDataSource
 	r.HandleFunc("/map", h.mapHandler)
+}
+
+func (h *Handler) RegisterSubscriptionCreateRoute(r *mux.Router, subscriptionManager *SubscriptionManager) {
+	h.subscriptionManager = subscriptionManager
+	r.HandleFunc("/registerpush", h.registerPushHandler)
 }
