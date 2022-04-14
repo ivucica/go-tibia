@@ -3,7 +3,7 @@ module badc0de.net/pkg/go-tibia
 go 1.11
 
 require (
-	badc0de.net/pkg/flagutil v1.0.0
+	badc0de.net/pkg/flagutil v1.0.1
 	github.com/BourgeoisBear/rasterm v1.0.3
 	github.com/SherClockHolmes/webpush-go v1.2.0
 	github.com/andybons/gogif v0.0.0-20140526152223-16d573594812

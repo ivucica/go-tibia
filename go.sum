@@ -2,6 +2,8 @@ badc0de.net/pkg/flagutil v0.0.0-20200303203100-b719cf6e3a8f h1:Z7X1IHuiGCdBJh9MI
 badc0de.net/pkg/flagutil v0.0.0-20200303203100-b719cf6e3a8f/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
 badc0de.net/pkg/flagutil v1.0.0 h1:vlXXXQMqp2XRYwwrZiMdYPCHFWk46zZiIx1cXyuId2Q=
 badc0de.net/pkg/flagutil v1.0.0/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
+badc0de.net/pkg/flagutil v1.0.1 h1:0ZgBzd3FehDUA8DJ70/phsnDH61/3aYMyx8Wd84KqQo=
+badc0de.net/pkg/flagutil v1.0.1/go.mod h1:HwwkfbImu+u288bnLaYDGqBxkJzvqi5YzKofmgkMLvk=
 github.com/BourgeoisBear/rasterm v1.0.3 h1:k3/mcjyo3ukAkMA2PDdtrBGv16NvJ26ABd9p9hIzbp8=
 github.com/BourgeoisBear/rasterm v1.0.3/go.mod h1:wpcJbTo13ssx5lk+7Ovb7MVR6qvgHFW5lrjNXlxBInY=
 github.com/SherClockHolmes/webpush-go v1.2.0 h1:sGv0/ZWCvb1HUH+izLqrb2i68HuqD/0Y+AmGQfyqKJA=
