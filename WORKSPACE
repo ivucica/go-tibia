@@ -3,10 +3,11 @@
 
 workspace(name="go_tibia")
 
-git_repository(
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+local_repository(
     name = "rules_tibia",
-    remote = "https://github.com/ivucica/rules_tibia",
-    commit = "08cb15890e10856dec153a8f5e06fde5cee34d4f",
+    path = __workspace_dir__ + "/vendor/github.com/ivucica/rules_tibia",
 )
 
 load("@rules_tibia//:tibia_data.bzl", "tibia_data_repository")

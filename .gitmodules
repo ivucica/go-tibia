@@ -10,3 +10,6 @@
 [submodule "vendor/github.com/TheSumm/datparserjs"]
 	path = vendor/github.com/TheSumm/datparserjs
 	url = https://github.com/TheSumm/datparserjs/
+[submodule "vendor/github.com/ivucica/rules_tibia"]
+	path = vendor/github.com/ivucica/rules_tibia
+	url = https://github.com/ivucica/rules_tibia
