@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "creature.go",
+        "item.go",
+        "itemprint.go",
+        "map.go",
+        "out.go",
+        "pic.go",
+        "spr.go",
+        "things.go",
+    ],
+    importpath = "badc0de.net/pkg/go-tibia/cmd/itemprint",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//compositor:go_default_library",
+        "//dat:go_default_library",
+        "//gameworld:go_default_library",
+        "//imageprint:go_default_library",
+        "//otb/items:go_default_library",
+        "//otb/map:go_default_library",
+        "//paths:go_default_library",
+        "//spr:go_default_library",
+        "//things:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@com_github_nfnt_resize//:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
+        "@net_badc0de_pkg_flagutil//:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "itemprint",
+    importpath = "badc0de.net/pkg/go-tibia/cmd/itemprint",
+    library = ":go_default_library",
+    visibility = ["//visibility:public"],
+)

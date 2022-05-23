@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "items.go",
+        "xml.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/otb/items",
     visibility = ["//visibility:public"],
@@ -22,6 +23,7 @@ go_test(
     importpath = "badc0de.net/pkg/go-tibia/otb/items",
     library = ":go_default_library",
     deps = [
+        "//paths:go_default_library",
         "//ttesting:go_default_library",
     ],
 )

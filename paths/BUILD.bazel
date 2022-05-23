@@ -3,16 +3,16 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
-        "compositor.go",
-        "doc.go",
-        "things.go",
+        "find.go",
+        "find_local.go",
+        "flag.go",
+        "fs.go",
+        "http.go",
     ],
-    importpath = "badc0de.net/pkg/go-tibia/things",
+    importpath = "badc0de.net/pkg/go-tibia/paths",
     visibility = ["//visibility:public"],
     deps = [
-        "//dat:go_default_library",
-        "//otb/items:go_default_library",
-        "//spr:go_default_library",
         "@com_github_golang_glog//:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
     ],
 )

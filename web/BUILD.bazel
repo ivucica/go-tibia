@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "handlers.go",
+        "push.go",
+    ],
+    importpath = "badc0de.net/pkg/go-tibia/web",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//compositor:go_default_library",
+        "//gameworld:go_default_library",
+        "//spr:go_default_library",
+        "//things:go_default_library",
+        "@com_github_SherClockHolmes_webpush_go//:go_default_library",
+        "@com_github_ericpauley_go_quantize//quantize:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@com_github_gorilla_mux//:go_default_library",
+    ],
+)

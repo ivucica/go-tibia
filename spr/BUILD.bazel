@@ -6,10 +6,10 @@ go_library(
         "doc.go",
         "image.go",
         "spr.go",
-        "toy.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/spr",
     visibility = ["//visibility:public"],
+    deps = ["@com_github_golang_glog//:go_default_library"],
 )
 
 go_test(
@@ -22,6 +22,12 @@ go_test(
     data = ["@tibia854//:Tibia.spr"],
     importpath = "badc0de.net/pkg/go-tibia/spr",
     library = ":go_default_library",
+    deps = [
+        "//imageprint:go_default_library",
+        "//paths:go_default_library",
+        "@com_github_nfnt_resize//:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
+    ],
 )
 
 go_test(
@@ -33,4 +39,7 @@ go_test(
     data = ["@tibia854//:Tibia.spr"],
     importpath = "badc0de.net/pkg/go-tibia/spr",
     library = ":go_default_library",
+    deps = [
+        "//paths:go_default_library",
+    ],
 )
