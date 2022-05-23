@@ -1,9 +1,15 @@
+//go:build go1.13
 // +build go1.13
 
 package imageprint
 
 import (
+	"fmt"
+	"image"
+	"os"
+
 	"github.com/BourgeoisBear/rasterm"
+	"github.com/andybons/gogif"
 )
 
 func isTermItermWez() bool {
