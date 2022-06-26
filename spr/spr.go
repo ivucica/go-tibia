@@ -91,18 +91,20 @@ type picHeader struct {
 // file (a sprite set file), finds the image with passed index, and returns the
 // requested image as an image.Image.
 func DecodeOne(r io.ReadSeeker, which int) (image.Image, error) {
-	return decodeOne(r, which, false)
+	return decodeOne(r, Header{}, which, false)
 }
 
-func decodeOne(r io.ReadSeeker, which int, isPic bool) (image.Image, error) {
+func decodeOne(r io.ReadSeeker, h Header, which int, isPic bool) (image.Image, error) {
 	if which == 0 {
 		return nil, fmt.Errorf("not found")
 	}
 
-	var h Header
-	if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
-		return nil, fmt.Errorf("could not read spr header: %s", err)
+	if h.Signature == 0 {
+		if err := binary.Read(r, binary.LittleEndian, &h); err != nil {
+			return nil, fmt.Errorf("could not read spr header: %s", err)
+		}
 	}
+
 	if which >= int(h.SpriteCount) {
 		return nil, fmt.Errorf("not found")
 	}
@@ -155,7 +157,14 @@ func decodeOne(r io.ReadSeeker, which int, isPic bool) (image.Image, error) {
 
 // DecodeOnePic behaves like DecodeOne, except it accepts .pic formatted files.
 func DecodeOnePic(r io.ReadSeeker, which int) (image.Image, error) {
-	return decodeOne(r, which, true)
+	return decodeOnePic(r, Header{}, which)
+}
+
+// decodeOnePic behaves like DecodeOnePic, except it accepts a pre-read header.
+//
+// Intended for use in image.Image registered Image format.
+func decodeOnePic(r io.ReadSeeker, h Header, which int) (image.Image, error) {
+	return decodeOne(r, h, which, true)
 }
 
 // DecodeUpcoming decodes a single block of spr-format data. This is
