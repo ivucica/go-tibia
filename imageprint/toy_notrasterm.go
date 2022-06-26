@@ -1,4 +1,5 @@
-// +build !go1.13
+//go:build !go1.13 || windows
+// +build !go1.13 windows
 
 package imageprint
 
@@ -12,5 +13,5 @@ func isTermItermWez() bool {
 }
 
 func PrintRasTerm(i image.Image) {
-	fmt.Printf("rasterm not supported below Go 1.13\n")
+	fmt.Printf("rasterm not supported below Go 1.13 or on windows\n")
 }
