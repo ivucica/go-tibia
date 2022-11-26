@@ -1,7 +1,8 @@
 # -*- mode: python; -*-
 # vim: set syntax=python:
 
-load("@io_bazel_rules_go//go:def.bzl", "gazelle", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle")
 
 gazelle(
     name = "gazelle",
