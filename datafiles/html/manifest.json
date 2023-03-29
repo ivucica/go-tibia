@@ -3,8 +3,8 @@
   "short_name": "GOTweb-FE",
   "display": "standalone",
   "start_url": "/app/",
-  "theme_color": "#dddddd",
-  "background_color": "#dddddd",
+  "theme_color": "#444444",
+  "background_color": "#444444",
   "icons": [
     {
       "src": "/app/go-tibia.png",
@@ -23,6 +23,6 @@
     }
   ],
 
-
+  "display_override": ["window-controls-overlay"],
   "scope": "/"
 }

@@ -2,6 +2,7 @@
   <head>
     <meta charset="utf-8" />
     <title>gotwebfe</title>
+    <meta name="theme-color" content="#444444"><!-- keep in sync with manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="go-tibia-192.png">
     <script src="wasm_exec.js"></script>
@@ -116,6 +117,85 @@
     </div>
     -->
 
+    <div class="window-controls-overlay panelfont" id="window-controls-overlay">
+      <div class="titlebar" id="window-controls-titlebar">Go-Tibia
+        <button class="button"><div>inactive button</div></button>
+      </div>
+      <script>
+        /* this mostly-unused block mostly from: https://web.dev/window-controls-overlay/ */
+        var div = document.getElementById('window-controls-titlebar');
+        if ('windowControlsOverlay' in navigator) {
+            // Window Controls Overlay is supported.
+            console.log('window controls overlay enabled');
+
+
+            const { x } = navigator.windowControlsOverlay.getTitlebarAreaRect();
+            // Window controls are on the right (like on Windows).
+            // Chrome menu is left of the window controls.
+            // [ windowControlsOverlay___________________ […] [_] [■] [X] ]
+            if (x === 0) {
+                div.classList.add('window-controls-right');
+            }
+            // Window controls are on the left (like on macOS).
+            // Chrome menu is right of the window controls overlay.
+            // [ [X] [_] [■] ___________________windowControlsOverlay [⋮] ]
+            else {
+                div.classList.add('window-controls-left');
+            }
+        } else {
+            // When running in a non-supporting browser tab.
+            div.classList.add('window-controls-right');
+        }
+
+        if (navigator.windowControlsOverlay.visible) {
+            // The window controls overlay is visible in the title bar area.
+        }
+
+        // Create the query list.
+        const mediaQueryList = window.matchMedia('(display-mode: window-controls-overlay)');
+
+        // Define a callback function for the event listener.
+        function handleDisplayModeChange(mql) {
+            // React on display mode changes.
+            console.log('orientation changed');
+        }
+
+        // Run the display mode change handler once.
+        handleDisplayModeChange(mediaQueryList);
+
+        // Add the callback function as a listener to the query list.
+        mediaQueryList.addEventListener('change', handleDisplayModeChange);
+
+
+        const debounce = (func, wait) => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        };
+
+        if ('windowControlsOverlay' in navigator) {
+            //navigator.windowControlsOverlay.ongeometrychange = debounce((e) => {
+            //    span.hidden = e.titlebarAreaRect.width < 800;
+            //}, 250);
+        }
+        navigator.windowControlsOverlay.addEventListener(
+            'geometrychange',
+            debounce((e) => {
+                //span.hidden = e.titlebarAreaRect.width < 800;
+            }, 250),
+        );
+
+      </script>
+    </div>
+
+    <div class="window-controls-overlay-content-spacing"></div>
+
     <div class="window" style="margin-left: auto; margin-right: auto; width: 250px; height: 100px;" id="install">
       <div class="titlebar">gotwebfe</div>
       <div class="content">
@@ -123,7 +203,7 @@
       </div>
       <div class="bottombar"></div>
     </div>
-   
+
 
     <div style="padding: 30px; width: 700px; height: 900px; margin-left: auto; margin-right: auto;">
       <div class="window" style="margin-left: auto; margin-right: auto; width: 250px; height: 150px;">

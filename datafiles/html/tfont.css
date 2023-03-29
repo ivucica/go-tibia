@@ -167,7 +167,7 @@ h1::selection {
 }
 */
 
-.window > .titlebar {
+.window > .titlebar, .window-controls-overlay > .titlebar {
     border-image-source: url(/pic/4?x=106&y=183&w=8&h=17);
     border-image-source: image(/pic/4#xywh=106,183,8,17);
     border-image-slice: 4 2; /* not using fill, that's in the background image */
@@ -231,4 +231,61 @@ h1::selection {
     border-image-slice: 1 fill;
     border-image-width: 1px;
     border-image-repeat: round;
+}
+
+.window-controls-overlay {
+    /* titlebar per: https://web.dev/window-controls-overlay/ */
+
+    position: fixed;
+    color: #aaa;
+    background-color: #444444; /* match theme-color in index.html */
+    left: env(titlebar-area-x, 0);
+    top: env(titlebar-area-y, 0);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 33px);
+
+    -webkit-app-region: drag;
+    app-region: drag;
+}
+
+.window-controls-overlay > button, .window-controls-overlay > .titlebar > button {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+}
+
+.window-controls-overlay > .titlebar {
+    height: env(titlebar-area-height, 17px);
+    line-height: env(titlebar-area-height, 17px);
+    border-image-width: 0px 4px 4px 4px;
+}
+
+/* For macOS: */
+.window-controls-overlay > .titlebar.window-controls-left {
+    /*background-image: linear-gradient(90deg, #36c, 45%, #131313, 90%, #36c);*/
+    text-align: center;
+}
+
+/* For Windows: */
+.window-controls-overlay > .titlebar.window-controls-right {
+    /*background-image: linear-gradient(90deg, #36c, #131313, 33%, #36c);*/
+    text-align: left;
+}
+
+@media (display-mode: window-controls-overlay) {
+    .window-controls-overlay {
+        background-color: #000;
+        max-height: env(titlebar-area-height, inherit);
+        overflow-y: hidden;
+    }
+    .window-controls-overlay > .titlebar {
+        max-height: env(titlebar-area-height, 9px);
+        overflow-y: hidden;
+        line-height: env(titlebar-area-height, 9px);
+        padding-left: 4px;
+    }
+    .window-controls-overlay-content-spacing {
+        display: block;
+        width: 100%;
+        height: env(titlebar-area-height, 40px);
+    }
 }
