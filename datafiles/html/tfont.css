@@ -170,22 +170,21 @@ h1::selection {
 .window > .titlebar {
     border-image-source: url(/pic/4?x=106&y=183&w=8&h=17);
     border-image-source: image(/pic/4#xywh=106,183,8,17);
-    border-image-slice: 4 fill;
-    border-image-width: 4px 4px 4px 4px;
+    border-image-slice: 4 2; /* not using fill, that's in the background image */
+    border-image-width: 4px 2px 4px 2px;
     border-image-repeat: round;
 
-    background-image: url(/pic/4?x=114&y=183&w=96&h=17);
+    background-image: url(/pic/4?x=114&y=186&w=96&h=13); /* options: y 183, h 17 or y 186 height 13 */
+    border-style: solid;
 
     text-align: center;
     color: rgb(60%, 60%, 60%);
 
-    width: 100%;
-
     user-select: none;
-    border: 2px 4px 2px 4px;
+    border-width: 4px 2px 4px 2px;
     min-width: 8px;
-    height: 17px;
-    line-height: 17px;
+    height: 9px; /* 17px total - 8px for border image */
+    line-height: 9px; /* 17px total - 8px for border image */
 }
 .window {
     border-image-source: url(/pic/4?x=256&y=0&w=8&h=96);
