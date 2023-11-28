@@ -232,6 +232,7 @@
             <button onclick="addY(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>Y+</div></button>
             <button onclick="subX(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>X-</div></button>
             <button onclick="subY(); document.getElementById('mapProgress').style.visibility = 'inherit'; setTimeout(_ => loaderPromise().then((val) => showMap()).then(() => document.getElementById('mapProgress').style.visibility = 'hidden'), 0)"><div>Y-</div></button>
+            <button onclick="document.getElementById('map').classList.toggle('isometric');"><div>iso</div></button>
             <br>
           <progress id="mapProgress" style="visibility: hidden;"></progress>
           </p>

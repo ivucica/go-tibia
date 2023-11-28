@@ -201,6 +201,7 @@ h1::selection {
 }
 .window > .content {
     margin: 10px;
+    overflow: hidden;
 }
 .window > .bottombar {
     border-image-source: url(/pic/4?x=98&y=193&w=8&h=4);
@@ -231,6 +232,10 @@ h1::selection {
     border-image-slice: 1 fill;
     border-image-width: 1px;
     border-image-repeat: round;
+}
+
+#map.isometric {
+    transform: scaley(0.7) rotate(45deg);
 }
 
 .window-controls-overlay {
