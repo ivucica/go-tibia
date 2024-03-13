@@ -1,9 +1,11 @@
+//go:build js && wasm
 // +build js,wasm
 
 package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"image"
 	"image/png"
@@ -13,7 +15,7 @@ import (
 	"runtime/debug"
 	"syscall/js"
 
-	"badc0de.net/pkg/go-tibia/compositor"
+	"badc0de.net/pkg/go-tibia/compositor/dom"
 	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/otb/map"
 	"badc0de.net/pkg/go-tibia/paths"
@@ -113,6 +115,13 @@ func showImg(in image.Image, parentElementID string, replace bool) {
 	document := js.Global().Get("document")
 	img := document.Call("createElement", "img")
 	img.Set("src", string(byt))
+
+	showDOM(img, parentElementID, replace)
+}
+
+func showDOM(showable js.Value, parentElementID string, replace bool) {
+	document := js.Global().Get("document")
+
 	parent := document.Call("getElementById", parentElementID)
 	if parent.IsNull() || parent.IsUndefined() {
 		log.Printf("[W] showImg: appending to body, because %q cannot be found", parentElementID)
@@ -132,8 +141,7 @@ func showImg(in image.Image, parentElementID string, replace bool) {
 			}
 		}
 	}
-	parent.Call("appendChild", img)
-
+	parent.Call("appendChild", showable)
 }
 func showError(pfx string, err error) {
 	log.Printf("[E] %s: %v", pfx, err)
@@ -252,14 +260,19 @@ func loaderImp(resolve, reject js.Value) {
 }
 
 func showMap(this js.Value, arg []js.Value) interface{} {
+	ctx := context.TODO()
+	window := js.Global()
 
 	//log.Println("loaded, now compositing")
 	m := globalMap
 	t := globalThings
-	img := compositor.CompositeMap(m, t, tx, ty, ttop, tbot, tw, th, 32, 32)
-	//log.Println("composited")
 
-	showImg(img, "map", true)
+	if mp, err := dom.CompositeMapToDOM(ctx, window, m, t, tx, ty, ttop, tbot, tw, th, 32, 32); err == nil {
+		showDOM(mp, "map", true)
+	} else {
+		showError("showMap", err)
+	}
+	//log.Println("composited")
 
 	// TODO(ivucica): clear images from globalThings
 	runtime.GC()
