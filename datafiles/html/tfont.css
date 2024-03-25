@@ -170,8 +170,8 @@ h1::selection {
 .window > .titlebar, .window-controls-overlay > .titlebar {
     border-image-source: url(/pic/4?x=106&y=183&w=8&h=17);
     border-image-source: image(/pic/4#xywh=106,183,8,17);
-    border-image-slice: 4 2; /* not using fill, that's in the background image */
-    border-image-width: 4px 2px 4px 2px;
+    border-image-slice: 2 4 4 3; /* not using fill, that's in the background image */
+    border-image-width: 2px 4px 4px 3px; /* match the above with top, right, bottom, left; the fill is what remains */
     border-image-repeat: round;
 
     background-image: url(/pic/4?x=114&y=186&w=96&h=13); /* options: y 183, h 17 or y 186 height 13 */
@@ -181,10 +181,10 @@ h1::selection {
     color: rgb(60%, 60%, 60%);
 
     user-select: none;
-    border-width: 4px 2px 4px 2px;
+    border-width: 2px 4px 4px 3px;
     min-width: 8px;
-    height: 9px; /* 17px total - 8px for border image */
-    line-height: 9px; /* 17px total - 8px for border image */
+    height: 11px; /* 17px total - 6px for border image */
+    line-height: 17px;
 }
 .window {
     border-image-source: url(/pic/4?x=256&y=0&w=8&h=96);
