@@ -258,7 +258,7 @@ h1::selection {
     app-region: drag;
 }
 
-.window-controls-overlay > button, .window-controls-overlay > .titlebar > button {
+.window-controls-overlay > button, .window-controls-overlay > .titlebar > button, .window-controls-overlay > .titlebar > .button-area, .window-controls-overlay > .button-area {
     -webkit-app-region: no-drag;
     app-region: no-drag;
 }
@@ -268,6 +268,14 @@ h1::selection {
     line-height: calc(env(titlebar-area-height, 17px) - 6px); /* 6px = titlebar margins derived from image size */
     min-height: 17px;
     border-image-width: 2px 4px 4px 3px;
+}
+
+.window-controls-overlay > .button-area, .window-controls-overlay > .titlebar > .button-area {
+    position: absolute;
+    top: 0px;
+    left: calc(env(titlebar-area-width, 0px) - 100px);
+    width: 100px;
+    display: inline-block;
 }
 
 /* For macOS: */

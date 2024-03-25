@@ -118,8 +118,17 @@
     -->
 
     <div class="window-controls-overlay panelfont" id="window-controls-overlay">
-      <div class="titlebar" id="window-controls-titlebar">Go-Tibia
-        <button class="button"><div>inactive button</div></button>
+      <div class="titlebar" id="window-controls-titlebar">
+        <!-- todo: move inline style into css -->
+        <div class="titlebar-icon" id="window-controls-icon" style="display: inline; height: 100%; position: relative;">
+          <img src="/creature/203-2-0" class="titlebar-icon" id="window-controls-icon" width="16" height="16" align="center" style="left: -3px; top: 0px; position: absolute;"><!-- titlebar height is presumably 17px in css -->
+        </div>
+        <div style="display: inline-block; width: 16px;"></div><!-- todo: combine with above so space is correctly taken -->
+        Go-Tibia
+
+        <div class="button-area" >
+          <button class="button"><div>inactive button</div></button>
+        </div>
       </div>
       <script>
         /* this mostly-unused block mostly from: https://web.dev/window-controls-overlay/ */
