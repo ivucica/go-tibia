@@ -249,6 +249,11 @@ h1::selection {
     width: env(titlebar-area-width, 100%);
     height: env(titlebar-area-height, 33px);
 
+    /* Zooming the page zooms in the overlay content as well. We should keep the font size smaller. */
+    /* However this seems tricky to do: manipulating 'zoom' or 'font-size' from just CSS might be infeasible. */
+    /* Some starting points: https://stackoverflow.com/questions/5063489/how-can-you-get-the-css-pixel-device-pixel-ratio */
+    /* However: We can allow titlebar to grow instead using min-height. */
+
     -webkit-app-region: drag;
     app-region: drag;
 }
@@ -259,9 +264,10 @@ h1::selection {
 }
 
 .window-controls-overlay > .titlebar {
-    height: env(titlebar-area-height, 17px);
-    line-height: env(titlebar-area-height, 17px);
-    border-image-width: 0px 4px 4px 4px;
+    height: calc(env(titlebar-area-height, 17px) - 6px); /* 6px = titlebar margins derived from image size */
+    line-height: calc(env(titlebar-area-height, 17px) - 6px); /* 6px = titlebar margins derived from image size */
+    min-height: 17px;
+    border-image-width: 2px 4px 4px 3px;
 }
 
 /* For macOS: */
@@ -279,13 +285,15 @@ h1::selection {
 @media (display-mode: window-controls-overlay) {
     .window-controls-overlay {
         background-color: #000;
-        max-height: env(titlebar-area-height, inherit);
-        overflow-y: hidden;
+        /* max-height: env(titlebar-area-height, inherit);
+        overflow-y: hidden; */
+        /* Due to font size giving us trouble, let's not limit the height. */
     }
     .window-controls-overlay > .titlebar {
+        /* Due to font size giving us trouble, let's not limit the height.
         max-height: env(titlebar-area-height, 9px);
-        overflow-y: hidden;
-        line-height: env(titlebar-area-height, 9px);
+        overflow-y: hidden; */
+        line-height: calc(env(titlebar-area-height, 17px) - 6px); /* 6px = titlebar margins derived from image size */
         padding-left: 4px;
     }
     .window-controls-overlay-content-spacing {
@@ -293,4 +301,29 @@ h1::selection {
         width: 100%;
         height: env(titlebar-area-height, 40px);
     }
+}
+
+
+/* Tell browser to mess with fonts less */
+/* https://github.com/DavidBuchanan314/bitmap-font-css */
+@media
+  (resolution: 1dppx),
+  (resolution: 2dppx),
+  (resolution: 3dppx),
+  (resolution: 4dppx)
+{
+    /* Only do this when scaling ratio is integer. */
+    body {
+        text-size-adjust: none;
+        -webkit-text-size-adjust: none;
+    }
+    body {
+        -webkit-font-smoothing: none;
+        -moz-osx-font-smoothing: grayscale;
+        font-smooth: never;
+    }
+    /* Disable subpixel antialiasing. However, doing this makes the titlebar with position:fixed offset from top left. */
+    /* body {
+        filter: contrast(100.00001%);
+    } */
 }
