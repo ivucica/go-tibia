@@ -101,23 +101,23 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		glog.Errorln("error generating the motd message: ", err)
 		return err
 	}
-/*
-	// add checksum and size headers wherever appropriate, and perform
-	// XTEA crypto.
-	resp, err = resp.Finalize(key)
-	if err != nil {
-		glog.Errorf("error finalizing login message response: %s", err)
-		return err
-	}
+	/*
+		// add checksum and size headers wherever appropriate, and perform
+		// XTEA crypto.
+		resp, err = resp.Finalize(key)
+		if err != nil {
+			glog.Errorf("error finalizing login message response: %s", err)
+			return err
+		}
 
-	// transmit the response
-	wr, err := io.Copy(conn, resp)
-	if err != nil {
-		glog.Errorf("error writing login message response: %s", err)
-		return err
-	}
-	glog.V(2).Infof("written %d bytes", wr)
-*/
+		// transmit the response
+		wr, err := io.Copy(conn, resp)
+		if err != nil {
+			glog.Errorf("error writing login message response: %s", err)
+			return err
+		}
+		glog.V(2).Infof("written %d bytes", wr)
+	*/
 	///////
 	localAddr := conn.LocalAddr()
 	if localAddr == nil {
@@ -130,8 +130,8 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 		glog.Errorln("could not get local TCP addr")
 		return fmt.Errorf("error getting local TCP addr")
 	}
-	
-//	resp = tnet.NewMessage()
+
+	//	resp = tnet.NewMessage()
 	err = CharacterList(resp, []CharacterListEntry{
 		CharacterListEntry{
 			CharacterName:  "Demo Character",

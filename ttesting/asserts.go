@@ -27,4 +27,3 @@ func AssertInRangeUint32(t *testing.T, name string, got, wantMin, wantMax uint32
 		}
 	})
 }
-

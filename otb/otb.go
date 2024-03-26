@@ -184,7 +184,7 @@ func (n *OTBNode) parse(reader io.ReadSeeker, depth int) error {
 				}
 			case NODE_END:
 				if cnt, err = reader.Read(bytA); err != nil || cnt != 1 {
-					if err == io.EOF  || cnt != 1 {
+					if err == io.EOF || cnt != 1 {
 						if depth != 0 {
 							glog.Warning("warning: abrupt end to an OTB.")
 						}

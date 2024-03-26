@@ -1,6 +1,5 @@
 //go:build go1.13 && !windows
-// +build go1.13
-// +build !windows
+// +build go1.13,!windows
 
 package imageprint
 

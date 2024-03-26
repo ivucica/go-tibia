@@ -306,12 +306,12 @@ func (msg *Message) finalize(includeChecksum bool) (*Message, error) {
 	}
 
 	/*
-	if !includeChecksum {
-			// TODO(ivucica): randomize the junk
-			for i := int16(0) ; i < sz - origSz ; i++ {
-				newMsg.Write([]byte{0xAB})
+		if !includeChecksum {
+				// TODO(ivucica): randomize the junk
+				for i := int16(0) ; i < sz - origSz ; i++ {
+					newMsg.Write([]byte{0xAB})
+				}
 			}
-		}
 	*/
 
 	return newMsg, nil

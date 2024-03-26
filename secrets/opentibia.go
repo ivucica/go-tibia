@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	bigOne              = big.NewInt(1)
+	bigOne = big.NewInt(1)
 	// RSA private key used by OpenTibia server to decrypt content encrypted with the corresponding public key.
 	OpenTibiaPrivateKey rsa.PrivateKey
 )

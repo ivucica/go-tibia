@@ -28,7 +28,7 @@ func getPossiblePathDirsHTTPImp() []string {
 //
 // TODO(ivucica): Fetch list of available files and compare to it. Or check with service worker's cache to see if the file is available.
 func getPossiblePathsHTTPImp(fileName string) []string {
-	return []string{"http:/"+fileName}
+	return []string{"http:/" + fileName}
 }
 
 // Open would usually locate the passed file in the same locations that Find

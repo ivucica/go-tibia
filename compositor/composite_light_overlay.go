@@ -9,7 +9,6 @@ import (
 	"github.com/golang/glog"
 )
 
-
 type compositeLightOverlay struct {
 	ambientColor color.Color // most often dat.DatasetColor
 	ambientLevel uint8
