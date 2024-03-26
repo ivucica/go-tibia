@@ -1,13 +1,15 @@
 package gameworld
 
 import (
-	tnet "badc0de.net/pkg/go-tibia/net"
-	"badc0de.net/pkg/go-tibia/otb/items"
 	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"time"
+
+	"badc0de.net/pkg/go-tibia/dat"
+	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
 
 	//"github.com/cavaliercoder/go-abs" // int abs is trivial, but *shrug*, this is easy to replace as needed.
 	"github.com/golang/glog"
@@ -33,6 +35,7 @@ type MapDataSource interface {
 	GetCreatureByID(CreatureID) (Creature, error)
 	AddCreature(creature Creature) error
 	RemoveCreatureByID(CreatureID) error
+	GetAmbientLight() (ambientColor dat.DatasetColor, ambientLevel uint8) // This might not belong in this interface: it's useful for renderer, but how would we combine multiple backing data sources and the fact this is really gameworld-wide? It might belong in gameworld instead.
 
 	Private_And_Temp__DefaultPlayerSpawnPoint(CreatureID) tnet.Position
 }

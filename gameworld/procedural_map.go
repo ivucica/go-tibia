@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"badc0de.net/pkg/go-tibia/dat"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/things"
 
@@ -89,6 +90,15 @@ func mapItemOfType(t int) MapItem {
 	return &mi
 }
 
+const (
+	//nightAmbient = color.RGBA{0, 0, 20, 240}
+	//nightAmbient = color.RGBA{20, 20, 40, 240}
+	NightAmbient      = dat.DatasetColor(0xD7)
+	NightAmbientLevel = uint8(40)
+	DayAmbient        = dat.DatasetColor(0xD7)
+	DayAmbientLevel   = uint8(250)
+)
+
 ///////////////////////////
 
 func (ds *mapDataSource) Private_And_Temp__DefaultPlayerSpawnPoint(c CreatureID) tnet.Position {
@@ -97,6 +107,10 @@ func (ds *mapDataSource) Private_And_Temp__DefaultPlayerSpawnPoint(c CreatureID)
 		Y:     32768 + 14/2,
 		Floor: 7,
 	}
+}
+
+func (ds *mapDataSource) GetAmbientLight() (dat.DatasetColor, uint8) {
+	return NightAmbient, NightAmbientLevel
 }
 
 func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {

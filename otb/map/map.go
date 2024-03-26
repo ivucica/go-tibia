@@ -7,6 +7,7 @@ import (
 	"badc0de.net/pkg/go-tibia/otb"
 	"github.com/golang/glog"
 
+	"badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/things"
 
@@ -62,6 +63,10 @@ func (m *Map) Private_And_Temp__DefaultPlayerSpawnPoint(c gameworld.CreatureID) 
 		Y:     pos.Y(),
 		Floor: pos.Floor(),
 	}
+}
+
+func (m *Map) GetAmbientLight() (dat.DatasetColor, uint8) {
+	return gameworld.NightAmbient, gameworld.NightAmbientLevel
 }
 
 type mapTile struct {

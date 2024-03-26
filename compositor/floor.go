@@ -77,7 +77,7 @@ func compositeFloor(m gameworld.MapDataSource, th *things.Things, x, y uint16, z
 		}
 		draw.Draw(floorImg, fullSize, overlay, image.ZP, draw.Over)
 	} else {
-		overlay = compositeLightOverlayGen(width, height, tileW, tileH, lights, floorImg)
+		overlay = compositeLightOverlayGen(width, height, tileW, tileH, lights, ambientColor, ambientLevel, floorImg)
 		draw.Draw(floorImg, fullSize, overlay, image.ZP, draw.Over)
 	}
 

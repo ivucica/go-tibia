@@ -11,6 +11,9 @@ import (
 
 
 type compositeLightOverlay struct {
+	ambientColor color.Color // most often dat.DatasetColor
+	ambientLevel uint8
+
 	lights []*Light
 	bounds image.Rectangle
 	base   image.Image
@@ -32,9 +35,9 @@ func (o *compositeLightOverlay) At(x, y int) color.Color {
 	//var c color.Color
 	//c = nightAmbient
 
-	aR, aG, aB, aA := nightAmbient.RGBA()
+	aR, aG, aB, aA := o.ambientColor.RGBA()
 
-	brightness := float64(nightAmbientLevel) / 255.0
+	brightness := float64(o.ambientLevel) / 255.0
 	aR = uint32(float64(aR) * brightness)
 	aG = uint32(float64(aG) * brightness)
 	aB = uint32(float64(aB) * brightness)
@@ -80,7 +83,7 @@ func (o *compositeLightOverlay) At(x, y int) color.Color {
 	return c
 }
 
-func compositeLightOverlayGen(width, height int, tileW, tileH int, lights []*Light, base image.Image) image.Image {
+func compositeLightOverlayGen(width, height int, tileW, tileH int, lights []*Light, ambientColor color.Color, ambientLevel uint8, base image.Image) image.Image {
 	fullSize := image.Rect(0, 0, width*tileW, height*tileH)
 	img := image.NewRGBA(fullSize)
 
@@ -89,7 +92,7 @@ func compositeLightOverlayGen(width, height int, tileW, tileH int, lights []*Lig
 	//draw.Draw(img, fullSize, &image.Uniform{nightOverlay}, image.ZP, draw.Src)
 	//} else {
 	glog.Infof("%d lights", len(lights))
-	draw.Draw(img, fullSize, &compositeLightOverlay{bounds: fullSize, lights: lights, base: base}, image.ZP, draw.Src)
+	draw.Draw(img, fullSize, &compositeLightOverlay{bounds: fullSize, lights: lights, ambientColor: ambientColor, ambientLevel: ambientLevel, base: base}, image.ZP, draw.Src)
 	//}
 
 	return img
