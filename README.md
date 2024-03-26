@@ -4,7 +4,7 @@ Just a toy project to see how far Go's built in crypto primitives can take me,
 with some experimentation on how decent the Go interface abstractions, and how
 useful Go's WASM support is.
 
-Copyright © 2017-2022 Ivan Vucica. See the [LICENSE](LICENSE) for licensing
+Copyright © 2017-2024 Ivan Vucica. See the [LICENSE](LICENSE) for licensing
 information.
 
 ## gotserv: OTServ in Go
@@ -40,6 +40,9 @@ Main binary: `badc0de.net/pkg/go-tibia/cmd/gotwebfe`
 Code intended to be compiled into WASM and run in-browser. Loads spr, pic,
 dat, items.xml and otbm files, and can render the map using the compositor.
 
+Portion of the implementation is in HTML and CSS files in `datafiles/html`.
+It's currently a PWA: it'll cache spr, pic, dat etc offline.
+
 [Godoc documentation](https://godoc.org/badc0de.net/pkg/go-tibia/cmd/gotwebfe)
 
 ## itemprint
@@ -66,6 +69,7 @@ There's:
 * [a login server](https://godoc.org/badc0de.net/pkg/go-tibia/login)
 * [a gameworld server](https://godoc.org/badc0de.net/pkg/go-tibia/gameworld)
 * [a compositor for the map](https://godoc.org/badc0de.net/pkg/go-tibia/compositor), a toy compositor painting a map into an `image.Image`, including lighting
+    * [a browser DOM compositor for the map](https://godoc.org/badc0de.net/pkg/go-tibia/compositor/dom), a toy compositor assembling a map out of DOM objects using `syscall/js` (i.e. for WASM environment); the actual approach (a single `<img>`, or many `<img>` representing tiles, or many `<img>`s representing items on tiles) is an implementation
 * [an abstract representation of 'things'](https://godoc.org/badc0de.net/pkg/go-tibia/things) such as items, creatures, etc, as an abstraction of items from items.otb, or .dat dataset, or otherwise
     * includes a toy, experimental compositor for items and creatures into `image.Image`
     * also can load "all" files from "default paths"
