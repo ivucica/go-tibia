@@ -12,9 +12,11 @@
 //     house. Hence, lightmap should not enshroud floor 7 with config
 //     x=111&y=108&bot=7&top=0 or x=111&y=108&bot=7&top=6, but it should
 //     do so with x=111&y=108&bot=7&top=7.
+//
 //  2. Light sometimes penetrates from the lower floors. For instance,
 //     fences on upper floors do get some light from the bottom floor,
 //     but just one tile further away, the light is no longer visible.
+//
 //  3. While most light items seem to be behaving fine, the 'void'
 //     (client item 100 on 8.54) is not emitting any light into the light
 //     map, despite being marked as such in .dat (a brown color light
