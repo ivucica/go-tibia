@@ -8,6 +8,7 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.2.0
 	github.com/andybons/gogif v0.0.0-20140526152223-16d573594812
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
+	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/ericpauley/go-quantize v0.0.0-20200331213906-ae555eb2afa4
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gookit/color v1.2.3

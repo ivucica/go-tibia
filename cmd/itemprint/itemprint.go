@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"badc0de.net/pkg/flagutil"
+	"github.com/common-nighthawk/go-figure"
 
 	"badc0de.net/pkg/go-tibia/paths"
 )
@@ -58,6 +59,9 @@ func main() {
 	flag.Set("logtostderr", "true")
 
 	th = thingsOpen()
+
+	fig := figure.NewColorFigure("go-tibia itemprint", "", "green", true)
+	fig.Print()
 
 	if *sprID != 0 {
 		sprHandler(*sprID)
