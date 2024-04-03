@@ -1,0 +1,9 @@
+{
+  "name": "gotwebfe-runner",
+  "version": "0.0.1",
+  "description": "Minimal alternative WASI runner in place of cmd/gotwebfe_runner.",
+  "author": "Ivan Vucica <ivan@vucica.net>",
+  "dependencies": {
+    "wasi-js": "^1.7.3"
+  }
+}
