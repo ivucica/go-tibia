@@ -66,7 +66,8 @@ func main() {
 	*/
 	case 3: // use wasi
 		// use a downloaded wasi file since local dev environment is on 1.19, so we can't get a wasip1 version of main.wasm built
-		wasmBytes, _ = ioutil.ReadFile("wasmerio-example-module.wasm")
+		//wasmBytes, _ = ioutil.ReadFile("wasmerio-example-module.wasm")
+		wasmBytes, _ = ioutil.ReadFile("datafiles/html/main-wasi.wasm")
 
 		var sayHello wasmer.NativeFunction
 		var err error
@@ -174,6 +175,6 @@ func wasiWasmer(wasmBytes []byte) (wasmer.NativeFunction, error) {
 	//HelloWorld, err := instance.Exports.GetFunction("HelloWorld")
 	//result, _ := HelloWorld()
 
-	//return instance.Exports.GetFunction("ExportedSayHello")
-	return instance.Exports.GetFunction("HelloWorld")
+	return instance.Exports.GetFunction("ExportedSayHello")
+	//return instance.Exports.GetFunction("HelloWorld")
 }
