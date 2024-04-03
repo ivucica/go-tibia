@@ -9,6 +9,8 @@ if [[ -e "${GOPATH}"/src/badc0de.net/pkg/go-tibia/vapid.inc.sh ]] ; then
 fi
 
 go get -v badc0de.net/pkg/go-tibia/cmd/gotweb
-${GOPATH}/src/badc0de.net/pkg/go-tibia/build-wasm.sh
+go install -v badc0de.net/pkg/go-tibia/cmd/gotweb
+if [[${WASM_BUILD} != off ]] ; then
+  ${GOPATH}/src/badc0de.net/pkg/go-tibia/build-wasm.sh
+fi
 ${GOPATH}/bin/gotweb --logtostderr --listen_address :9444 ${VAPID_ARGS} "$@"
-

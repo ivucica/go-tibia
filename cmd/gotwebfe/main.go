@@ -158,6 +158,12 @@ func sayHello(this js.Value, inputs []js.Value) interface{} {
 	return "Hi " + firstArg + " from Go!"
 }
 
+//export ExportedSayHello
+func ExportedSayHello(this js.Value, inputs []js.Value) interface{} {
+	// Exported version of the function usable in gotwebfe-runner.
+	return sayHello(this, inputs)
+}
+
 func showSpr(this js.Value, arg []js.Value) interface{} {
 	_, err := sprReaderSeekerCloser.Seek(0, io.SeekStart)
 	if err != nil {
