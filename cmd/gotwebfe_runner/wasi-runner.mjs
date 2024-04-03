@@ -1,5 +1,5 @@
 #!/usr/bin/node --es-module-specifier-resolution=node
-# For NodeJS v18.13.0
+// For NodeJS v18.13.0
 
 import wasiJs from 'wasi-js';
 const WASI = wasiJs.default;
