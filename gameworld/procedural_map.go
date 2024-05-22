@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"sync"
 
 	"badc0de.net/pkg/go-tibia/dat"
 	tnet "badc0de.net/pkg/go-tibia/net"
@@ -69,6 +70,7 @@ type mapDataSource struct {
 	creatures map[CreatureID]Creature
 
 	generatedMapTiles map[tnet.Position]MapTile
+	generatedMapTilesLock sync.Mutex
 
 	mapTileGenerator func(x, y uint16, z uint8) (MapTile, error)
 }
@@ -114,6 +116,9 @@ func (ds *mapDataSource) GetAmbientLight() (dat.DatasetColor, uint8) {
 }
 
 func (ds *mapDataSource) GetMapTile(x, y uint16, z uint8) (MapTile, error) {
+	ds.generatedMapTilesLock.Lock()
+	defer ds.generatedMapTilesLock.Unlock()
+
 	if t, ok := ds.generatedMapTiles[tnet.Position{x, y, z}]; ok {
 		return t, nil
 	}
