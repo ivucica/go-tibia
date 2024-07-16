@@ -43,7 +43,11 @@ var (
 
 	tibiaPicPath string
 	mapPath      string
-	htmlPath     string
+
+	htmlPath        string
+	appHTMLPath     string
+	itemsHTMLPath   string
+	outfitsHTMLPath string
 )
 
 type ReadSeekerCloser interface {
@@ -60,9 +64,11 @@ func setupFilePathFlags() {
 	full.SetupFilePathFlags()
 	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
 	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
-	paths.SetupFilePathFlag("html/index.html", "index_html_path", &htmlPath)
+	paths.SetupFilePathFlag("itemtable.html", "items_index_html_path", &itemsHTMLPath)
+	paths.SetupFilePathFlag("outfittable.html", "outfits_index_html_path", &outfitsHTMLPath)
+	paths.SetupFilePathFlag("html/index.html", "app_html_path", &appHTMLPath)
 	paths.SetupFilePathFlag("vapid_subscriptions.json", "writable_vapid_subscriptions_json_path", &vapidSubscriptionsPath)
-	htmlPath = filepath.Dir(htmlPath)
+	htmlPath = filepath.Dir(appHTMLPath)
 }
 
 func thingsOpen() *things.Things {
@@ -154,66 +160,81 @@ func main() {
 
 	itemTableTemplate := template.New("")
 	itemTableTemplate = itemTableTemplate.Funcs(funcs)
-	itemTableTemplate, err = itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
+	itemTableTemplate, err = itemTableTemplate.ParseFiles(itemsHTMLPath)
 
 	if err != nil {
 		glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
 	} else {
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// REMOVE THIS begin
-			// removeable because used only to reload itemtable.html during dev
-			itemTableTemplate := template.New("")
-			itemTableTemplate = itemTableTemplate.Funcs(funcs)
-			itemTableTemplate, err := itemTableTemplate.ParseFiles(paths.Find("itemtable.html"))
-			if err != nil {
-				glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			// REMOVE THIS end
+		// TODO: serve https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
+		fgen := func(pgSize int, defaultPg int) func(w http.ResponseWriter, r *http.Request) {
+			f := func(w http.ResponseWriter, r *http.Request) {
+				// REMOVE THIS begin
+				// removeable because used only to reload itemtable.html during dev
+				itemTableTemplate := template.New("")
+				itemTableTemplate = itemTableTemplate.Funcs(funcs)
+				itemTableTemplate, err := itemTableTemplate.ParseFiles(itemsHTMLPath)
+				if err != nil {
+					glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// REMOVE THIS end
 
-			pg := 0
-			pgSize := 50
+				pg := defaultPg
+				// pgSize := 25
 
-			if pgStr := r.URL.Query().Get("page"); pgStr != "" {
-				if pgConv, err := strconv.Atoi(pgStr); err == nil {
-					pg = pgConv - 1
+				if pgStr := r.URL.Query().Get("page"); pgStr != "" && defaultPg == 0 {
+					if pgConv, err := strconv.Atoi(pgStr); err == nil {
+						pg = pgConv - 1
+					}
+				}
+
+				w.Header().Set("Content-Type", "text/html")
+
+				itemCIDMin := 100
+				itemCIDMax := 10477 // TODO: ask things.Things
+				pgMin := 0
+				pgMax := (itemCIDMax - itemCIDMin) / pgSize
+
+				if pg < pgMin {
+					pg = pgMin
+				}
+				if pg > pgMax {
+					pg = pgMax
+				}
+
+				params := struct {
+					PG, PGMin, PGMax, PGSize int
+				}{
+					PG:     pg,
+					PGMin:  pgMin,
+					PGMax:  pgMax,
+					PGSize: pgSize,
+				}
+
+				err = itemTableTemplate.ExecuteTemplate(w, filepath.Base(itemsHTMLPath), params)
+				if err != nil {
+					glog.Errorf("failed to execute itemtable.html: %v", err)
 				}
 			}
+			return f
+		}
+		r.HandleFunc("/", fgen(25, 0))
+		r.HandleFunc("/citems/854/item/", fgen(25, 0))
 
-			w.Header().Set("Content-Type", "text/html")
-
-			itemCIDMin := 100
-			itemCIDMax := 10477 // TODO: ask things.Things
-			pgMin := 0
-			pgMax := (itemCIDMax - itemCIDMin) / pgSize
-
-			if pg < pgMin {
-				pg = pgMin
-			}
-			if pg > pgMax {
-				pg = pgMax
-			}
-
-			params := struct {
-				PG, PGMin, PGMax, PGSize int
-			}{
-				PG:     pg,
-				PGMin:  pgMin,
-				PGMax:  pgMax,
-				PGSize: pgSize,
-			}
-
-			err = itemTableTemplate.ExecuteTemplate(w, "itemtable.html", params)
-			if err != nil {
-				glog.Errorf("failed to execute itemtable.html: %v", err)
+		r.HandleFunc("/citems/854/item/{cid}", func(w http.ResponseWriter, r *http.Request) {
+			cid, err := strconv.Atoi(mux.Vars(r)["cid"])
+			if err != nil || cid < 100 || cid > 10477 {
+				http.NotFound(w, r)
+			} else {
+				fgen(1, cid-100)(w, r)
 			}
 		})
 	}
 
 	outfitTableTemplate := template.New("")
 	outfitTableTemplate = outfitTableTemplate.Funcs(funcs)
-	outfitTableTemplate, err = outfitTableTemplate.ParseFiles(paths.Find("outfittable.html"))
+	outfitTableTemplate, err = outfitTableTemplate.ParseFiles(outfitsHTMLPath)
 
 	if err != nil {
 		glog.Errorf("not serving /outfits/, could not parse outfittable.html: %v", err)
@@ -223,7 +244,7 @@ func main() {
 			// removeable because used only to reload outfittable.html during dev
 			outfitTableTemplate := template.New("")
 			outfitTableTemplate = outfitTableTemplate.Funcs(funcs)
-			outfitTableTemplate, err := outfitTableTemplate.ParseFiles(paths.Find("outfittable.html"))
+			outfitTableTemplate, err := outfitTableTemplate.ParseFiles(outfitsHTMLPath)
 			if err != nil {
 				glog.Errorf("not serving homepage, could not parse outfittable.html: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -239,7 +260,7 @@ func main() {
 				OutfitsXML: outfitsXML,
 			}
 
-			err = outfitTableTemplate.ExecuteTemplate(w, "outfittable.html", params)
+			err = outfitTableTemplate.ExecuteTemplate(w, filepath.Base(outfitsHTMLPath), params)
 			if err != nil {
 				glog.Errorf("failed to execute outfittable.html: %v", err)
 			}
@@ -358,13 +379,13 @@ func main() {
 			}
 			f.Close()
 
-			fiWasm, err := os.Stat(paths.Find("html/main.wasm"))
+			fiWasm, err := os.Stat(paths.Find("html/main.wasm")) // TODO: this is likely in htmlPath + "/main.wasm"
 			if err != nil {
 				http.Error(w, "500", http.StatusInternalServerError)
 				return
 			}
 
-			fiIndexHTML, err := os.Stat(paths.Find("html/index.html"))
+			fiIndexHTML, err := os.Stat(paths.Find("html/index.html")) // TODO: use appHTMLPath
 			if err != nil {
 				http.Error(w, "500", http.StatusInternalServerError)
 				return
