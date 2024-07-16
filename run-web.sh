@@ -13,4 +13,4 @@ go install -v badc0de.net/pkg/go-tibia/cmd/gotweb
 if [[ ${WASM_BUILD} != off ]] ; then
   ${GOPATH}/src/badc0de.net/pkg/go-tibia/build-wasm.sh
 fi
-${GOPATH}/bin/gotweb --logtostderr --listen_address :9444 ${VAPID_ARGS} "$@"
+${GOPATH}/bin/gotweb --logtostderr --listen_address :9444 ${VAPID_ARGS} --flag_file=${GOPATH}/src/badc0de.net/pkg/go-tibia/gotweb.flagfile "$@"
