@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/ericpauley/go-quantize/quantize"
 	"github.com/golang/glog"
@@ -89,12 +90,31 @@ func (h *Handler) itemHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 	w.Header().Set("ETag", etag)
+	var modTime time.Time
 	if s, err := os.Stat(h.tibiaSprPath); err == nil {
-		// TODO: max of tibia.dat, tibia.spr, maybe more
-		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+		if modTime.Before(s.ModTime()) {
+			modTime = s.ModTime()
+		}
+	}
+	// TODO: get tibia.dat path as well as well as other paths we may want to use
+	if !modTime.IsZero() {
+		w.Header().Set("Last-Modified", modTime.Format(http.TimeFormat))
 	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
+}
+
+func (h *Handler) citemRedirHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idx, err := strconv.Atoi(vars["idx"])
+	if err != nil {
+		http.Error(w, "idx not a number", http.StatusBadRequest)
+		return
+	}
+	url := fmt.Sprintf("/citem/854/%d", idx)
+	w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, url)) // note: url needs to be 'percent-encoded' per spec, incl. path has to be percent-encoded for charcodes over 255
+	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+	http.Redirect(w, r, url, http.StatusPermanentRedirect)
 }
 
 func (h *Handler) citemHandler(w http.ResponseWriter, r *http.Request) {
@@ -153,9 +173,15 @@ func (h *Handler) citemHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "public; max-age=3600")
 	w.Header().Set("ETag", etag)
+	var modTime time.Time
 	if s, err := os.Stat(h.tibiaSprPath); err == nil {
-		// TODO: max of tibia.dat, tibia.spr, maybe more
-		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+		if modTime.Before(s.ModTime()) {
+			modTime = s.ModTime()
+		}
+	}
+	// TODO: get tibia.dat path as well as well as other paths we may want to use
+	if !modTime.IsZero() {
+		w.Header().Set("Last-Modified", modTime.Format(http.TimeFormat))
 	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
@@ -238,9 +264,15 @@ func (h *Handler) creatureHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "public; max-age=3600")
 	w.Header().Set("ETag", etag)
+	var modTime time.Time
 	if s, err := os.Stat(h.tibiaSprPath); err == nil {
-		// TODO: max of tibia.dat, tibia.spr, maybe more
-		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+		if modTime.Before(s.ModTime()) {
+			modTime = s.ModTime()
+		}
+	}
+	// TODO: get tibia.dat path as well as well as other paths we may want to use
+	if !modTime.IsZero() {
+		w.Header().Set("Last-Modified", modTime.Format(http.TimeFormat))
 	}
 	w.WriteHeader(http.StatusOK)
 	png.Encode(w, img)
@@ -340,9 +372,15 @@ func (h *Handler) creatureGIFHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Cache-Control", "public; max-age=3600")
 	w.Header().Set("ETag", etag)
+	var modTime time.Time
 	if s, err := os.Stat(h.tibiaSprPath); err == nil {
-		// TODO: max of tibia.dat, tibia.spr, maybe more
-		w.Header().Set("Last-Modified", s.ModTime().Format(http.TimeFormat))
+		if modTime.Before(s.ModTime()) {
+			modTime = s.ModTime()
+		}
+	}
+	// TODO: get tibia.dat path as well as well as other paths we may want to use
+	if !modTime.IsZero() {
+		w.Header().Set("Last-Modified", modTime.Format(http.TimeFormat))
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -509,7 +547,9 @@ func (h *Handler) mapHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/spr/{idx:[0-9]+}", h.sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", h.itemHandler)
-	r.HandleFunc("/item/c{idx:[0-9]+}", h.citemHandler)
+	r.HandleFunc("/item/c{idx:[0-9]+}", h.citemRedirHandler)
+	r.HandleFunc(fmt.Sprintf("/datafiles/%08x/spritefiles/%08x/items/{idx:[0-9]+}", h.th.TibiaDatasetSignature, h.th.SpriteSetSignature), h.citemRedirHandler)
+	r.HandleFunc("/citem/854/{idx:[0-9]+}", h.citemHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}-{fr:[0-9]+}", h.creatureHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}.gif", h.creatureGIFHandler)
 	r.HandleFunc("/pic/{idx:[0-9]+}", h.picHandler)
