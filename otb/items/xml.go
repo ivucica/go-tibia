@@ -12,7 +12,10 @@ type xmlItems struct {
 type xmlItem struct {
 	ID        uint16         `xml:"id,attr,omitempty"`
 	Name      string         `xml:"name,attr,omitempty"`
+	Article   string         `xml:"article,attr,omitempty"`
 	Attribute []xmlAttribute `xml:"attribute,omitempty"`
+
+	Attributes map[string][]string `xml:"-,omitempty"`
 }
 
 type xmlAttribute struct {
@@ -31,6 +34,15 @@ func (otb *Items) AddXMLInfo(r io.Reader) error {
 			// Fluid descriptions. Skip for now.
 			continue
 		}
+
+		it.Attributes = make(map[string][]string)
+		for _, attr := range it.Attribute {
+			it.Attributes[attr.Key] = append(it.Attributes[attr.Key], attr.Value)
+			if len(it.Attributes[attr.Key]) > 1 {
+				// TODO: warn or return error
+			}
+		}
+
 		item, err := otb.ItemByServerID(it.ID)
 		if err != nil {
 			return err

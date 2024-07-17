@@ -18,6 +18,16 @@ type Items struct {
 
 	ClientIDToArrayIndex map[uint16]int
 	ServerIDToArrayIndex map[uint16]int
+
+	ExtantClientItemIDs       []uint16
+	ExtantServerItemIDs       []uint16
+	ExtantClientItemArrayIdxs []int
+	ExtantServerItemArrayIdxs []int
+
+	ServerIDToExtantClientItemArrayIDXs map[uint16]int // a strange hack allowing us to seek within ExtantClientItemArrayIdxs based on server ID
+
+	MinClientID, MaxClientID uint16
+	MinServerID, MaxServerID uint16
 }
 
 type (
@@ -36,30 +46,87 @@ const (
 // Implementation detail: iota is not used primarily for easier referencing in
 // case of an error.
 const (
-	CLIENT_VERSION_750                     = 1
-	CLIENT_VERSION_755                     = 2
-	CLIENT_VERSION_760, CLIENT_VERSION_770 = 3, 3
-	CLIENT_VERSION_780                     = 4
-	CLIENT_VERSION_790                     = 5
-	CLIENT_VERSION_792                     = 6
-	CLIENT_VERSION_800                     = 7
-	CLIENT_VERSION_810                     = 8
-	CLIENT_VERSION_811                     = 9
-	CLIENT_VERSION_820                     = 10
-	CLIENT_VERSION_830                     = 11
-	CLIENT_VERSION_840                     = 12
-	CLIENT_VERSION_841                     = 13
-	CLIENT_VERSION_842                     = 14
-	CLIENT_VERSION_850                     = 15
-	CLIENT_VERSION_854_BAD                 = 16
-	CLIENT_VERSION_854                     = 17
-	CLIENT_VERSION_855                     = 18
-	CLIENT_VERSION_860_OLD                 = 19
-	CLIENT_VERSION_860                     = 20
-	CLIENT_VERSION_861                     = 21
-	CLIENT_VERSION_862                     = 22
-	CLIENT_VERSION_870                     = 23
+	CLIENT_VERSION_750                     = ClientVersion(1)
+	CLIENT_VERSION_755                     = ClientVersion(2)
+	CLIENT_VERSION_760, CLIENT_VERSION_770 = ClientVersion(3), ClientVersion(3)
+	CLIENT_VERSION_780                     = ClientVersion(4)
+	CLIENT_VERSION_790                     = ClientVersion(5)
+	CLIENT_VERSION_792                     = ClientVersion(6)
+	CLIENT_VERSION_800                     = ClientVersion(7)
+	CLIENT_VERSION_810                     = ClientVersion(8)
+	CLIENT_VERSION_811                     = ClientVersion(9)
+	CLIENT_VERSION_820                     = ClientVersion(10)
+	CLIENT_VERSION_830                     = ClientVersion(11)
+	CLIENT_VERSION_840                     = ClientVersion(12)
+	CLIENT_VERSION_841                     = ClientVersion(13)
+	CLIENT_VERSION_842                     = ClientVersion(14)
+	CLIENT_VERSION_850                     = ClientVersion(15)
+	CLIENT_VERSION_854_BAD                 = ClientVersion(16)
+	CLIENT_VERSION_854                     = ClientVersion(17)
+	CLIENT_VERSION_855                     = ClientVersion(18)
+	CLIENT_VERSION_860_OLD                 = ClientVersion(19)
+	CLIENT_VERSION_860                     = ClientVersion(20)
+	CLIENT_VERSION_861                     = ClientVersion(21)
+	CLIENT_VERSION_862                     = ClientVersion(22)
+	CLIENT_VERSION_870                     = ClientVersion(23)
 )
+
+// Enumeration containing recognized protocol versions for which a particular
+// items.otb file might be targeted.
+type ClientVersion uint32
+
+// String implements the stringer interface.
+func (v ClientVersion) String() string {
+	switch v {
+	case CLIENT_VERSION_750:
+		return "7.50"
+	case CLIENT_VERSION_755:
+		return "7.55"
+	case CLIENT_VERSION_760:
+		return "7.60 / 7.70"
+	case CLIENT_VERSION_780:
+		return "7.80"
+	case CLIENT_VERSION_790:
+		return "7.90"
+	case CLIENT_VERSION_792:
+		return "7.92"
+	case CLIENT_VERSION_800:
+		return "8.00"
+	case CLIENT_VERSION_810:
+		return "8.10"
+	case CLIENT_VERSION_811:
+		return "8.11"
+	case CLIENT_VERSION_820:
+		return "8.20"
+	case CLIENT_VERSION_830:
+		return "8.30"
+	case CLIENT_VERSION_840:
+		return "8.40"
+	case CLIENT_VERSION_841:
+		return "8.41"
+	case CLIENT_VERSION_842:
+		return "8.42"
+	case CLIENT_VERSION_850:
+		return "8.50"
+	case CLIENT_VERSION_854_BAD:
+		return "8.54 (bad)"
+	case CLIENT_VERSION_854:
+		return "8.54"
+	case CLIENT_VERSION_855:
+		return "8.55"
+	case CLIENT_VERSION_860_OLD:
+		return "8.60 (old)"
+	case CLIENT_VERSION_860:
+		return "8.60"
+	case CLIENT_VERSION_861:
+		return "8.61"
+	case CLIENT_VERSION_862:
+		return "8.62"
+	case CLIENT_VERSION_870:
+		return "8.70"
+	}
+	return fmt.Sprintf("client version %d unknown", v)
+}
 
 // Enumeration containing which overarching item group this item belongs to.
 //
@@ -340,8 +407,10 @@ type rootNodeVersion struct {
 // ther revision of the file, and CSDVersion is a byte array with a C-style
 // null-terminated string.
 type ItemsVersion struct {
-	MajorVersion, MinorVersion, BuildNumber uint32
-	CSDVersion                              [128]uint8
+	MajorVersion uint32
+	MinorVersion ClientVersion // uint32
+	BuildNumber  uint32
+	CSDVersion   [128]uint8
 }
 
 // CSDVersionAsString formats null-terminated C-style string `CSDArray` from a
@@ -371,6 +440,10 @@ func New(r io.ReadSeeker) (*Items, error) {
 		OTB:                  *f,
 		ClientIDToArrayIndex: make(map[uint16]int),
 		ServerIDToArrayIndex: make(map[uint16]int),
+		MinClientID:          0xFFFF, // largest 16bit int; we reduce it below
+		MinServerID:          19999,  // 20000 is where other descriptions may begin, like fluids
+
+		ServerIDToExtantClientItemArrayIDXs: make(map[uint16]int),
 	}
 
 	root := otb.ChildNode(nil)
@@ -409,7 +482,7 @@ func New(r io.ReadSeeker) (*Items, error) {
 
 			minVersion := CLIENT_VERSION_854 // development dat files are 8.54
 			maxVersion := CLIENT_VERSION_870 // reference source code was 8.70
-			if vers.Version.MinorVersion < uint32(minVersion) || vers.Version.MinorVersion > uint32(maxVersion) {
+			if vers.Version.MinorVersion < minVersion || vers.Version.MinorVersion > maxVersion {
 				return nil, fmt.Errorf("unsupported itemsotb major version: got %d, want [%d, %d]", vers.Version.MinorVersion, minVersion, maxVersion)
 			}
 		}
@@ -427,10 +500,30 @@ func New(r io.ReadSeeker) (*Items, error) {
 			if id, ok := item.Attributes[ITEM_ATTR_CLIENTID]; ok {
 				id := id.(uint16)
 				otb.ClientIDToArrayIndex[id] = len(otb.Items)
+				if id < otb.MinClientID {
+					otb.MinClientID = id
+				}
+				if id > otb.MaxClientID {
+					otb.MaxClientID = id
+				}
+				otb.ExtantClientItemIDs = append(otb.ExtantClientItemIDs, id)
+				otb.ExtantClientItemArrayIdxs = append(otb.ExtantClientItemArrayIdxs, len(otb.Items))
 			}
 			if id, ok := item.Attributes[ITEM_ATTR_SERVERID]; ok {
 				id := id.(uint16)
 				otb.ServerIDToArrayIndex[id] = len(otb.Items)
+				if id < otb.MinServerID {
+					otb.MinServerID = id
+				}
+				if id > otb.MaxServerID {
+					otb.MaxServerID = id
+				}
+				otb.ExtantServerItemIDs = append(otb.ExtantServerItemIDs, id)
+				otb.ExtantServerItemArrayIdxs = append(otb.ExtantServerItemArrayIdxs, len(otb.Items))
+				if _, ok := item.Attributes[ITEM_ATTR_CLIENTID]; ok {
+					otb.ServerIDToExtantClientItemArrayIDXs[id] = len(otb.ExtantClientItemArrayIdxs) - 1
+				}
+				// TODO(ivucica): we should detect duplicate server IDs (duplicate client IDs are, theoretically, permissible)
 			}
 			// TODO(ivucica): main OTB loader could give us a count of child nodes, and we could use that to preallocate space instead of appending all the time
 			otb.Items = append(otb.Items, *item)
@@ -543,6 +636,53 @@ func (i *Item) Name() string {
 		return name.(string)
 	}
 	return "unnamed item"
+}
+
+// Article returns the name of the item. This will only be sourced from XML, if
+// loaded.
+//
+// If empty, no article should be used; otherwise, in singular, prefix with
+// article and a space.
+func (i *Item) Article() string {
+	if i.xml != nil {
+		return i.xml.Article
+	}
+	return ""
+}
+
+// Description returns the description of the item. This may be sourced from XML, if loaded.
+//
+// If multiple descriptions are supplied, only the first one will be used.
+func (i *Item) Description() string {
+	if i.xml != nil && len(i.xml.Attributes["description"]) > 0 {
+		return i.xml.Attributes["description"][0]
+	}
+	if name, ok := i.Attributes[ITEM_ATTR_NAME]; ok {
+		return name.(string)
+	}
+	return ""
+}
+
+// ClientID returns the item client ID for the client version for which this OTB
+// is intended. If the item does not exist in this client version, zero is
+// returned.
+func (i *Item) ClientID() uint16 {
+	id, ok := i.Attributes[ITEM_ATTR_CLIENTID]
+	if !ok {
+		return 0
+	}
+	return id.(uint16)
+}
+
+// ServerID returns the item server ID. If the item does not have a server ID
+// (which would be highly irregular for an item that appears in the otb file),
+// zero is returned.
+func (i *Item) ServerID() uint16 {
+	id, ok := i.Attributes[ITEM_ATTR_SERVERID]
+	if !ok {
+		return 0
+	}
+	return id.(uint16)
 }
 
 // Light represents the data structure describing a lit-up item's light attribute
