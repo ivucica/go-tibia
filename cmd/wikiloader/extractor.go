@@ -44,13 +44,10 @@ func (e *Extractor) XMLToken() (xml.Token, error) {
 	if err == nil {
 		switch e := t.(type) {
 		case xml.StartElement:
-			//e.currentTagPath.Append(e)
-			//log.Println("<", e.Name)
 			for _, a := range e.Attr {
 				log.Println(" ", a)
 			}
 		}
-		// TODO(ivucica): call 'pop' for EndElement? gets rid of need to call Swallowed.
 	}
 	return t, err
 }
@@ -435,8 +432,6 @@ func (e *Extractor) Step() bool {
 			e.CloseStream()
 			return false
 		}
-		// ignore all other close elements
-		e.Swallowed(se)
 	default:
 		//log.Println("unhandled element type", se)
 	}
@@ -447,23 +442,12 @@ func (e *Extractor) CloseStream() {
 	e.r.Close()
 }
 
-// Swallowed allows taghandlers to inform the Extractor that they have, in
-// fact, eaten away some of the data. The end tag supplied must match the
-// top of the tagpath stack or the connection will be closed.
-//
-// If an error is returned, the tag handler must return immediately.
-func (e *Extractor) Swallowed(endElement xml.EndElement) error {
-	// we have no tagpath impl right now so skip this
-	return nil
-}
 
-// Skip skips processing from the current start element to the close element,
-// and it pops the element from the tagpath.
+// Skip skips processing from the current start element to the close element.
 func (e *Extractor) Skip() error {
 	if err := e.xmlDecoder.Skip(); err != nil {
 		return err
 	}
-	//return e.currentTagPath.Pop()
 	return nil
 }
 
@@ -473,16 +457,7 @@ func (e *Extractor) DecodeElement(v interface{}, start *xml.StartElement) error 
 	if err := e.xmlDecoder.DecodeElement(v, start); err != nil {
 		return err
 	}
-	// return e.currentTagPath.Pop()
 	return nil
-}
-
-// CurrentTagPath returns a copy of the current tag path.
-//
-// This can be useful to figure out information about the parent tags (e.g. what
-// is the id of the iq tag).
-func (e *Extractor) CurrentTagPath() interface{} {
-	return "no support for tagpaths"
 }
 
 func NewExtractor(r io.ReadSeekCloser) *Extractor {
