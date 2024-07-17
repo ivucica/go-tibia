@@ -16,6 +16,9 @@
   <th>
     available without unlocks
   </th>
+  <th>
+    wiki
+  </th>
   {{range $index, $outfit :=  .OutfitsXML.Outfit}}
   {{range $index2, $outfitListEntry := .List}} 
   <tr>
@@ -33,6 +36,9 @@
     </td>
     <td>
       {{if and (ne $outfit.Default "") (ne $outfit.Default "0")}}yes{{else}}no{{end}}
+    </td>
+    <td>
+      <a href="{{ .Temp__ExternalLink }}">wiki</a> <a href="{{ .Temp__ExternalLootStatsLink }}">loot stats</a>
     </td>
   </tr>
   {{end}}
