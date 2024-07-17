@@ -277,8 +277,11 @@
   {{end}}<!-- if serveridx -->
 </table>
 
+<div class="minifont">If wiki links get '?action=raw' appended to them, there's "| itemid    = NNNN" inside. This means we can map more directly to the data in the wiki, especially in the db dump. The item IDs are comma separated.</div>
 
+<div class="minifont">Item IDs are <a href="https://tibia.fandom.com/wiki/Item_IDs">also on a dedicated page, too</a> which shows how it's dynamically computed: by specifying `| includes= {Infobox Object}:itemid` inside a <a href="https://tibia.fandom.com/wiki/Template:DPL_Table">`DPL Table`</a>.</div>
 
+<div class="minifont">A dump is on nas. It's a 60mb .xml.7z with one 200mb .xml inside with all pages, which should therefore be individually processed and categorized.</div>
 
 	</div><!-- .content -->
       <div class="bottombar"></div>
