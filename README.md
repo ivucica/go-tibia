@@ -54,7 +54,17 @@ It can use various methods: kitty's image drawing, iTerm2's png image drawing,
 true-color colored characters, 256-color colored characters, dumb 'intensity'
 ascii 'art'. The images get shrunk as needed.
 
-[Godoc documentation](https://godoc.org/badc0de.net/pkg/go-tibia/cmd/itemprint)
+## wikiloader
+
+Main binary: `badc0de.net/pkg/go-tibia/cmd/wikiloader`
+
+Demonstration tool showing how the wiki dump data can be loaded. Interesting
+because it looks like item IDs are valid 8.54 client IDs, so a server or a
+web UI could load the data from the dump (or, more specifically, a subset of it)
+to enrich OpenTibia information further. Similarly, NPC, creature and outfit
+data could be enriched.
+
+[Godoc documentation](https://godoc.org/badc0de.net/pkg/go-tibia/cmd/wikiloader)
 
 ## Libraries
 
