@@ -14,9 +14,24 @@ import (
 //
 // (Values may change between versions of the package and have no meaning.)
 const (
-	CLIENT_VERSION_UNKNOWN = iota
+	CLIENT_VERSION_UNKNOWN = ClientVersion(iota)
 	CLIENT_VERSION_854
 )
+
+// Enumeration of versions that are 'actively' supported.
+//
+// (Values may change between versions of the package and have no meaning.)
+type ClientVersion uint16
+
+func (v ClientVersion) String() string {
+	switch v {
+	case CLIENT_VERSION_UNKNOWN:
+		return "client version unknown"
+	case CLIENT_VERSION_854:
+		return "8.54"
+	}
+	return "client version not known to package"
+}
 
 // Field names in AppearanceFlag proto message in 12.x.
 //
@@ -537,6 +552,36 @@ func (d *Dataset) Outfit(clientID uint16) *Outfit {
 	return &d.outfits[clientID-1]
 }
 
+// ItemCount returns the number of items in the dataset.
+func (d *Dataset) ItemCount() int {
+	return int(d.Header.ItemCount - 100 + 1) // same as: len(d.items); for 8.54, should be 10477
+}
+
+// MinItemID returns the min ID of an item in the dataset.
+func (d *Dataset) MinItemID() uint16 {
+	return 100
+}
+
+// MaxItemID returns the max ID of an item in the dataset.
+func (d *Dataset) MaxItemID() uint16 {
+	return d.Header.ItemCount
+}
+
+// OutfitCount returns the number of outfits in the dataset.
+func (d *Dataset) OutfitCount() int {
+	return int(d.Header.OutfitCount)
+}
+
+// MinOutfitID returns the minimum ID that an outfit could have.
+func (d *Dataset) MinOutfitID() uint16 {
+	return 1
+}
+
+// MaxOutfitID returns the maximum ID that an outfit could have.
+func (d *Dataset) MaxOutfitID() uint16 {
+	return uint16(d.OutfitCount())
+}
+
 // load780plus loads the format used in game version 7.8 and later.
 func (d *Dataset) load780plus(r io.Reader) error {
 	var e DatasetEntry
@@ -589,7 +634,7 @@ func (d *Dataset) load780plus(r io.Reader) error {
 // ClientVersion returns which version of the game this data file comes from.
 //
 // Currently supported is only 8.54.
-func (d Dataset) ClientVersion() int {
+func (d Dataset) ClientVersion() ClientVersion {
 	if d.Header.Signature == 0x4b28b89e || d.Header.Signature == 0x4b1e2caa {
 		return CLIENT_VERSION_854
 	}

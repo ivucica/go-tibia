@@ -14,6 +14,9 @@ type expectedCounts struct {
 	Outfits         int
 	Effects         int
 	DistanceEffects int
+
+	MaxItemID   int
+	MaxOutfitID int
 }
 
 func TestDatColor(t *testing.T) {
@@ -41,32 +44,32 @@ func TestNewDataset(t *testing.T) {
 		t.Fatalf("failed to parse dataset: %s", err)
 	}
 
-	testableCounts := map[int]expectedCounts{
+	testableCounts := map[ClientVersion]expectedCounts{
 		CLIENT_VERSION_854: expectedCounts{
 			Items:           10378,
 			Outfits:         351,
 			Effects:         69,
 			DistanceEffects: 42,
+
+			MaxItemID:   10477,
+			MaxOutfitID: 351,
 		},
 	}
 	ver := ds.ClientVersion()
 
-	if wantCounts, ok := testableCounts[ver]; ok {
-		if len(ds.items) != wantCounts.Items {
+	t.Run(fmt.Sprintf("ver%s", ver.String()), func(t *testing.T) {
+		if wantCounts, ok := testableCounts[ver]; ok {
 			ttesting.AssertEqualInt(t, fmt.Sprintf("correct item count for minor version %d", ver), len(ds.items), wantCounts.Items)
-		}
-		if len(ds.outfits) != wantCounts.Outfits {
 			ttesting.AssertEqualInt(t, fmt.Sprintf("correct outfit count for minor version %d", ver), len(ds.outfits), wantCounts.Outfits)
-		}
-		if len(ds.effects) != wantCounts.Effects {
 			ttesting.AssertEqualInt(t, fmt.Sprintf("correct effect count for minor version %d", ver), len(ds.effects), wantCounts.Effects)
-		}
-		if len(ds.distanceEffects) != wantCounts.DistanceEffects {
 			ttesting.AssertEqualInt(t, fmt.Sprintf("correct distance count for minor version %d", ver), len(ds.distanceEffects), wantCounts.DistanceEffects)
-		}
-	}
 
-	ttesting.AssertEqualInt(t, "first item's ID should be 100", ds.items[0].Id, 100)
-	ttesting.AssertEqualInt(t, "last item's ID should be max id", ds.items[len(ds.items)-1].Id, int(ds.Header.ItemCount))
+			ttesting.AssertEqualInt(t, fmt.Sprintf("correct max item ID for minor version %d", ver), int(ds.MaxItemID()), wantCounts.MaxItemID)
+			ttesting.AssertEqualInt(t, fmt.Sprintf("correct max outfit ID for minor version %d", ver), int(ds.MaxOutfitID()), wantCounts.MaxOutfitID)
+		}
+
+		ttesting.AssertEqualInt(t, "first item's ID should be 100", ds.items[0].Id, 100)
+		ttesting.AssertEqualInt(t, "last item's ID should be max id", ds.items[len(ds.items)-1].Id, int(ds.Header.ItemCount))
+	})
 
 }
