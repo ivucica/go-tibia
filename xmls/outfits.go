@@ -4,6 +4,7 @@ package xmls
 import (
 	"encoding/xml"
 	"io"
+	"strings"
 )
 
 type Outfits struct {
@@ -29,6 +30,26 @@ type OutfitListEntry struct {
 	Type     OutfitType `xml:"type,attr"`
 	LookType int        `xml:"looktype,attr"`
 	Name     string     `xml:"name,attr"`
+}
+
+// n.b. this belongs not in outfit definition but in creature definition
+//
+// (and by creature, this means NPCs and enemies -- so not even in Things)
+func (c *OutfitListEntry) Temp__ExternalLink() string {
+	if c.Name == "" || c.Name == "unnamed creature" {
+		return ""
+	}
+	return "https://tibia.fandom.com/wiki/" + strings.Replace(strings.Replace(strings.Title(c.Name), " ", "_", -1), " Of ", " of ", -1)
+}
+
+// n.b. this belongs not in outfit definition but in creature definition
+//
+// (and by creature, this means NPCs and enemies -- so not even in Things)
+func (c *OutfitListEntry) Temp__ExternalLootStatsLink() string {
+	if c.Name == "" || c.Name == "unnamed creature" {
+		return ""
+	}
+	return "https://tibia.fandom.com/index.php?title=Loot_Statistics:" + strings.Replace(strings.Replace(strings.Title(c.Name), " ", "_", -1), " Of ", " of ", -1) + "&action=raw"
 }
 
 func ReadOutfits(r io.Reader) (Outfits, error) {
