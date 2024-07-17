@@ -6,11 +6,32 @@
     <link rel="manifest" href="/app/manifest.json">
     <link rel="apple-touch-icon" href="/app/go-tibia-192.png">
 
+{{- if $.ServerIDX }}
 {{- if eq 0 $.PG -}}
-    <link rel="canonical" href="/citems/854/item/">
+    <link rel="canonical" href="/items/">
 {{- end -}}
 {{- if eq 1 $.PG -}}
-    <link rel="canonical" href="/citems/854/item/">
+    <link rel="canonical" href="/items/">
+{{- end -}}
+{{- else -}}
+
+
+{{- if $.KnownClientIDX }}
+{{- if eq 0 $.PG -}}
+    <link rel="canonical" href="/items/">
+{{- end -}}
+{{- if eq 1 $.PG -}}
+    <link rel="canonical" href="/items/">
+{{- end -}}
+{{- else -}}
+
+{{- if eq 0 $.PG -}}
+    <link rel="canonical" href="/citems/854/">
+{{- end -}}
+{{- if eq 1 $.PG -}}
+    <link rel="canonical" href="/citems/854/">
+{{- end -}}
+{{- end -}}
 {{- end -}}
 
     <link rel="stylesheet" href="/app/tfont.css">
@@ -28,8 +49,8 @@
 
         <div class="button-area" >
           <button class="button"><a href="/map" class="minifont">serverside map render</a></button>
-          <button class="button"><a href="/app/" class="minifont">clientside demo</a></button> 
-          <button class="button"><a href="/citems/854/item/" class="minifont">items table</a></button> 
+          <button class="button"><a href="/app/" class="minifont">clientside demo</a></button>
+          <button class="button"><a href="/citems/854/item/" class="minifont">items table</a></button>
           <button class="button"><a href="/outfits/" class="minifont">outfits table</a></button>
         </div>
 
@@ -115,18 +136,48 @@
 
 {{ if ne .PGSize 1 }}
 {{range $index, $p := N2 .PGMin .PGMax}}
+{{- if $.ServerIDX }}
+{{- if eq $p $.PG -}}
+<b><a href="/items/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a></b> {{else -}}
+<a href="/items/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a> {{end -}}
+{{- else -}}
+{{- if $.KnownClientIDX }}
+{{- if eq $p $.PG -}}
+<b><a href="/items/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a></b> {{else -}}
+<a href="/items/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a> {{end -}}
+{{- else -}}
 {{- if eq $p $.PG -}}
 <b><a href="/citems/854/item/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a></b> {{else -}}
 <a href="/citems/854/item/?page={{ plusone $p }}" class="minifont">{{ plusone $p }}</a> {{end -}}
+{{- end -}}
+{{- end -}}
 {{end}}
 {{end}}
 
-<div class="panelfont">All item IDs are client IDs for 8.54.</div>
+{{ if .ServerIDX }}
+<div class="panelfont">All item IDs are server IDs. Graphics are for client {{ $.Client }}.</div>
+{{ else }}
+{{ if .KnownClientIDX }}
+<div class="panelfont">All item IDs are server IDs. Graphics are for client {{ $.Client }}.</div>
+{{ else }}
+<div class="panelfont">All item IDs are client IDs for {{ $.Client }}.</div>
+{{ end }}
+{{ end }}
+
+<div class="minifont">Total items: {{ $.ItemCount }}</div>
 
 <table itemscope itemtype="https://schema.org/ItemList">
   <meta itemprop="numberOfItems" content="10477"><!-- fixme -->
   <th class="panelfont">
+    {{- if $.ServerIDX -}}
+    otb id
+    {{- else -}}
+    {{- if .KnownClientIDX -}}
+    otb id
+    {{- else -}}
     cid
+    {{- end -}}
+    {{- end -}}
   </th>
   <th class="panelfont">
     name
@@ -140,23 +191,90 @@
   <th class="panelfont">
     minimap color
   </th>
-  {{range $index, $cid := N2 (add 100 (mul .PG .PGSize)) (add 100 (mul (plusone .PG) .PGSize))}}
-  {{ $itm := itemWithClientID $cid }}<!-- use := item $cid to get server ID. works fine, except for pagination being adapted to client items. -->
+  <th class="panelfont">
+    wiki
+  </th>
+  <th class="panelfont">
+    description
+  </td>
+  <!--
+    := item $cid to get server ID. works fine, except for pagination being adapted to client items.
+    := itemWithOTBIDX $cid uses server index offset inside the OTB array
+    := itemWithClientIDX $cid uses server index offset inside the known client IDs indexes pointing at OTB array
+    := itemWithClientID $cid uses client ID
+  -->
+  {{ if $.KnownClientIDX }}
+  {{range $index, $cid := N2 (mul .PG .PGSize) (mul (plusone .PG) .PGSize)}}
+  {{ $itm := itemWithClientIDX $cid }}
   {{ if isNil $itm }}
   <tr class="minifont">
-    <td>{{$cid}}</td>
-    <td colspan="4"><i>does not exist</i></td>
+    <td>{{ $itm.ServerID }}</td>
+    <td colspan="6"><i>does not exist</i></td>
   </tr>
   {{ else }}
   <tr class="minifont" itemscope itemtype="https://schema.org/ListItem" itemprop="itemListElement">
-    <td>{{$cid}}</td>
-    <td><a href="/citems/854/item/{{ $cid }}" class="minifont">{{ $itm.Name }}</a></td>
-    <td itemprop="item" itemscope itemtype="https://schema.org/Thing"><meta itemprop="name" content="{{ $itm.Name }}"><img itemprop="image" src="/item/c{{ $cid }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);" title="{{ $itm.RawClientDatasetItem780.OptBytes780 }}"></td>
+    <td title="{{ $itm.ClientID 854 }}">{{ $itm.ServerID }}</td>
+    <td>{{ if $itm.Article }}{{ $itm.Article }} {{ end }}<a href="/items/{{ $itm.ServerID }}" class="minifont">{{ if $itm.Name }}{{ $itm.Name }}{{ else }}unknown{{ end }}</a></td>
+    <td itemprop="item" itemscope itemtype="https://schema.org/Thing"><meta itemprop="name" content="{{ $itm.Name }}"><img itemprop="image" src="/item/{{ $itm.ServerID }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);" title="{{ $itm.RawClientDatasetItem780.OptBytes780 }}"></td>
     <td>{{ if ne $itm.LightInfo.Strength 0 }}{{ $itm.LightInfo.Strength }} <div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.LightInfo.Color }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
     <td>{{ if $itm.MapColorOK }}<div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.MapColor }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.Temp__ExternalLink }}<button><a class="minifont" target="_blank" href="{{ $itm.Temp__ExternalLink }}">wiki</a>{{ end }}</button></td>
+    <td>{{ if $itm.Description }}<div class="gamefont" style="color: {{ datasetColorIndexToHex 30 }};">{{ $itm.Description }}</div>{{ else }}-{{ end}}</td>
   </tr>
   {{end}}
   {{end}}
+
+
+  {{ else }}<!-- if serveridx -->
+
+
+
+  {{ if $.ServerIDX }}
+  {{range $index, $cid := N2 (mul .PG .PGSize) (mul (plusone .PG) .PGSize)}}
+  {{ $itm := itemWithOTBIDX $cid }}
+  {{ if isNil $itm }}
+  <tr class="minifont">
+    <td>{{ $itm.ServerID }}</td>
+    <td colspan="6"><i>does not exist</i></td>
+  </tr>
+  {{ else }}
+  <tr class="minifont" itemscope itemtype="https://schema.org/ListItem" itemprop="itemListElement">
+    <td title="{{ $itm.ClientID 854 }}">{{ $itm.ServerID }}</td>
+    <td>{{ if $itm.Article }}{{ $itm.Article }} {{ end }}<a href="/items/{{ $itm.ServerID }}" class="minifont">{{ if $itm.Name }}{{ $itm.Name }}{{ else }}unknown{{ end }}</a></td>
+    <td itemprop="item" itemscope itemtype="https://schema.org/Thing"><meta itemprop="name" content="{{ $itm.Name }}"><img itemprop="image" src="/item/{{ $itm.ServerID }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);" title="{{ $itm.RawClientDatasetItem780.OptBytes780 }}"></td>
+    <td>{{ if ne $itm.LightInfo.Strength 0 }}{{ $itm.LightInfo.Strength }} <div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.LightInfo.Color }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.MapColorOK }}<div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.MapColor }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.Temp__ExternalLink }}<button><a class="minifont" target="_blank" href="{{ $itm.Temp__ExternalLink }}">wiki</a>{{ end }}</button></td>
+    <td>{{ if $itm.Description }}<div class="gamefont" style="color: {{ datasetColorIndexToHex 30 }};">{{ $itm.Description }}</div>{{ else }}-{{ end}}</td>
+  </tr>
+  {{end}}
+  {{end}}
+  {{ end }}<!-- if known client ... -->
+
+
+
+
+  {{range $index, $cid := N2 (add 100 (mul .PG .PGSize)) (add 100 (mul (plusone .PG) .PGSize))}}
+  {{ $itm := itemWithClientID $cid }}
+  {{ if isNil $itm }}
+  <tr class="minifont">
+    <td>{{$cid}}</td>
+    <td colspan="6"><i>does not exist</i></td>
+  </tr>
+  {{ else }}
+  <tr class="minifont" itemscope itemtype="https://schema.org/ListItem" itemprop="itemListElement">
+    <td title="{{ $itm.ServerID }}">{{$cid}}</td>
+    <td>{{ if $itm.Article }}{{ $itm.Article }} {{ end }}<a href="/citems/854/item/{{ $cid }}" class="minifont">{{ if $itm.Name }}{{ $itm.Name }}{{ else }}unknown{{ end }}</a></td>
+    <td itemprop="item" itemscope itemtype="https://schema.org/Thing"><meta itemprop="name" content="{{ $itm.Name }}"><img itemprop="image" src="/item/c{{ $cid }}" width="{{ $itm.GraphicsSize.W }}" height="{{ $itm.GraphicsSize.H}}" sstyle="transform: scale(1, 0.66) rotate(45deg);" title="{{ $itm.RawClientDatasetItem780.OptBytes780 }}"></td>
+    <td>{{ if ne $itm.LightInfo.Strength 0 }}{{ $itm.LightInfo.Strength }} <div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.LightInfo.Color }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.MapColorOK }}<div style="width: 24px; height: 24px; border-radius: 24px; background-color: {{ datasetColorToHex $itm.MapColor }}; border: thin 2px red;"></div>{{else}}<i>none</i>{{end}}</td>
+    <td>{{ if $itm.Temp__ExternalLink }}<button><a class="minifont" target="_blank" href="{{ $itm.Temp__ExternalLink }}">wiki</a>{{ end }}</button></td>
+    <td>{{ if $itm.Description }}<div class="gamefont" style="color: {{ datasetColorIndexToHex 30 }};">{{ $itm.Description }}</div>{{ else }}-{{ end}}</td>
+  </tr>
+  {{end}}
+  {{end}}
+
+  {{end}}<!-- if serveridx -->
 </table>
 
 
@@ -185,5 +303,5 @@
     </div><!-- .window #items -->
 	
   </body>
-  
+
 </html>

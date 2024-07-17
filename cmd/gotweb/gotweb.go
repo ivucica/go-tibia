@@ -132,6 +132,35 @@ func main() {
 			}
 			return it
 		},
+		"itemWithClientIDX": func(clsrvIDX int) *things.Item {
+			// Slightly strange but this is essentially:
+			// - we want to paint all OTB items that have known client ID, but skip the others
+			// - we have an array of all OTB items with known client IDs mapping to all the OTB items
+			// - so we have a function that offsets inside the "known client IDs", then finds the relevant OTB item instead
+			it, err := th.ItemWithSequentialClientID(uint16(clsrvIDX), 854)
+			if err != nil {
+				panic(err)
+			}
+			return it
+		},
+		"itemWithServerIDX": func(srvIDX int) *things.Item {
+			// same as *ClientIDX except this is only useful if we would know some OTB items don't have server ID set
+			// (is that even valid?)
+			it, err := th.ItemWithSequentialServerID(uint16(srvIDX), 854)
+			if err != nil {
+				panic(err)
+			}
+			return it
+		},
+		"itemWithOTBIDX": func(otbIDX int) *things.Item {
+			// same as *ClientIDX except this is only useful if we would want to render even those OTB items without server ID set
+			// (is lacking server ID even valid?)
+			it, err := th.ItemWithSequentialOTBIDX(otbIDX, 854)
+			if err != nil {
+				panic(err)
+			}
+			return it
+		},
 		"datasetColorToHex": func(col tdat.DatasetColor) string {
 			r, g, b, _ := col.RGBA()
 			return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
@@ -166,7 +195,7 @@ func main() {
 		glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
 	} else {
 		// TODO: serve https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
-		fgen := func(pgSize int, defaultPg int) func(w http.ResponseWriter, r *http.Request) {
+		fgen := func(pgSize int, defaultPg int, clientVersion uint16, serverIDX, knownClientIDArrayIDX bool) func(w http.ResponseWriter, r *http.Request) {
 			f := func(w http.ResponseWriter, r *http.Request) {
 				// REMOVE THIS begin
 				// removeable because used only to reload itemtable.html during dev
@@ -191,10 +220,38 @@ func main() {
 
 				w.Header().Set("Content-Type", "text/html")
 
-				itemCIDMin := 100
-				itemCIDMax := 10477 // TODO: ask things.Things
+				var itemMin, itemMax int // item = list item; either client item IDs or server item IDs
+				var itemCount int        // item count across all pages
+				if serverIDX {
+					// rendering server items.
+					//
+					// server IDs have skips in them, so we use our own indexing offset
+					itemMin = 0
+					itemMax = th.ItemCount(clientVersion)
+					itemCount = th.ItemCount(clientVersion)
+				} else if knownClientIDArrayIDX {
+					// rendering server items.
+					//
+					// server IDs have skips in them, so we use our own indexing offset
+					// and in fact, even though we are rendering server and not client items, we will
+					// only render those known under current clientVersion
+					itemMin = 0
+					itemMax = th.ClientItemCount(clientVersion)
+					itemCount = th.ClientItemCount(clientVersion)
+				} else {
+					switch clientVersion {
+					case 854:
+						// client IDs for 8.54
+						itemMin = int(th.MinItemClientID(clientVersion))
+						itemMax = int(th.MaxItemClientID(clientVersion))
+						itemCount = int(th.Temp__DATItemCount(clientVersion))
+					default:
+						http.NotFound(w, r)
+					}
+				}
+
 				pgMin := 0
-				pgMax := (itemCIDMax - itemCIDMin) / pgSize
+				pgMax := (itemMax - itemMin) / pgSize
 
 				if pg < pgMin {
 					pg = pgMin
@@ -205,11 +262,20 @@ func main() {
 
 				params := struct {
 					PG, PGMin, PGMax, PGSize int
+					Client                   uint16
+					ServerIDX                bool // request render of server IDX version of the page
+					KnownClientIDX           bool // request render of server IDX version of the page but based only on known client IDs
+					ItemCount                int  // total count of items across pages
 				}{
 					PG:     pg,
 					PGMin:  pgMin,
 					PGMax:  pgMax,
 					PGSize: pgSize,
+
+					ItemCount:      itemCount,
+					Client:         clientVersion,
+					ServerIDX:      serverIDX,
+					KnownClientIDX: knownClientIDArrayIDX,
 				}
 
 				err = itemTableTemplate.ExecuteTemplate(w, filepath.Base(itemsHTMLPath), params)
@@ -219,15 +285,48 @@ func main() {
 			}
 			return f
 		}
-		r.HandleFunc("/", fgen(25, 0))
-		r.HandleFunc("/citems/854/item/", fgen(25, 0))
+		r.HandleFunc("/", fgen(25, 0, 854, false, true))
+		r.HandleFunc("/items/", fgen(25, 0, 854, false, true))
+		r.HandleFunc("/items/{sid}", func(w http.ResponseWriter, r *http.Request) {
+			// Ugly hack: until we have an item details page, we display just a single
+			// row in the tableview.
+			//
+			// But because our table displays with otb array index, we first have to
+			// map serverid to otb array idx.
+			sid, err := strconv.Atoi(mux.Vars(r)["sid"])
 
+			if err != nil {
+				glog.Errorf("item id %q invalid: %v", mux.Vars(r)["sid"], err)
+				http.NotFound(w, r)
+				return
+			}
+
+			//sidx := th.Temp__GetServerItemArrayOffsetInOTB(uint16(sid), 854)
+			//if sidx < 0 || sidx > th.ItemCount(854) {
+			kciaidx := th.Temp__GetKnownClientIDItemArrayOffsetInOTB(uint16(sid), 854)
+			if kciaidx < 0 || kciaidx > th.ClientItemCount(854) {
+				glog.Errorf("kciaidx %d invalid for sid %d", kciaidx, sid)
+				http.NotFound(w, r)
+				return
+			}
+
+			// fgen(1, sid-int(th.MinItemServerID(854)), 854, true, false)(w, r)
+			// fgen(1, sidx, 854, true, false)(w, r)
+			fgen(1, kciaidx, 854, false, true)(w, r)
+
+		})
+
+		r.HandleFunc("/citems/854/", fgen(25, 0, 854, false, false))
+		r.HandleFunc("/citems/854/item/", fgen(25, 0, 854, false, false))
 		r.HandleFunc("/citems/854/item/{cid}", func(w http.ResponseWriter, r *http.Request) {
+			// Ugly hack: until we have an item details page, we display just a single
+			// row in the tableview.
 			cid, err := strconv.Atoi(mux.Vars(r)["cid"])
-			if err != nil || cid < 100 || cid > 10477 {
+			cid16 := uint16(cid)
+			if err != nil || cid16 < th.MinItemClientID(854) || cid16 > th.MaxItemClientID(854) {
 				http.NotFound(w, r)
 			} else {
-				fgen(1, cid-100)(w, r)
+				fgen(1, cid-int(th.MinItemClientID(854)), 854, false, false)(w, r)
 			}
 		})
 	}
