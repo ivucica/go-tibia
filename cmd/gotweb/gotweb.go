@@ -50,11 +50,7 @@ var (
 	outfitsHTMLPath string
 )
 
-type ReadSeekerCloser interface {
-	io.Reader
-	io.Seeker
-	io.Closer
-}
+type ReadSeekerCloser = io.ReadSeekCloser
 
 func picOpen() (ReadSeekerCloser, error) {
 	return os.Open(tibiaPicPath)

@@ -39,11 +39,7 @@ var (
 	mapPath      = flag.String("map_path", "", "path to an otbm file (e.g. 'datafiles/map.otb' or ':test:'); if empty map is not loaded or rendered")
 )
 
-type ReadSeekerCloser interface {
-	io.Reader
-	io.Seeker
-	io.Closer
-}
+type ReadSeekerCloser = io.ReadSeekCloser
 
 func setupFilePathFlags() {
 	paths.SetupFilePathFlag("items.otb", "items_otb_path", &itemsOTBPath)
