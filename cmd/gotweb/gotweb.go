@@ -313,7 +313,7 @@ func main() {
 		}
 		r.HandleFunc("/", fgen(25, 0, 854, false, true))
 		r.HandleFunc("/items/", fgen(25, 0, 854, false, true))
-		r.HandleFunc("/items/{sid}", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/items/{sid:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 			// Ugly hack: until we have an item details page, we display just a single
 			// row in the tableview.
 			//
@@ -344,7 +344,7 @@ func main() {
 
 		r.HandleFunc("/citems/854/", fgen(25, 0, 854, false, false))
 		r.HandleFunc("/citems/854/item/", fgen(25, 0, 854, false, false))
-		r.HandleFunc("/citems/854/item/{cid}", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/citems/854/item/{cid:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 			// Ugly hack: until we have an item details page, we display just a single
 			// row in the tableview.
 			cid, err := strconv.Atoi(mux.Vars(r)["cid"])
