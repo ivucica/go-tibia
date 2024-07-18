@@ -113,7 +113,7 @@ func (h *Handler) citemRedirHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	url := fmt.Sprintf("/citem/854/%d", idx)
 	w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, url)) // note: url needs to be 'percent-encoded' per spec, incl. path has to be percent-encoded for charcodes over 255
-	w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
+	w.Header().Set("Cache-Control", "public; max-age=36000")          // 36000 = 10h
 	http.Redirect(w, r, url, http.StatusPermanentRedirect)
 }
 
