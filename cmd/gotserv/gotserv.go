@@ -235,8 +235,12 @@ func games() {
 		return
 	}
 
-	webh := web.NewHandler(t, full.PathFlagValue(full.FlagTibiaSprPath), tibiaPicPath)
-	webh.RegisterRoutes(muxRouter)
+	if muxRouter != nil {
+		webh := web.NewHandler(t, full.PathFlagValue(full.FlagTibiaSprPath), tibiaPicPath)
+		webh.RegisterRoutes(muxRouter)
+	} else {
+		glog.Infof("not registering webh routes since web server is not enabled")
+	}
 	///
 
 	gw.SetThings(t)
@@ -256,7 +260,11 @@ func games() {
 			return
 		}
 	}
-	webh.RegisterMapRoute(muxRouter, m)
+	if muxRouter != nil {
+		webh.RegisterMapRoute(muxRouter, m)
+	} else {
+		glog.Infof("not registering webh map routes since web server is not enabled")
+	}
 	gw.SetMapDataSource(m)
 
 	///
