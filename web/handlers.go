@@ -545,6 +545,9 @@ func (h *Handler) mapHandler(w http.ResponseWriter, r *http.Request) {
 //
 // TODO: Rename to RegisterImageRoutes.
 func (h *Handler) RegisterRoutes(r *mux.Router) {
+	if r == nil {
+		panic("nil mux router passed into RegisterRoutes")
+	}
 	r.HandleFunc("/spr/{idx:[0-9]+}", h.sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", h.itemHandler)
 	r.HandleFunc("/item/c{idx:[0-9]+}", h.citemRedirHandler)
@@ -556,11 +559,17 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 }
 
 func (h *Handler) RegisterMapRoute(r *mux.Router, mapDataSource gameworld.MapDataSource) {
+	if r == nil {
+		panic("nil mux router passed into RegisterRoutes")
+	}
 	h.mapDataSource = mapDataSource
 	r.HandleFunc("/map", h.mapHandler)
 }
 
 func (h *Handler) RegisterSubscriptionCreateRoute(r *mux.Router, subscriptionManager *SubscriptionManager) {
+	if r == nil {
+		panic("nil mux router passed into RegisterRoutes")
+	}
 	h.subscriptionManager = subscriptionManager
 	r.HandleFunc("/registerpush", h.registerPushHandler)
 }
