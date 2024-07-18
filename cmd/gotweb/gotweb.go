@@ -194,7 +194,33 @@ func main() {
 	if err != nil {
 		glog.Errorf("not serving homepage, could not parse itemtable.html: %v", err)
 	} else {
-		// TODO: serve https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
+		r.HandleFunc("/items/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+			// items sitemap
+			// we also serve https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
+			// needs to come before sid
+
+			// we can add up to 50k items, which is less than otb and dat have
+			us := &SitemapURLSet{}
+			for i := 0; i < th.ClientItemCount(854); i++ {
+				itm, err := th.ItemWithSequentialClientID(uint16(i), 854)
+				if err != nil {
+					continue
+				}
+				us.URL = append(us.URL,
+					SitemapURL{
+						Loc: fmt.Sprintf("https://go-tibia.badc0de.net/items/%d", itm.ServerID()), // DO NOT SUBMIT
+						Image: []SitemapURLImage{
+							SitemapURLImage{
+								Loc: fmt.Sprintf("https://go-tibia.badc0de.net/item/%d", itm.ServerID()), // DO NOT SUBMIT
+							},
+						},
+					},
+				)
+			}
+
+			us.Write(w, r)
+		})
+
 		fgen := func(pgSize int, defaultPg int, clientVersion uint16, serverIDX, knownClientIDArrayIDX bool) func(w http.ResponseWriter, r *http.Request) {
 			f := func(w http.ResponseWriter, r *http.Request) {
 				// REMOVE THIS begin
@@ -365,6 +391,54 @@ func main() {
 			}
 		})
 	}
+
+	r.HandleFunc("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+		// sitemap index
+
+		si := &SitemapIndex{
+			Sitemap: []SitemapIndexSitemap{
+				SitemapIndexSitemap{
+					Loc: "https://go-tibia.badc0de.net/items/sitemap.xml", // DO NOT SUBMIT
+				},
+				SitemapIndexSitemap{
+					Loc: "https://go-tibia.badc0de.net/sitemap-root.xml",
+				},
+			},
+		}
+		si.Write(w, r)
+	})
+
+	r.HandleFunc("/sitemap-root.xml", func(w http.ResponseWriter, r *http.Request) {
+		// base sitemap
+
+		us := &SitemapURLSet{
+			URL: []SitemapURL{
+				SitemapURL{
+					Loc: "https://go-tibia.badc0de.net/app/",
+				},
+				SitemapURL{
+					Loc: "https://go-tibia.badc0de.net/items/",
+				},
+				SitemapURL{
+					Loc: "https://go-tibia.badc0de.net/outfits/",
+				},
+				SitemapURL{
+					Loc: "https://go-tibia.badc0de.net/citems/854/",
+				},
+				SitemapURL{
+					Loc: "https://go-tibia.badc0de.net/citems/854/item/",
+				},
+			},
+		}
+
+		us.Write(w, r)
+	})
+
+	r.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Sitemap: /sitemap.xml\n")
+		// fmt.Fprintf(w, "User-Agent: *\nDisallow: /\n")
+	})
+
 	if htmlPath != "" {
 		glog.Infof("serving %q as the /app/", htmlPath)
 		r.HandleFunc("/app/Tibia.spr", func(w http.ResponseWriter, r *http.Request) {
