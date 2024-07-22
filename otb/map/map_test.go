@@ -10,7 +10,6 @@ import (
 	"badc0de.net/pkg/flagutil"
 	//"badc0de.net/pkg/go-tibia/ttesting"
 
-	"badc0de.net/pkg/go-tibia/gameworld"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
@@ -199,7 +198,7 @@ func TestMapDescriptionCorrectness(t *testing.T) {
 		ds2 <- loadOTBM(t, "map.otserv.otbm")
 	}()
 
-	gameworld.MapDescriptionEncoding_Test(t, <-ds1, <-ds2)
+	mapDescriptionEncoding_Test(t, <-ds1, <-ds2)
 }
 
 func loadOTBM(t *testing.T, fn string) *Map {

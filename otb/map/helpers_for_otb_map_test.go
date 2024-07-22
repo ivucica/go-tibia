@@ -1,6 +1,8 @@
-package gameworld
+package otbm
 
 import (
+	"badc0de.net/pkg/go-tibia/gameworld"
+	"badc0de.net/pkg/go-tibia/gameworld/gwmap"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/paths"
@@ -34,12 +36,14 @@ func LoadOTBForTest(t *testing.T) *itemsotb.Items {
 	return otb
 }
 
-// This test code is here because to load the map, we need to import OTBM loader.
+// This test code is testing gameworld, but to load the map, we would need to
+// import the OTBM loader.
 //
-// But OTBM loader imports gameworld, due to some map types being here.
+// But OTBM loader used to import gameworld, due to some map types being here.
 //
-// So the actual test is invoked from OTBM loader.
-func MapDescriptionEncoding_Test(t *testing.T, ds1, ds2 MapDataSource) {
+// So the actual test is invoked from OTBM loader until this is all
+// disentangled.
+func mapDescriptionEncoding_Test(t *testing.T, ds1, ds2 gwmap.MapDataSource) {
 	t.Run("mapDescriptionEncodingInitialSpawn", func(t *testing.T) {
 		mapDescriptionEncodingInitialSpawn(t, ds1)
 	})
@@ -50,33 +54,31 @@ func MapDescriptionEncoding_Test(t *testing.T, ds1, ds2 MapDataSource) {
 
 }
 
-func mapDescriptionEncodingInitialSpawn(t *testing.T, ds MapDataSource) {
-	playerID := CreatureID(0x100003e9) // e9030010
-	gws := &GameworldServer{
-		things: LoadThingsForTest(t),
-	}
-	gwConn := &GameworldConnection{}
-	gwConn.clientVersion = 854
-	gwConn.server = gws
+func mapDescriptionEncodingInitialSpawn(t *testing.T, ds gwmap.MapDataSource) {
+	playerID := gwmap.CreatureID(0x100003e9) // e9030010
+	gws := &gameworld.GameworldServer{}
+	gws.SetThings(LoadThingsForTest(t))
+	gwConn := &gameworld.GameworldConnection{}
+	gwConn.TestOnly_Setter(854, gws, gameworld.GameworldConnectionID(playerID))
 	//gwConn.conn = conn
 	//gwConn.key = key
-	gwConn.id = GameworldConnectionID(playerID)
 
 	gws.SetMapDataSource(ds)
 
-	ds.AddCreature(&creature{
-		id: playerID,
-		pos: tnet.Position{
+	ds.AddCreature(gameworld.BakeTestOnlyCreature(
+		/*id: */ playerID,
+		/*pos: */ tnet.Position{
 			X:     100,
 			Y:     100,
 			Floor: 7,
 		},
-		look: 0x88,
-		col:  [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
-	})
+		/*dir: */ 0,
+		/*look: */ 0x88,
+		/*col: */ [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
+	))
 
 	msg := tnet.NewMessage()
-	err := gwConn.initialAppearMap(msg)
+	err := gwConn.TestOnly_InitialAppearMap(msg)
 	if err != nil {
 		t.Errorf("failed to send map: %v", err)
 	}
@@ -284,30 +286,28 @@ func mapDescriptionEncodingInitialSpawn(t *testing.T, ds MapDataSource) {
 	}
 }
 
-func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
-	playerID := CreatureID(0x100003e9) // e9030010
-	gws := &GameworldServer{
-		things: LoadThingsForTest(t),
-	}
-	gwConn := &GameworldConnection{}
-	gwConn.clientVersion = 854
-	gwConn.server = gws
+func mapDescriptionEncodingMoveNorth(t *testing.T, ds gwmap.MapDataSource) {
+	playerID := gwmap.CreatureID(0x100003e9) // e9030010
+	gws := &gameworld.GameworldServer{}
+	gws.SetThings(LoadThingsForTest(t))
+	gwConn := &gameworld.GameworldConnection{}
+	gwConn.TestOnly_Setter(854, gws, gameworld.GameworldConnectionID(playerID))
 	//gwConn.conn = conn
 	//gwConn.key = key
-	gwConn.id = GameworldConnectionID(playerID)
 
 	gws.SetMapDataSource(ds)
 
-	ds.AddCreature(&creature{
-		id: playerID,
-		pos: tnet.Position{
+	ds.AddCreature(gameworld.BakeTestOnlyCreature(
+		/*id: */ playerID,
+		/*pos: */ tnet.Position{
 			X:     100,
 			Y:     91,
 			Floor: 7,
 		},
-		look: 0x88,
-		col:  [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
-	})
+		/*dir: */ 0,
+		/*look: */ 0x88,
+		/*col: */ [4]things.OutfitColor{0x0a, 0x0a, 0x0a, 0x0a},
+	))
 
 	// First, sanity checking tile on top left: 92,84,7 (which should be 980100ff -- just item 405):
 	if topLeftTile, err := ds.GetMapTile(92, 84, 7); err != nil {
@@ -323,7 +323,7 @@ func mapDescriptionEncodingMoveNorth(t *testing.T, ds MapDataSource) {
 	}
 
 	msg := tnet.NewMessage()
-	if err := gwConn.playerMoveNorthImpl(msg); err != nil {
+	if err := gwConn.TestOnly_PlayerMoveNorthImpl(msg); err != nil {
 		t.Errorf("%v", err)
 	}
 
