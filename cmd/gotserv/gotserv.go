@@ -235,8 +235,9 @@ func games() {
 		return
 	}
 
+	var webh *web.Handler
 	if muxRouter != nil {
-		webh := web.NewHandler(t, full.PathFlagValue(full.FlagTibiaSprPath), tibiaPicPath)
+		webh = web.NewHandler(t, full.PathFlagValue(full.FlagTibiaSprPath), tibiaPicPath)
 		webh.RegisterRoutes(muxRouter)
 	} else {
 		glog.Infof("not registering webh routes since web server is not enabled")
@@ -260,7 +261,7 @@ func games() {
 			return
 		}
 	}
-	if muxRouter != nil {
+	if muxRouter != nil && webh != nil {
 		webh.RegisterMapRoute(muxRouter, m)
 	} else {
 		glog.Infof("not registering webh map routes since web server is not enabled")
