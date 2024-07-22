@@ -14,23 +14,17 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"badc0de.net/pkg/go-tibia/gameworld/gwmap"
 	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
 	"badc0de.net/pkg/go-tibia/xmls"
 )
 
-type CreatureID uint32
-type Creature interface {
-	GetPos() tnet.Position
-	SetPos(tnet.Position) error
-	GetID() CreatureID
-	GetName() string
-	GetDir() things.CreatureDirection // TODO: move to tnet? or move tnet.Position to things?
-	SetDir(things.CreatureDirection) error
-	GetServerType() uint16
-	GetOutfitColors() [4]things.OutfitColor
-}
+type (
+	CreatureID = gwmap.CreatureID
+	Creature   = gwmap.Creature
+)
 
 // Creature types are bits that determine what is the type of a particular
 // creature. These flags need to be consistent between all data sources.
