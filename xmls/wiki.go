@@ -12,6 +12,11 @@ import (
 // WikiLoader is a streaming XML reader of the mediawiki dump of the Tibia wiki.
 //
 // Wiki loading functionality is experimental and public API will change.
+//
+// Prior art includes ot-monster-converter written in C#:
+// https://github.com/soul4soul/ot-monster-converter
+// which focuses on converting creature information. However, the current code
+// in Go has not been written by referring to this codebase.
 type WikiLoader struct {
 	r          io.ReadSeekCloser
 	xmlDecoder *xml.Decoder
