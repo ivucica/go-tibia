@@ -123,7 +123,12 @@ func NewCreatureID(kind CreatureType) CreatureID {
 	}
 }
 
+// GameworldConnectionID is the ID of this connection, and at this time will
+// match the player ID. This can change in the future.
 type GameworldConnectionID CreatureID
+
+// GameworldConnection encapsulates a single active connection (not necessarily
+// a session, if we introduce such a concept).
 type GameworldConnection struct {
 	id GameworldConnectionID
 
@@ -138,11 +143,23 @@ type GameworldConnection struct {
 	clientVersion uint16
 }
 
+// PlayerID returns the player ID for this connection.
+//
+// Currently it is the same as the creature ID of the player.
 func (c *GameworldConnection) PlayerID() (CreatureID, error) {
 	// TODO(ivucica): connection ID does not need to be player ID
 	return CreatureID(c.id), nil
 }
 
+// GameworldServer encapsulates a single gameworld server with all of the
+// active connections. This particular implementation does not enable scaling
+// the frontends, since all the connections are stored in a single local
+// non-distributed map. This implementation also allows only a single map
+// data source.
+//
+// The actual gameworld protocol implementation is currently in this type, not
+// in individual connections; the connections just store the metadata for a
+// particular network connection from a player.
 type GameworldServer struct {
 	pk     *rsa.PrivateKey
 	things *things.Things
@@ -151,7 +168,7 @@ type GameworldServer struct {
 
 	LameDuckText string // error to serve during lame duck mode
 
-	// TODO: all these must be per connection
+	// TODO: all these must be per network connection
 	connections map[GameworldConnectionID]*GameworldConnection
 }
 
@@ -476,6 +493,7 @@ mainLoop:
 	return nil
 }
 
+// FightMode encapsulates an individual player's intended requested fight stance.
 type FightMode uint8
 
 const (
@@ -485,6 +503,7 @@ const (
 	FightModeDefensive
 )
 
+// String implements the stringer method. It's just encoding the enum type.
 func (m FightMode) String() string {
 	switch m {
 	case FightModeOffensive:
@@ -498,6 +517,8 @@ func (m FightMode) String() string {
 	}
 }
 
+// ChaseMode encapsulates the player's requested behavior when it comes to
+// chasing the targeted creature.
 type ChaseMode uint8
 
 const (
@@ -608,6 +629,8 @@ func (c *GameworldConnection) initialAppear() error {
 	return nil
 }
 
+// InventorySlot is an enum type describing one of the slots where a player can
+// directly insert an item onto the character.
 type InventorySlot byte
 
 const (
@@ -674,6 +697,8 @@ func (c *GameworldConnection) playerStats(out *tnet.Message) error {
 	return nil
 }
 
+// Skill describes an individual trainable skill that the character can level
+// over time.
 type Skill byte
 
 const (

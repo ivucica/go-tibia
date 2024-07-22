@@ -352,6 +352,9 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 		0x00, 0x00, 0x00, 0x00, // remove
 	})
 
+	// If we are removing and adding the same creature: we are just renaming
+	// the creature and changing its type.
+
 	// 0xAA, 0xBB, 0xCC, 0xDD, // creature id (this is, currently, player's id)
 	if err := binary.Write(outMap, binary.LittleEndian, cr.GetID()); err != nil {
 		return err
