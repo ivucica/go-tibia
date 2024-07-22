@@ -5,8 +5,33 @@ import (
 	"testing"
 
 	tnet "badc0de.net/pkg/go-tibia/net"
+	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/things"
 )
+
+func LoadThingsForTest(t *testing.T) *things.Things {
+	if th, err := things.New(); err != nil {
+		t.Fatalf("failed to create things container: %v", err)
+	} else {
+		if err := th.AddItemsOTB(LoadOTBForTest(t)); err != nil {
+			t.Fatalf("failed to add items.otb to things container: %v", err)
+		}
+		return th
+	}
+	return nil
+}
+func LoadOTBForTest(t *testing.T) *itemsotb.Items {
+	f, err := paths.Open("items.otb")
+	if err != nil {
+		t.Fatalf("failed to open file: %s", err)
+	}
+	otb, err := itemsotb.New(f)
+	if err != nil {
+		t.Fatalf("failed to parse otb: %s", err)
+	}
+	return otb
+}
 
 type accessCountingMapDataSource struct {
 	mapDataSource
