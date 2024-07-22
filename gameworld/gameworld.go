@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -31,13 +32,67 @@ type Creature interface {
 	GetOutfitColors() [4]things.OutfitColor
 }
 
+// Creature types are bits that determine what is the type of a particular
+// creature. These flags need to be consistent between all data sources.
+// Currently they are flags, but they might need to be ranges in the future.
+//
+// They are used in creature IDs and *affect client behavior*.
+//
+// Creature IDs within a range might be used for routing RPCs in the future.
+//
+// BUG(ivucica): The creature type "NPC" has a different value between OT and
+// TFS.
+//
+// BUG(ivucica): The Forgotten Client has ranges < 0x400000000 for players,
+// < 0x80000000 for monsters and everything else for NPCs. It also says that
+// for >= 9.10 a creature will get a server-assigned type: 0 for players, 1
+// for monsters, 2 for NPCs and 3 for summoned creatures (3 is presumed and
+// needs to be checked in servers); and on >= 11.21 a summoned creature will
+// have the owner's ID determined and will client-side get the assigned type
+// of 4.
+// https://github.com/opentibiabr/The-Forgotten-Client/blob/8b7979619ea76bc29581122440d09f241afc175d/src/protocolgame.cpp#L8492-L8509
 type CreatureType uint32
 
+// Note: wrong constants may affect client behavior (right click options etc).
+// The behavior with various values should be validated against various clients.
 const (
-	CreatureTypePlayer  = CreatureType(0x10000000)
-	CreatureTypeNPC     = CreatureType(0x2000000)
+	// The ID of this creature determines it to be a player.
+	//
+	// Same in OT and TFS: https://github.com/otland/forgottenserver/blob/973855c3e0a60461117b55f248ad14bab6630780/src/player.cpp#L40
+	CreatureTypePlayer = CreatureType(0x10000000)
+
+	// The ID of this creature determines it to be an NPC.
+	//
+	// Not in OT, value 0x20000000 in TFS: https://github.com/otland/forgottenserver/blob/973855c3e0a60461117b55f248ad14bab6630780/src/npc.cpp#L15
+	//
+	// TFS v1.2 from 2016 used 0x80000000: https://github.com/otland/forgottenserver/blob/afeea42cee45a176aeccb330733a606e3bdcb64a/src/npc.cpp#L29C27-L29C37
+	CreatureTypeNPC = CreatureType(0x20000000)
+
+	// The ID of this creature determines it to be a monster.
+	//
+	// Not using TFS value 0x21000000 in monster.cpp, choosing value in OT
+	// and in TFS v1.2: https://github.com/opentibia/server/blob/33a81ef95a9b407533e0a7ce48aff12204b4f3b1/src/actor.h#L68
 	CreatureTypeMonster = CreatureType(0x40000000)
 )
+
+// String implements the stringer type, returning all types that this creature
+// satisfies. Usually this should be just one type.
+func (ct CreatureType) String() string {
+	var types []string
+	if ct&CreatureTypePlayer != 0 {
+		types = append(types, "player")
+	}
+	if ct&CreatureTypeNPC != 0 {
+		types = append(types, "npc")
+	}
+	if ct&CreatureTypeMonster != 0 {
+		types = append(types, "monster")
+	}
+	if len(types) == 0 {
+		return "(generic creature)"
+	}
+	return strings.Join(types, ", ")
+}
 
 var (
 	maxCreatureIDPlayer      CreatureID
@@ -46,7 +101,10 @@ var (
 	maxCreatureIDDefaultPool CreatureID
 )
 
-// TODO(ivucica): Move this to map data source
+// NewCreatureID creates a new creature ID, unique across all data sources,
+// and determinable to be
+//
+// BUG(ivucica): Move this to map data source
 func NewCreatureID(kind CreatureType) CreatureID {
 	switch kind {
 	case CreatureTypePlayer:
