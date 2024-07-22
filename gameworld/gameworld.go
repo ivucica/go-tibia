@@ -192,6 +192,12 @@ func (c *GameworldServer) SetThings(t *things.Things) error {
 	return nil
 }
 
+func (c *GameworldConnection) TestOnly_Setter(clientVersion uint16, gws *GameworldServer, id GameworldConnectionID) {
+    c.clientVersion = clientVersion
+    c.server = gws
+    c.id = id
+}
+
 // Serve begins serving the gameworld protocol on the accepted network connection.
 //
 // User of this method needs to bring their own listening schema and accept the connection,

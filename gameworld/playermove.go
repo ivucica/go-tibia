@@ -132,6 +132,10 @@ func (c *GameworldConnection) moveCreature(outMove *tnet.Message, player Creatur
 	return nil
 }
 
+func (c *GameworldConnection) TestOnly_PlayerMoveNorthImpl(outMove *tnet.Message) error {
+    return c.playerMoveNorthImpl(outMove)
+}
+
 func (c *GameworldConnection) playerMoveNorthImpl(outMove *tnet.Message) error {
 	pid, err := c.PlayerID()
 	if err != nil {

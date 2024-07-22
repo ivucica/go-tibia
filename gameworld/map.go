@@ -303,6 +303,10 @@ func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) e
 	return nil
 }
 
+func (c *GameworldConnection) TestOnly_InitialAppearMap(outMap *tnet.Message) error {
+    return c.initialAppearMap(outMap)
+}
+
 func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 

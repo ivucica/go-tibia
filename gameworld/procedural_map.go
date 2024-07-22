@@ -25,6 +25,12 @@ func NewMapDataSource() MapDataSource {
 
 //////////////////////////////
 
+func BakeTestOnlyCreature(id CreatureID, pos tnet.Position, dir things.CreatureDirection, look uint16, col [4]things.OutfitColor) Creature {
+	return &creature{
+		pos: pos, id: id, dir: dir, look: look, col: col,
+	}
+}
+
 type creature struct {
 	pos tnet.Position
 	id  CreatureID
@@ -69,7 +75,7 @@ func (c *creature) SetDir(dir things.CreatureDirection) error {
 type mapDataSource struct {
 	creatures map[CreatureID]Creature
 
-	generatedMapTiles map[tnet.Position]MapTile
+	generatedMapTiles     map[tnet.Position]MapTile
 	generatedMapTilesLock sync.Mutex
 
 	mapTileGenerator func(x, y uint16, z uint8) (MapTile, error)
