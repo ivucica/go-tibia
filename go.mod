@@ -1,6 +1,7 @@
 module badc0de.net/pkg/go-tibia
 
-go 1.11
+// Switching to 1.16 for embeds.
+go 1.16
 
 require (
 	badc0de.net/pkg/flagutil v1.0.1
