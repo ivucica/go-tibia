@@ -4,6 +4,7 @@
 package imageprint
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"os"
@@ -12,7 +13,15 @@ import (
 	"github.com/andybons/gogif"
 )
 
+var (
+	// TODO: remove this flag and just don't use it if --iterm=true is explicitly set
+	forceITerm = flag.Bool("force_iterm", false, "disable iterm detection, force returning true (implementation variant: has rasterm)")
+)
+
 func isTermItermWez() bool {
+	if *forceITerm {
+		return true
+	}
 	return rasterm.IsTermItermWez()
 }
 
