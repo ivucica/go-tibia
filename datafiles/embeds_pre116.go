@@ -3,9 +3,9 @@
 package datafiles
 
 import (
-    "io/fs"
+    // "io/fs" // also introduced in 1.16
 )
 
 var itemsHTMLEmbed string
 var outfitsHTMLEmbed string
-var htmlTemplatesEmbed fs.FS
+var htmlTemplatesEmbed interface{} //fs.FS
