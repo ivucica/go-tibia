@@ -31,6 +31,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	_ "badc0de.net/pkg/go-tibia/datafiles" // embeds // TODO use this
 )
 
 var (
