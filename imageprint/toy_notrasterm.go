@@ -4,12 +4,17 @@
 package imageprint
 
 import (
+	"flag"
 	"fmt"
 	"image"
 )
 
+var (
+	forceITerm = flag.Bool("force_iterm", false, "value to force iterm detection to take (implementation variant: no rasterm)")
+)
+
 func isTermItermWez() bool {
-	return false
+	return *forceITerm
 }
 
 func PrintRasTerm(i image.Image) {
