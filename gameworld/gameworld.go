@@ -420,39 +420,9 @@ mainLoop:
 				gwConn.playerCancelMove(0)
 				break
 			case 0x96: // say
-				chatType, err := msg.ReadByte()
-				if err != nil {
-					glog.Errorf("error reading chat type: %v", err)
+				if err := gwConn.playerSay(msg); err != nil {
+					glog.Errorf("error handling say message: %v", err)
 					continue mainLoop
-				}
-				switch chatType {
-				case 0x01: // say
-					chatText, err := msg.ReadTibiaString()
-					if err != nil {
-						glog.Errorf("error reading chat text: %v", err)
-						continue mainLoop
-					}
-					glog.Infof("%v: %v", "Demo Character", chatText)
-					playerCr, err := c.mapDataSource.GetCreatureByID(playerID)
-					if err != nil {
-						glog.Errorf("error getting player creature by id: %v", err)
-						continue mainLoop
-					}
-
-					for _, otherGwConn := range c.connections {
-						out := tnet.NewMessage()
-						out.Write([]byte{0xAA})
-						out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
-						out.WriteTibiaString("Demo Character")
-						out.Write([]byte{0x01, 0x00}) // level
-						out.Write([]byte{0x01})       // type - i.e. 'say' in this case
-						out.WriteTibiaPosition(playerCr.GetPos())
-						out.WriteTibiaString(chatText)
-						//gwConn.senderChan <- out
-						go func(otherGwConn *GameworldConnection, msg *tnet.Message) {
-							otherGwConn.senderChan <- out
-						}(otherGwConn, out)
-					}
 				}
 			case 0xA0: // set fight modes
 				var fightMode FightMode
@@ -490,6 +460,45 @@ mainLoop:
 		}
 	}
 	// TODO: how to safely tell netsender to quit?
+	return nil
+}
+
+// playerSay handles the player's say message. This is a message that the client
+// sends when the player types a message in the chat box and presses enter. The
+// message is then sent to all other players in the gameworld that are meant
+// to hear it (currently, all players).
+func (c *GameworldConnection) playerSay(msg *tnet.Message) error {
+	chatType, err := msg.ReadByte()
+	if err != nil {
+		return fmt.Errorf("error reading chat type: %w", err)
+	}
+	switch chatType {
+	case 0x01: // say
+		chatText, err := msg.ReadTibiaString()
+		if err != nil {
+			return fmt.Errorf("error reading chat text: %w", err)
+		}
+		glog.Infof("%v: %v", "Demo Character", chatText)
+		playerCr, err := c.mapDataSource.GetCreatureByID(playerID)
+		if err != nil {
+			return fmt.Errorf("error getting player creature by id: %w", err)
+		}
+
+		for _, otherGwConn := range c.connections {
+			out := tnet.NewMessage()
+			out.Write([]byte{0xAA})
+			out.Write([]byte{0x00, 0x00, 0x00, 0x00}) // unkSpeak
+			out.WriteTibiaString("Demo Character")
+			out.Write([]byte{0x01, 0x00}) // level
+			out.Write([]byte{0x01})       // type - i.e. 'say' in this case
+			out.WriteTibiaPosition(playerCr.GetPos())
+			out.WriteTibiaString(chatText)
+			//gwConn.senderChan <- out
+			go func(otherGwConn *GameworldConnection, msg *tnet.Message) {
+				otherGwConn.senderChan <- out
+			}(otherGwConn, out)
+		}
+	}
 	return nil
 }
 
