@@ -5,6 +5,8 @@ import (
 	"badc0de.net/pkg/go-tibia/things"
 )
 
+// Creature represents a creature in the game world. A creature is a player, a
+// monster, an NPC, etc.
 type Creature interface {
 	GetPos() tnet.Position
 	SetPos(tnet.Position) error

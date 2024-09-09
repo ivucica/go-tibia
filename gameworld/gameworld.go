@@ -96,7 +96,7 @@ var (
 )
 
 // NewCreatureID creates a new creature ID, unique across all data sources,
-// and determinable to be
+// and determinable to be a player, NPC, or monster.
 //
 // BUG(ivucica): Move this to map data source
 func NewCreatureID(kind CreatureType) CreatureID {
@@ -126,13 +126,13 @@ type GameworldConnectionID CreatureID
 type GameworldConnection struct {
 	id GameworldConnectionID
 
-	server       *GameworldServer
-	key          [16]byte
-	conn         net.Conn
-	senderChan   chan *tnet.Message
-	receiverChan chan *tnet.Message
-	senderQuit   chan struct{}
-	mainLoopQuit chan struct{}
+	server       *GameworldServer   // Parent server owning this connection.
+	key          [16]byte           // XTEA key.
+	conn         net.Conn           // TCP connection (which could be an io.ReadWriteCloser).
+	senderChan   chan *tnet.Message // Put a message into this channel to have it sent to the client on this connection.
+	receiverChan chan *tnet.Message // Any messages received from the client on this connection will be put into this channel.
+	senderQuit   chan struct{}      // Signal to quit the sender goroutine.
+	mainLoopQuit chan struct{}      // Signal to quit the main loop goroutine.
 
 	clientVersion uint16
 }
@@ -155,10 +155,10 @@ func (c *GameworldConnection) PlayerID() (CreatureID, error) {
 // in individual connections; the connections just store the metadata for a
 // particular network connection from a player.
 type GameworldServer struct {
-	pk     *rsa.PrivateKey
-	things *things.Things
+	pk     *rsa.PrivateKey // private key for RSA encryption (has to match the public key in the client)
+	things *things.Things  // things registry
 
-	mapDataSource MapDataSource
+	mapDataSource MapDataSource // data source for map information; can be a multiplexer (combining remote RPCs, local map etc) or just a local map
 
 	LameDuckText string // error to serve during lame duck mode
 
@@ -193,9 +193,9 @@ func (c *GameworldServer) SetThings(t *things.Things) error {
 }
 
 func (c *GameworldConnection) TestOnly_Setter(clientVersion uint16, gws *GameworldServer, id GameworldConnectionID) {
-    c.clientVersion = clientVersion
-    c.server = gws
-    c.id = id
+	c.clientVersion = clientVersion
+	c.server = gws
+	c.id = id
 }
 
 // Serve begins serving the gameworld protocol on the accepted network connection.
@@ -537,6 +537,9 @@ func (m ChaseMode) String() string {
 	}
 }
 
+// networkReceiver receives messages from the client. It is a goroutine that
+// reads messages from the network connection and puts them into the receiverChan
+// for the main loop to process.
 func (c *GameworldConnection) networkReceiver() error {
 	// TODO: how to safely tell main loop to quit?
 	for {
@@ -551,6 +554,13 @@ func (c *GameworldConnection) networkReceiver() error {
 		glog.Infof("dispatched message to receiver chan")
 	}
 }
+
+// networkSender sends messages to the client. It is a goroutine that reads
+// messages from the senderChan and sends them to the client over the network,
+// uninterrupted so that the messages don't arrive interrupted by other messages.
+//
+// This is also the point at which the messages are finalized, i.e. they are
+// encrypted, and have their size header added.
 func (c *GameworldConnection) networkSender() error {
 	// TODO: how to safely tell main loop to quit?
 	for {
@@ -580,6 +590,10 @@ func (c *GameworldConnection) networkSender() error {
 	}
 }
 
+// initialAppear sends the initial appear message to the client. This message
+// is sent when the client first connects to the server and is used to present
+// the player's character, inventory, skills, etc. to the client, as well as
+// the map.
 func (c *GameworldConnection) initialAppear() error {
 	outMap := tnet.NewMessage()
 	c.initialAppearSelfAppear(outMap)
@@ -650,16 +664,23 @@ const (
 	InventorySlotLast  = InventorySlotAmmo
 )
 
+// slotEmpty sends a message to the client to clear an inventory slot.
 func (c *GameworldConnection) slotEmpty(out *tnet.Message, slot InventorySlot) error {
 	out.Write([]byte{0x79, byte(slot)})
 	return nil
 }
+
+// slotItem sends a message to the client to present an item in a particular
+// inventory slot.
 func (c *GameworldConnection) slotItem(out *tnet.Message, slot InventorySlot, item MapItem) error {
 	out.Write([]byte{0x78, byte(slot)})
 	c.itemDescription(out, item)
 	return nil
 }
 
+// playerStats sends the player's statistics to the client. This includes the
+// player's health, mana, experience, level, magic level, soul points, stamina,
+// and capacity.
 func (c *GameworldConnection) playerStats(out *tnet.Message) error {
 	out.Write([]byte{0xA0})
 	stats := struct {
@@ -779,6 +800,12 @@ func (c *GameworldConnection) playerIcons(out *tnet.Message) error {
 	return nil
 }
 
+// outfitWindow sends the outfit window to the client. The outfit window is a
+// window that allows the player to select a new outfit for their character.
+// The outfit window is opened by the client when the player right-clicks on
+// their character and selects "Outfit". The outfit window is populated with
+// outfits that the player can select from. The outfits are read from the
+// outfits.xml file.
 func (c *GameworldConnection) outfitWindow(out *tnet.Message) error {
 	playerID, err := c.PlayerID()
 	if err != nil {

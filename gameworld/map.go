@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	ItemNotFound     error
-	CreatureNotFound error
+	ItemNotFound     error // In case an item is not found, this error is returned.
+	CreatureNotFound error // In case a creature is not found, this error is returned.
 )
 
 func init() {
@@ -42,15 +42,28 @@ type (
 
 ////////////////////////
 
+// viewportSizeW returns the width of the viewport in tiles. It is generally
+// fixed for a particular client version (or at least generally static for a
+// connection).
 func (c *GameworldConnection) viewportSizeW() int8 {
 	return 18
 }
+// viewportSizeH returns the height of the viewport in tiles. It is generally
+// fixed for a particular client version (or at least generally static for a
+// connection).
 func (c *GameworldConnection) viewportSizeH() int8 {
 	return 14
 }
+// floorGroundLevel returns the ground level. It will be fixed for a particular
+// client version, and static for a connection. Anything below this (larger
+// integers) is considered underground, and rendered accordingly; anything above
+// this (smaller integers) is considered above ground, and rendered accordingly.
 func (c *GameworldConnection) floorGroundLevel() int8 {
 	return 7
 }
+// floorBedrockLevel returns the bedrock level. It will be fixed for a
+// particular client version, and static for a connection. There is nothing
+// below this level; this is the lowest level possible (highest level is 0).
 func (c *GameworldConnection) floorBedrockLevel() int8 {
 	return 14
 }
@@ -62,18 +75,31 @@ type singleTileDescription struct {
 	err  error
 }
 
+// mapDescription sends a description of the map to the client. The map is
+// described starting from the given position, and extending to the given width
+// and height. Multiple floors are sent, and starting and end floor depend on
+// whether we are currently underground or above ground. The starting X and Y
+// change depending on the floor, because the same X and Y on floors higher
+// up is actually rendered with one tile offset to the left and up.
 func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, startY uint16, startFloor int8, width, height uint16) error {
 	glog.Infof("sending %d,%d,%d for %dx%d", startX, startY, startFloor, width, height)
+	// Assume we are above ground. Plan to send starting from ground level
+	// (typically 7, but may vary), all the way to the top (0).
 	start := int8(c.floorGroundLevel())
 	end := int8(0)
-	step := int8(-1)
+	step := int8(-1) // Above ground, we are sending from bottom to top.
 
 	if startFloor > c.floorGroundLevel() {
+		// Underground. Start from the floor two levels above current floor,
+		// and send all the way down to bedrock.
 		start = startFloor - 2
 		end = c.floorBedrockLevel()
 		if int8(startFloor)+2 < end {
+			// If we are more than 2 floors above bedrock, send only 2 floors
+			// below us.
 			end = int8(startFloor) + 2
 		}
+		// Underground, we are sending from top to bottom.
 		step = 1
 	}
 
@@ -81,14 +107,18 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	defer cancel()
 	group, ctx := errgroup.WithContext(ctx)
 
+	// Calculate total number of tiles to send. Used to create the channel.
 	total := int((end + step - start) * step)
 	total *= int(width * height)
 
+	// Collect all tiles in a channel, so we can send them in order.
 	tilesCh := make(chan singleTileDescription, total)
 	descIdx := int(0)
+	// Concurrently compute map descriptions for each floor individually.
 	for floor := start; floor != end+step; floor += step {
 		glog.V(2).Infof("describing floor %d", floor)
 
+		// TODO: reenable concurrently computing the floors.
 		//go func(descIdx int, floor int8) {
 		func(descIdx int, floor int8) {
 			group.Go(func() error {
@@ -102,10 +132,11 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 				}
 				return nil
 			})
-		}(descIdx, floor)
+		}(descIdx, floor) // Tell the goroutine this is the floor it is computing, so it can send it back in the channel and the aggregator can put it in the right place.
 		descIdx += int(width * height)
 	}
 
+	// Wait for all floor descriptions to be computed.
 	if err := group.Wait(); err != nil {
 		return err
 	}
@@ -121,6 +152,8 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	//}
 
 	hadError := false
+	// Collect all tiles, and insert them into the 'all' array in the correct
+	// order.
 	for i := 0; i < descIdx; i++ {
 		tileDesc := <-tilesCh
 		if tileDesc.err != nil {
@@ -133,6 +166,7 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		all[tileDesc.idx] = tileDesc
 	}
 	if hadError {
+		// TODO: aggregate 
 		return fmt.Errorf("error in at least one received tile")
 	}
 
@@ -182,6 +216,9 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 	return nil
 }
 
+// floorDescription sends a description of a single floor to the client. The
+// floor is described starting from the given position, and extending to the
+// given width and height.
 func (c *GameworldConnection) floorDescription(tilesCh chan singleTileDescription, x, y uint16, z uint8, width, height uint16, descIdx int) error {
 	for nx := x; nx < x+width; nx++ {
 		for ny := y; ny < y+height; ny++ {
@@ -208,6 +245,9 @@ func (c *GameworldConnection) floorDescription(tilesCh chan singleTileDescriptio
 	return nil
 }
 
+// tileDescription sends a description of a single tile to the client, located
+// at the passed position. The tile is described by sending all items on the
+// tile, and all creatures on the tile.
 func (c *GameworldConnection) tileDescription(pos tnet.Position, tile MapTile, descIdx int) (tileOut *singleTileDescription) {
 	outMap := tnet.NewMessage()
 	tileOut = &singleTileDescription{pos: pos, idx: descIdx, data: outMap}
@@ -272,6 +312,8 @@ func (c *GameworldConnection) tileDescription(pos tnet.Position, tile MapTile, d
 	return
 }
 
+// itemDescription sends a description of an item to the client. The item is
+// described by sending its client ID, and possibly its count or fluid color.
 func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) error {
 	itemOTBItem := c.server.things.Temp__GetItemFromOTB(item.GetServerType(), c.clientVersion)
 	//if itemOTBItem.Group != itemsotb.ITEM_GROUP_GROUND {
@@ -307,6 +349,18 @@ func (c *GameworldConnection) TestOnly_InitialAppearMap(outMap *tnet.Message) er
     return c.initialAppearMap(outMap)
 }
 
+// initialAppearMap sends the initial map description to the client. The map is
+// described starting from the player's position, and extending to the width and
+// height of the viewport.
+//
+// This function is used to send the initial map description to the client when
+// the client first connects to the game server. It is used to send the map
+// around the player's position, so the client can render the map around the
+// player.
+//
+// The map is described by sending the player's position. The map is then
+// described by sending the map description starting from the player's position,
+// and extending to the width and height of the viewport.
 func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	outMap.Write([]byte{0x64}) // full map desc
 
@@ -334,6 +388,10 @@ func (c *GameworldConnection) initialAppearMap(outMap *tnet.Message) error {
 	return err
 }
 
+// creatureDescription sends a description of a creature to the client. The
+// creature is described by sending its client ID, name, health, direction,
+// outfit, light level, step speed, skull, party shield, war emblem, and
+// impassable. The creature is also described by sending its outfit data.
 func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creature) error {
 	// TODO(ivucica): support not sending the whole creature (i.e. support something other than 0x61)
 	outMap.Write([]byte{
@@ -370,6 +428,9 @@ func (c *GameworldConnection) creatureDescription(outMap *tnet.Message, cr Creat
 	return nil
 }
 
+// creatureOutfit sends a description of a creature's outfit to the client. The
+// creature's outfit is described by sending its look type, head, body, legs,
+// feet, and addons.
 func (c *GameworldConnection) creatureOutfit(out *tnet.Message, cr Creature) error {
 	itemLook := uint16(0) // look like an item instead? 0 disables
 	look := cr.GetServerType()
