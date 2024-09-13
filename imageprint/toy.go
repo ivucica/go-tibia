@@ -10,6 +10,8 @@ import (
 	"image"
 	ic "image/color"
 	"image/png"
+	"strings"
+	"os"
 
 	"github.com/gookit/color"
 )
@@ -109,5 +111,21 @@ func PrintITerm(i image.Image, fn string) {
 	b := &bytes.Buffer{}
 	bEnc := base64.NewEncoder(base64.StdEncoding, b)
 	png.Encode(bEnc, i)
-	fmt.Printf("\n\033]1337;File=name=%s;inline=1;size=%d,width=%dpx;height=%dpx:%s\a\n", name, len(b.String()), i.Bounds().Size().X, i.Bounds().Size().Y, b.String())
+
+	tmuxPrefix := ""
+	tmuxSuffix := ""
+	if strings.HasPrefix(os.Getenv("TERM"), "screen") || strings.HasPrefix(os.Getenv("TERM"), "tmux") || os.Getenv("IMAGEPRINT_FORCE_TMUX_WRAPPER") != "" {
+		// assume tmux, wrap with \033Ptmux;\033 and \033\\
+		// https://www.reddit.com/r/tmux/comments/4l5cpi/tmux_imgcat_iterm2/
+		// "tmux requires unrecognized OSC sequences to be wrapped with DCS tmux; <sequence> ST, and
+		// for all ESCs in <sequence> to be recognized with ESC ESC. It accepts only ESC backslash
+		// for ST."
+		tmuxPrefix = "\033Ptmux;\033"
+		tmuxSuffix = "\033\\"
+	}
+	if os.Getenv("IMAGEPRINT_FORCE_TMUX_WRAPPER") == "off" {
+		tmuxPrefix = ""
+		tmuxSuffix = ""
+	}
+	fmt.Printf("\n%s\033]1337;File=name=%s;inline=1;size=%d;width=%dpx;height=%dpx:%s\a%s\n", tmuxPrefix, name, len(b.String()), i.Bounds().Size().X, i.Bounds().Size().Y, b.String(), tmuxSuffix)
 }
