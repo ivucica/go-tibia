@@ -48,12 +48,14 @@ type (
 func (c *GameworldConnection) viewportSizeW() int8 {
 	return 18
 }
+
 // viewportSizeH returns the height of the viewport in tiles. It is generally
 // fixed for a particular client version (or at least generally static for a
 // connection).
 func (c *GameworldConnection) viewportSizeH() int8 {
 	return 14
 }
+
 // floorGroundLevel returns the ground level. It will be fixed for a particular
 // client version, and static for a connection. Anything below this (larger
 // integers) is considered underground, and rendered accordingly; anything above
@@ -61,6 +63,7 @@ func (c *GameworldConnection) viewportSizeH() int8 {
 func (c *GameworldConnection) floorGroundLevel() int8 {
 	return 7
 }
+
 // floorBedrockLevel returns the bedrock level. It will be fixed for a
 // particular client version, and static for a connection. There is nothing
 // below this level; this is the lowest level possible (highest level is 0).
@@ -166,7 +169,7 @@ func (c *GameworldConnection) mapDescription(outMap *tnet.Message, startX, start
 		all[tileDesc.idx] = tileDesc
 	}
 	if hadError {
-		// TODO: aggregate 
+		// TODO: aggregate
 		return fmt.Errorf("error in at least one received tile")
 	}
 
@@ -346,7 +349,7 @@ func (c *GameworldConnection) itemDescription(out *tnet.Message, item MapItem) e
 }
 
 func (c *GameworldConnection) TestOnly_InitialAppearMap(outMap *tnet.Message) error {
-    return c.initialAppearMap(outMap)
+	return c.initialAppearMap(outMap)
 }
 
 // initialAppearMap sends the initial map description to the client. The map is

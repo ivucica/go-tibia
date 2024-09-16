@@ -162,7 +162,7 @@ func (c *GameworldConnection) moveCreature(outMove *tnet.Message, player Creatur
 // playerMoveNorthImpl function. It is not meant to be exported, and is only
 // used for testing.
 func (c *GameworldConnection) TestOnly_PlayerMoveNorthImpl(outMove *tnet.Message) error {
-    return c.playerMoveNorthImpl(outMove)
+	return c.playerMoveNorthImpl(outMove)
 }
 
 // playerMoveNorthImpl moves the player north by one tile. It generates the
