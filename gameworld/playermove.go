@@ -95,7 +95,8 @@ func (c *GameworldConnection) moveCreature(outMove *tnet.Message, player Creatur
 		return err
 	}
 	// get source tile
-	if t, err := c.server.mapDataSource.GetMapTile(p.X, p.Y, p.Floor); err != nil {
+	t, err := c.server.mapDataSource.GetMapTile(p.X, p.Y, p.Floor)
+	if err != nil {
 		return err
 	}
 
@@ -145,7 +146,8 @@ func (c *GameworldConnection) moveCreature(outMove *tnet.Message, player Creatur
 	}
 
 	// get destination tile
-	if t, err := c.server.mapDataSource.GetMapTile(newP.X, newP.Y, newP.Floor); err != nil {
+	t, err = c.server.mapDataSource.GetMapTile(newP.X, newP.Y, newP.Floor)
+	if err != nil {
 		return err
 	}
 	// add player creature to the destination tile
