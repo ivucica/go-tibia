@@ -45,7 +45,7 @@ func TestNewDataset(t *testing.T) {
 	}
 
 	testableCounts := map[ClientVersion]expectedCounts{
-		CLIENT_VERSION_854: expectedCounts{
+		CLIENT_VERSION_854: {
 			Items:           10378,
 			Outfits:         351,
 			Effects:         69,
