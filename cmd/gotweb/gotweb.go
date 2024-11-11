@@ -206,7 +206,7 @@ func main() {
 					SitemapURL{
 						Loc: fmt.Sprintf("https://go-tibia.badc0de.net/items/%d", itm.ServerID()), // DO NOT SUBMIT
 						Image: []SitemapURLImage{
-							SitemapURLImage{
+							{
 								Loc: fmt.Sprintf("https://go-tibia.badc0de.net/item/%d", itm.ServerID()), // DO NOT SUBMIT
 							},
 						},
@@ -393,10 +393,10 @@ func main() {
 
 		si := &SitemapIndex{
 			Sitemap: []SitemapIndexSitemap{
-				SitemapIndexSitemap{
+				{
 					Loc: "https://go-tibia.badc0de.net/items/sitemap.xml", // DO NOT SUBMIT
 				},
-				SitemapIndexSitemap{
+				{
 					Loc: "https://go-tibia.badc0de.net/sitemap-root.xml",
 				},
 			},
@@ -409,19 +409,19 @@ func main() {
 
 		us := &SitemapURLSet{
 			URL: []SitemapURL{
-				SitemapURL{
+				{
 					Loc: "https://go-tibia.badc0de.net/app/",
 				},
-				SitemapURL{
+				{
 					Loc: "https://go-tibia.badc0de.net/items/",
 				},
-				SitemapURL{
+				{
 					Loc: "https://go-tibia.badc0de.net/outfits/",
 				},
-				SitemapURL{
+				{
 					Loc: "https://go-tibia.badc0de.net/citems/854/",
 				},
-				SitemapURL{
+				{
 					Loc: "https://go-tibia.badc0de.net/citems/854/item/",
 				},
 			},
