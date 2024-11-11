@@ -404,7 +404,7 @@ type rootNodeVersion struct {
 //
 // MajorVersion means a revision of the file format, MinorVersion means the
 // targeted protocol version, BuildNumber is an arbitrary number representing
-// ther revision of the file, and CSDVersion is a byte array with a C-style
+// the revision of the file, and CSDVersion is a byte array with a C-style
 // null-terminated string.
 type ItemsVersion struct {
 	MajorVersion uint32

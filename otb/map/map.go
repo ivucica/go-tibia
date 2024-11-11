@@ -677,7 +677,7 @@ func (m *Map) readItemNode(node *otb.OTBNode, parentTile *mapTile, parentItem *m
 	} else {
 		//glog.Errorf("%s[n.b. item id on map is 0]", indent)
 		//v = 0
-		return nil // just ignore the item for the tiem being, figure out what's up later...
+		return nil // just ignore the item for the time being, figure out what's up later...
 	}
 
 	for attr, err := propBuf.ReadByte(); err == nil; attr, err = propBuf.ReadByte() {
