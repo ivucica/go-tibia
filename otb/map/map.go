@@ -3,18 +3,13 @@ package otbm
 
 import (
 	"badc0de.net/pkg/go-tibia/gameworld"
-	tnet "badc0de.net/pkg/go-tibia/net"
 	"badc0de.net/pkg/go-tibia/otb"
 	"github.com/golang/glog"
 
-	"badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
-	"badc0de.net/pkg/go-tibia/things"
 
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -38,35 +33,6 @@ func (l pos) String() string {
 
 func posFromCoord(x, y uint16, floor uint8) pos {
 	return pos((uint64(floor) << 32) | (uint64(y) << 16) | uint64(x))
-}
-
-type Map struct {
-	gameworld.MapDataSource
-	tiles     map[pos]*mapTile
-	creatures map[gameworld.CreatureID]gameworld.Creature
-	things    *things.Things
-
-	defaultPlayerSpawnPoint pos // temporary variable; ideally this is specified by having player's town ID in config
-
-	desc                       []string
-	extSpawnFile, extHouseFile string
-}
-
-func (m *Map) String() string {
-	return fmt.Sprintf("<map with description: [%s]>", strings.Join(m.desc, "; "))
-}
-
-func (m *Map) Private_And_Temp__DefaultPlayerSpawnPoint(c gameworld.CreatureID) tnet.Position {
-	pos := m.defaultPlayerSpawnPoint
-	return tnet.Position{
-		X:     pos.X(),
-		Y:     pos.Y(),
-		Floor: pos.Floor(),
-	}
-}
-
-func (m *Map) GetAmbientLight() (dat.DatasetColor, uint8) {
-	return gameworld.NightAmbient, gameworld.NightAmbientLevel
 }
 
 type mapTile struct {
@@ -232,178 +198,10 @@ func (i *mapItem) String() string {
 	return fmt.Sprintf("<mapItem %d : %02x %s>", i.otbItemTypeID, clientID, name)
 }
 
-// Implementation detail: iota is not used primarily for easier referencing in
-// case of an error.
-type MapNodeType uint8
-
-const (
-	OTBM_ROOT        MapNodeType = 0x00
-	OTBM_ROOTV1      MapNodeType = 0x01
-	OTBM_MAP_DATA    MapNodeType = 0x02
-	OTBM_ITEM_DEF    MapNodeType = 0x03
-	OTBM_TILE_AREA   MapNodeType = 0x04
-	OTBM_TILE        MapNodeType = 0x05
-	OTBM_ITEM        MapNodeType = 0x06
-	OTBM_TILE_SQUARE MapNodeType = 0x07
-	OTBM_TILE_REF    MapNodeType = 0x08
-	OTBM_SPAWNS      MapNodeType = 0x09
-	OTBM_SPAWN_AREA  MapNodeType = 0x0A
-	OTBM_MONSTER     MapNodeType = 0x0B
-	OTBM_TOWNS       MapNodeType = 0x0C
-	OTBM_TOWN        MapNodeType = 0x0D
-	OTBM_HOUSETILE   MapNodeType = 0x0E
-	OTBM_WAYPOINTS   MapNodeType = 0x0F
-	OTBM_WAYPOINT    MapNodeType = 0x10
-)
-
-type ItemAttribute uint8
-
-const (
-	OTBM_ATTR_DESCRIPTION    ItemAttribute = 0x01
-	OTBM_ATTR_EXT_FILE       ItemAttribute = 0x02
-	OTBM_ATTR_TILE_FLAGS     ItemAttribute = 0x03
-	OTBM_ATTR_ACTION_ID      ItemAttribute = 0x04
-	OTBM_ATTR_UNIQUE_ID      ItemAttribute = 0x05
-	OTBM_ATTR_TEXT           ItemAttribute = 0x06
-	OTBM_ATTR_DESC           ItemAttribute = 0x07
-	OTBM_ATTR_TELE_DEST      ItemAttribute = 0x08
-	OTBM_ATTR_ITEM           ItemAttribute = 0x09
-	OTBM_ATTR_DEPOT_ID       ItemAttribute = 0x0A
-	OTBM_ATTR_EXT_SPAWN_FILE ItemAttribute = 0x0B
-	OTBM_ATTR_RUNE_CHARGES   ItemAttribute = 0x0C
-	OTBM_ATTR_EXT_HOUSE_FILE ItemAttribute = 0x0D
-	OTBM_ATTR_HOUSEDOORID    ItemAttribute = 0x0E
-	OTBM_ATTR_COUNT          ItemAttribute = 0x0F
-	OTBM_ATTR_DURATION       ItemAttribute = 0x10
-	OTBM_ATTR_DECAYING_STATE ItemAttribute = 0x11
-	OTBM_ATTR_WRITTENDATE    ItemAttribute = 0x12
-	OTBM_ATTR_WRITTENBY      ItemAttribute = 0x13
-	OTBM_ATTR_SLEEPERGUID    ItemAttribute = 0x14
-	OTBM_ATTR_SLEEPSTART     ItemAttribute = 0x15
-	OTBM_ATTR_CHARGES        ItemAttribute = 0x16
-
-	OTBM_ATTR_ATTRIBUTE_MAP ItemAttribute = 128
-)
-
-func (a ItemAttribute) String() string {
-	switch a {
-	case OTBM_ATTR_DESCRIPTION:
-		return "description"
-	case OTBM_ATTR_EXT_FILE:
-		return "ext_file"
-	case OTBM_ATTR_TILE_FLAGS:
-		return "tile_flags"
-	case OTBM_ATTR_ACTION_ID:
-		return "action_id"
-	case OTBM_ATTR_UNIQUE_ID:
-		return "unique_id"
-	case OTBM_ATTR_TEXT:
-		return "text"
-	case OTBM_ATTR_DESC:
-		return "desc"
-	case OTBM_ATTR_TELE_DEST:
-		return "tele_dest"
-	case OTBM_ATTR_ITEM:
-		return "item"
-	case OTBM_ATTR_DEPOT_ID:
-		return "depot_id"
-	case OTBM_ATTR_EXT_SPAWN_FILE:
-		return "ext_spawn_file"
-	case OTBM_ATTR_RUNE_CHARGES:
-		return "rune_charges"
-	case OTBM_ATTR_EXT_HOUSE_FILE:
-		return "ext_house_file"
-	case OTBM_ATTR_HOUSEDOORID:
-		return "housedoorid"
-	case OTBM_ATTR_COUNT:
-		return "count"
-	case OTBM_ATTR_DURATION:
-		return "duration"
-	case OTBM_ATTR_DECAYING_STATE:
-		return "decaying_state"
-	case OTBM_ATTR_WRITTENDATE:
-		return "writtendate"
-	case OTBM_ATTR_WRITTENBY:
-		return "writtenby"
-	case OTBM_ATTR_SLEEPERGUID:
-		return "sleeperguid"
-	case OTBM_ATTR_SLEEPSTART:
-		return "sleepstart"
-	case OTBM_ATTR_CHARGES:
-		return "charges"
-
-	case OTBM_ATTR_ATTRIBUTE_MAP:
-		return "attribute_map"
-
-	default:
-		return fmt.Sprintf("unknown otbm attribute %02x", int(a))
-	}
-}
-
 type rootHeader struct {
 	Ver                          uint32
 	Width, Height                uint16
 	ItemsVerMajor, ItemsVerMinor uint32
-}
-
-// New reads an OTB file from a given reader.
-func New(r io.ReadSeeker, t *things.Things) (*Map, error) {
-	f, err := otb.NewOTB(r)
-	if err != nil {
-		return nil, fmt.Errorf("newotbm failed to use fileloader: %s", err)
-	}
-
-	otb := Map{
-		tiles:     map[pos]*mapTile{},
-		creatures: map[gameworld.CreatureID]gameworld.Creature{},
-
-		things: t,
-	}
-
-	root := f.ChildNode(nil)
-	if root == nil {
-		return nil, fmt.Errorf("nil root node")
-	}
-
-	props := root.PropsBuffer()
-	//var attr MapAttribute
-	//if err := binary.Read(props, binary.LittleEndian, &attr); err != nil {
-	//	return fmt.Errorf("error reading otbm root node attr: %v", err)
-	//}
-	switch MapNodeType(root.NodeType()) {
-	case OTBM_ROOT:
-		var head rootHeader
-		if err := binary.Read(props, binary.LittleEndian, &head); err != nil {
-			return nil, fmt.Errorf("error reading otbm root node header attrs: %v", err)
-		}
-
-		glog.V(2).Infof("otbm header: %+v", head)
-		// TODO: store version and ensure items.otb is applicable enough
-	case OTBM_ROOTV1:
-		return nil, fmt.Errorf("otbm with rootv1 header is not supported at this time")
-	default:
-		glog.Errorf("unknown root node 0x%02x", root.NodeType())
-		return nil, fmt.Errorf("unknown root node 0x%02x", root.NodeType())
-	}
-
-	if root.ChildNode() == nil {
-		return nil, fmt.Errorf("no children in root node")
-	}
-
-	for node := root.ChildNode(); node != nil; node = node.NextNode() {
-		if err := otb.readRootChildNode(node); err != nil {
-			return nil, fmt.Errorf("error reading root child node: %v", err)
-		}
-	}
-
-	if otb.defaultPlayerSpawnPoint == 0 {
-		//otb.defaultPlayerSpawnPoint = posFromCoord(44, 173, 5) // generated file
-		//otb.defaultPlayerSpawnPoint = posFromCoord(1001, 1010, 7) // test file
-		//return fmt.Errorf("no default player spawn point; does the map have any temples?")
-		glog.Warningf("no default player spawn point; does the map have any temples?")
-	}
-
-	return &otb, nil
 }
 
 // readRootChildNode reads a single "OTB node", as read from an OTB file.
@@ -937,73 +735,4 @@ func (m *Map) readWaypointNode(node *otb.OTBNode) error {
 	// skipping child nodes
 
 	return nil
-}
-
-func (m *Map) AddCreature(c gameworld.Creature) error {
-	glog.V(2).Infof("adding creature %d", c.GetID())
-	m.creatures[c.GetID()] = c
-	if t, err := m.GetMapTile(c.GetPos().X, c.GetPos().Y, c.GetPos().Floor); err != nil {
-		return err
-	} else {
-		glog.V(2).Infof("adding creature to %d %d %d", c.GetPos().X, c.GetPos().Y, c.GetPos().Floor)
-
-		// HACK: tile has no ground? add it.
-		// REMOVE THIS once maps are correctly loaded.
-		if i, err := t.GetItem(0); err != nil || i == nil {
-			glog.V(2).Info("  but first adding some ground for the creature")
-			item := mapItem{
-				ancestorMap:   m,
-				parentTile:    t.(*mapTile),
-				parentItem:    nil,
-				otbItemTypeID: 100,
-			}
-			t.(*mapTile).ground = item
-		}
-
-		return t.AddCreature(c)
-	}
-}
-
-func (m *Map) GetMapTile(x, y uint16, z uint8) (gameworld.MapTile, error) {
-	pos := posFromCoord(x, y, z)
-	if t, ok := m.tiles[pos]; ok { //tnet.Position{x, y, z}]; ok {
-		return t, nil
-	}
-	//return fmt.Errorf("tile not found") // TODO(ivucica): we should not return a tile
-	return &mapTile{parent: m, ownPos: pos}, nil
-}
-
-func (m *Map) GetCreatureByIDBytes(idBytes [4]byte) (gameworld.Creature, error) {
-	buf := bytes.NewBuffer(idBytes[:])
-	var id gameworld.CreatureID
-	err := binary.Read(buf, binary.LittleEndian, &id)
-	if err != nil {
-		return nil, fmt.Errorf("could not decode creature ID from bytes: %v", err)
-	}
-
-	return m.GetCreatureByID(id)
-}
-func (m *Map) GetCreatureByID(id gameworld.CreatureID) (gameworld.Creature, error) {
-	if creature, ok := m.creatures[id]; ok {
-		return creature, nil
-	}
-	return nil, gameworld.CreatureNotFound
-}
-
-func (m *Map) RemoveCreatureByID(id gameworld.CreatureID) error {
-	c, err := m.GetCreatureByID(id)
-	if err != nil {
-		if err == gameworld.CreatureNotFound {
-			return nil
-		}
-	}
-
-	delete(m.creatures, id)
-
-	if t, err := m.GetMapTile(c.GetPos().X, c.GetPos().Y, c.GetPos().Floor); err != nil {
-		return err
-	} else {
-		glog.V(2).Infof("deleting creature from %d %d %d", c.GetPos().X, c.GetPos().Y, c.GetPos().Floor)
-		return t.RemoveCreature(c)
-	}
 }
