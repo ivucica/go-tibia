@@ -133,7 +133,7 @@ func (c *LoginServer) Serve(conn net.Conn, initialMessage *tnet.Message) error {
 
 	//	resp = tnet.NewMessage()
 	err = CharacterList(resp, []CharacterListEntry{
-		CharacterListEntry{
+		{
 			CharacterName:  "Demo Character",
 			CharacterWorld: "Demo World",
 			GameFrontend: net.TCPAddr{
