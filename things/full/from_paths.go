@@ -5,9 +5,9 @@ import (
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
+	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
-	"badc0de.net/pkg/go-tibia/paths"
 
 	"github.com/pkg/errors"
 )
@@ -35,7 +35,7 @@ func FromPaths(itemsOTBPath, itemsXMLPath, tibiaDatPath, tibiaSprPath string) (*
 		t.AddItemsOTB(itemsOTB)
 
 		if itemsXMLPath != "" {
-		log.Printf("full.FromPaths(): opening items xml: %q", itemsXMLPath)
+			log.Printf("full.FromPaths(): opening items xml: %q", itemsXMLPath)
 			f, err := paths.NoFindOpen(itemsXMLPath)
 			if err != nil {
 				return nil, errors.Wrap(err, "opening items xml file for add")
