@@ -10,8 +10,8 @@ import (
 	"image"
 	ic "image/color"
 	"image/png"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/gookit/color"
 )
