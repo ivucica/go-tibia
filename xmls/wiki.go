@@ -292,6 +292,7 @@ func (e *WikiLoader) ReadPage(se *xml.StartElement) error {
 			return err
 		}
 		log.Printf(" ==> %q, %v", o.Name(), o.ItemIDs())
+		fmt.Printf(" ==> %q, %v\n", o.Name(), o.ItemIDs())
 
 	case strings.HasPrefix(content, "{{Infobox Creature"):
 		log.Printf("=> %q", pg.Title)
@@ -464,16 +465,25 @@ func (e *WikiLoader) Step() bool {
 			// this is the outer shell, just read it in and continue
 			return false
 		case "siteinfo":
-			e.ReadSiteinfo(&se)
+			if err := e.ReadSiteinfo(&se); err != nil {
+				return false // continue processing; we could introduce a critical error, not just 'no infobox', but nothing like that happens yet
+			}
 		case "page":
-			e.ReadPage(&se)
+			if err := e.ReadPage(&se); err != nil {
+				return false // continue processing; we could introduce a critical error, not just 'no infobox', but nothing like that happens yet
+			}
 		default:
 			log.Printf("don't know what to do with %s", se.Name.Local)
 		}
 	case xml.EndElement:
 		if se.Name.Space == "http://www.mediawiki.org/xml/export-0.11" && se.Name.Local == "mediawiki" {
 			e.CloseStream()
-			return false
+			return true // stop processing
+		}
+		if se.Name.Local == "mediawiki" {
+			// We did not get the correct namespace! This is expected. We should verify the path to ensure this is the top level element before stopping.
+			e.CloseStream()
+			return true // stop processing
 		}
 	default:
 		//log.Println("unhandled element type", se)

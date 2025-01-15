@@ -16,6 +16,7 @@ var (
 )
 
 func main() {
+	flag.Init()
 	f, err := os.Open(*wikiDumpPath)
 	if err != nil {
 		panic(err)
