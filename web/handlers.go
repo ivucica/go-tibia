@@ -551,7 +551,7 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/spr/{idx:[0-9]+}", h.sprHandler)
 	r.HandleFunc("/item/{idx:[0-9]+}", h.itemHandler)
 	r.HandleFunc("/item/c{idx:[0-9]+}", h.citemRedirHandler)
-	r.HandleFunc(fmt.Sprintf("/datafiles/%08x/spritefiles/%08x/items/{idx:[0-9]+}", h.th.TibiaDatasetSignature, h.th.SpriteSetSignature), h.citemRedirHandler)
+	r.HandleFunc(fmt.Sprintf("/datafiles/%08x/spritefiles/%08x/items/{idx:[0-9]+}", h.th.TibiaDatasetSignature(), h.th.SpriteSetSignature()), h.citemRedirHandler)
 	r.HandleFunc("/citem/854/{idx:[0-9]+}", h.citemHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}-{fr:[0-9]+}", h.creatureHandler)
 	r.HandleFunc("/creature/{idx:[0-9]+}-{dir:[0-9]+}.gif", h.creatureGIFHandler)
