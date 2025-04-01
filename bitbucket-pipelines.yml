@@ -1,11 +1,18 @@
 image: golang:1.17
 
+definitions:
+  caches:
+    go: ~/.cache/go-build
+    go-path: ~/go
+    bazel: ~/.cache/bazel
+
 pipelines:
   default:
     - step:
         name: Native Go Tests
         caches:
           - go
+          - go-path
         script:
           - go version
           - go mod download
@@ -16,6 +23,8 @@ pipelines:
     - step:
         name: Bazel Tests
         image: dazel/dazel
+        caches:
+          - bazel
         script:
           - apt-get update && apt-get install -y --no-install-recommends git
           - cd $BITBUCKET_CLONE_DIR && bazel test //...
