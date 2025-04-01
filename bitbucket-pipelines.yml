@@ -9,10 +9,18 @@ pipelines:
         script:
           - go version
           - go mod download
-          - go test ./...
+          - go build -v ./cmd/...
+          - mkdir test-reports
+          - go get -u github.com/jstemmer/go-junit-report
+          - go test ./... -v 2>&1 | go-junit-report > test-reports/report.xml
     - step:
         name: Bazel Tests
         image: dazel/dazel
         script:
           - apt-get update && apt-get install -y --no-install-recommends git
           - cd $BITBUCKET_CLONE_DIR && bazel test //...
+    - step:
+        name: Lint code
+        image: golangci/golangci-lint:v1.31.0
+        script:
+          - golangci-lint run -v
