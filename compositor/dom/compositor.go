@@ -1,3 +1,6 @@
+//go:build js && wasm && !tinygo.wasm
+// +build js,wasm,!tinygo.wasm
+
 package dom
 
 import (
