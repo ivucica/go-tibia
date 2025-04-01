@@ -28,5 +28,9 @@
 	"features": {
 		"git": "os-provided",
 		"golang": "1.17"
-	}
+  },
+  "tasks": {
+    "build": "cd cmd && go build ./...",
+    "test": "./test.sh"
+  }
 }
