@@ -35,7 +35,7 @@ pipelines:
     #       - cd $BITBUCKET_CLONE_DIR && bazelisk test //...
     - step:
         name: Lint code
-        image: golangci/golangci-lint:v1.31.0
+        image: golangci/golangci-lint:v2.0.2-alpine
         script:
           - git submodule update --init
           - mv vendor vendor_old
