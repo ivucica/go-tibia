@@ -7,7 +7,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 local_repository(
     name = "rules_tibia",
-    path = __workspace_dir__ + "/vendor/github.com/ivucica/rules_tibia",
+    path = __workspace_dir__ + "/nonvendor/github.com/ivucica/rules_tibia",
 )
 
 load("@rules_tibia//:tibia_data.bzl", "tibia_data_repository")

@@ -1,15 +1,15 @@
 [submodule "vendor/github.com/Cjaker/Tibia12-Protofiles"]
-	path = vendor/github.com/Cjaker/Tibia12-Protofiles
+	path = _references/github.com/Cjaker/Tibia12-Protofiles
 	url = https://github.com/Cjaker/Tibia12-Protofiles
 [submodule "vendor/github.com/Inconcessus/OTMapGen"]
-	path = vendor/github.com/Inconcessus/OTMapGen
+	path = _references/github.com/Inconcessus/OTMapGen
 	url = https://github.com/Inconcessus/OTMapGen
 [submodule "vendor/gist.github.com/elderapo/d2d60b932bfe54df535a1fc6201d713f"]
-	path = vendor/gist.github.com/elderapo/d2d60b932bfe54df535a1fc6201d713f
+	path = _references/gist.github.com/elderapo/d2d60b932bfe54df535a1fc6201d713f
 	url = https://gist.github.com/elderapo/d2d60b932bfe54df535a1fc6201d713f
 [submodule "vendor/github.com/TheSumm/datparserjs"]
-	path = vendor/github.com/TheSumm/datparserjs
+	path = _references/github.com/TheSumm/datparserjs
 	url = https://github.com/TheSumm/datparserjs/
 [submodule "vendor/github.com/ivucica/rules_tibia"]
-	path = vendor/github.com/ivucica/rules_tibia
+	path = nonvendor/github.com/ivucica/rules_tibia
 	url = https://github.com/ivucica/rules_tibia
