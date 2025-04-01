@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Example demonstrates how to load outfits from the outfits.xml file.
 func Example() {
 	o := bytes.NewReader([]byte(`<?xml version="1.0"?>
 <outfits>
@@ -32,6 +33,7 @@ func (rrc readerReadCloser) Close() error {
 	return nil // No resources to release
 }
 
+// ExampleWikiLoader demonstrates how a wiki file can be loaded and accessed by this package.
 func ExampleWikiLoader() {
 	// Dump lacks the XML prolog.
 	o := bytes.NewReader([]byte(`<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.11/ http://www.mediawiki.org/xml/export-0.11.xsd" version="0.11" xml:lang="en">
