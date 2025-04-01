@@ -1,11 +1,18 @@
 image: golang:1.17
 
+definitions:
+  caches:
+    go: ~/.cache/go-build
+    go-path: ~/go
+    bazel: ~/.cache/bazel
+
 pipelines:
   default:
     - step:
         name: Native Go Tests
         caches:
           - go
+          - go-path
         script:
           - go version
           - go mod download
@@ -15,10 +22,12 @@ pipelines:
           - go test ./... -v 2>&1 | go-junit-report > test-reports/report.xml
     - step:
         name: Bazel Tests
-        image: dazel/dazel
+        image: l.gcr.io/google/bazelisk
+        caches:
+          - bazel
         script:
           - apt-get update && apt-get install -y --no-install-recommends git
-          - cd $BITBUCKET_CLONE_DIR && bazel test //...
+          - cd $BITBUCKET_CLONE_DIR && bazelisk test //...
     - step:
         name: Lint code
         image: golangci/golangci-lint:v1.31.0
