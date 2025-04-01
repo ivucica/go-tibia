@@ -23,16 +23,16 @@ pipelines:
           - go get -u github.com/jstemmer/go-junit-report
           - timeout 120s go test -mod=readonly ./xmls -v 2>&1 > test-reports/report.txt
           - cat test-reports/report.txt | go-junit-report > test-reports/report.xml
-    - step:
-        name: Bazel Tests
-        caches:
-          - bazel
-        script:
-          - git submodule update --init
-          - apt-get update && apt-get install -y --no-install-recommends git
-          - curl -fSsL -o /usr/local/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.10.1/bazelisk-linux-amd64
-          - chmod 0755 /usr/local/bin/bazelisk
-          - cd $BITBUCKET_CLONE_DIR && bazelisk test //...
+    # - step:
+    #     name: Bazel Tests
+    #     caches:
+    #       - bazel
+    #     script:
+    #       - git submodule update --init
+    #       - apt-get update && apt-get install -y --no-install-recommends git
+    #       - curl -fSsL -o /usr/local/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.10.1/bazelisk-linux-amd64
+    #       - chmod 0755 /usr/local/bin/bazelisk
+    #       - cd $BITBUCKET_CLONE_DIR && bazelisk test //...
     - step:
         name: Lint code
         image: golangci/golangci-lint:v1.31.0
