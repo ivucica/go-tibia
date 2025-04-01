@@ -35,6 +35,13 @@ jobs:
 
     - name: Set up Bazelisk
       uses: bazelbuild/setup-bazel@v3
+      with:
+        # Avoid downloading Bazel every time.
+        bazelisk-cache: true
+        # Store build cache per workflow.
+        disk-cache: ${{ github.workflow }}
+        # Share repository cache between workflows.
+        repository-cache: true
 
     - name: Run Bazel tests
       run: |
