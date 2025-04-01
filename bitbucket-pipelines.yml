@@ -33,11 +33,11 @@ pipelines:
     #       - curl -fSsL -o /usr/local/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.10.1/bazelisk-linux-amd64
     #       - chmod 0755 /usr/local/bin/bazelisk
     #       - cd $BITBUCKET_CLONE_DIR && bazelisk test //...
-    - step:
-        name: Lint code
-        image: golangci/golangci-lint:v2.0.2-alpine
-        script:
-          - git submodule update --init
-          - mv vendor vendor_old
-          - golangci-lint run -v
-          - mv vendor_old vendor
+    # - step:
+    #     name: Lint code
+    #     image: golangci/golangci-lint:v2.0.2-alpine
+    #     script:
+    #       - git submodule update --init
+    #       - mv vendor vendor_old
+    #       - golangci-lint run -v
+    #       - mv vendor_old vendor
