@@ -17,7 +17,6 @@ require (
 	github.com/mattn/gowasmer v0.0.0-20220518070401-e6bdba3bec84
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.9.1
-	github.com/vedhavyas/go-wasm v0.0.0-20200730123001-8b546c207480
 	github.com/vincent-petithory/dataurl v1.0.0
 	github.com/wasmerio/wasmer-go v1.0.4
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
