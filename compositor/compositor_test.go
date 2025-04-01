@@ -28,7 +28,8 @@ func downsize(_ *testing.T, img image.Image, scale float32) image.Image {
 func TestCompositeMap(t *testing.T) {
 	th, err := full.FromDefaultPaths(true)
 	if err != nil {
-		t.Fatalf("failed setting up things: %v", err)
+		t.Skipf("skipping because no file: %v", err)
+		return
 	}
 
 	procMDS := gameworld.NewMapDataSource()

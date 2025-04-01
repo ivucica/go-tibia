@@ -37,7 +37,8 @@ func TestDatColor(t *testing.T) {
 func TestNewDataset(t *testing.T) {
 	f, err := paths.Open("Tibia.dat")
 	if err != nil {
-		t.Fatalf("failed to open file: %s", err)
+		t.Skipf("skipping because no file: %v", err)
+		return
 	}
 	ds, err := NewDataset(f)
 	if err != nil {
