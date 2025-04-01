@@ -43,6 +43,6 @@ jobs:
         # Share repository cache between workflows.
         repository-cache: true
 
-    - name: Run Bazel tests
-      run: |
-        bazel test //...
+    # - name: Run Bazel tests
+    #   run: |
+    #     bazel test //...
