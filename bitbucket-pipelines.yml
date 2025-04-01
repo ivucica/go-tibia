@@ -38,4 +38,6 @@ pipelines:
         image: golangci/golangci-lint:v1.31.0
         script:
           - git submodule update --init
+          - mv vendor vendor_old
           - golangci-lint run -v
+          - mv vendor_old vendor
