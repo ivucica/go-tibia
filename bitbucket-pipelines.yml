@@ -19,7 +19,8 @@ pipelines:
           - go build -v ./cmd/...
           - mkdir test-reports
           - go get -u github.com/jstemmer/go-junit-report
-          - go test ./... -v 2>&1 | go-junit-report > test-reports/report.xml
+          - timeout 120s go test ./xmls -v 2>&1 > test-reports/report.txt
+          - cat test-reports/report.txt | go-junit-report > test-reports/report.xml
     - step:
         name: Bazel Tests
         image: l.gcr.io/google/bazelisk
