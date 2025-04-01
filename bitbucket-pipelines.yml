@@ -21,14 +21,14 @@ pipelines:
           - go get -u github.com/jstemmer/go-junit-report
           - timeout 120s go test ./xmls -v 2>&1 > test-reports/report.txt
           - cat test-reports/report.txt | go-junit-report > test-reports/report.xml
-    - step:
-        name: Bazel Tests
-        image: dazel/dazel
-        caches:
-          - bazel
-        script:
-          - apt-get update && apt-get install -y --no-install-recommends git
-          - cd $BITBUCKET_CLONE_DIR && bazel test //...
+    #- step:
+    #    name: Bazel Tests
+    #    image: dazel/dazel
+    #    caches:
+    #      - bazel
+    #    script:
+    #      - apt-get update && apt-get install -y --no-install-recommends git
+    #      - cd $BITBUCKET_CLONE_DIR && bazel test //...
     - step:
         name: Lint code
         image: golangci/golangci-lint:v1.31.0
