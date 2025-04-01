@@ -23,6 +23,7 @@ pipelines:
           - go install github.com/jstemmer/go-junit-report@latest
           - timeout 120s go test -mod=readonly ./xmls -v 2>&1 > test-reports/report.txt
           - cat test-reports/report.txt | go-junit-report > test-reports/report.xml
+          - cat test-reports/report.xml
     # - step:
     #     name: Bazel Tests
     #     caches:
