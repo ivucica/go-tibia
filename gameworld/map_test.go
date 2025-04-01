@@ -24,7 +24,8 @@ func LoadThingsForTest(t *testing.T) *things.Things {
 func LoadOTBForTest(t *testing.T) *itemsotb.Items {
 	f, err := paths.Open("items.otb")
 	if err != nil {
-		t.Fatalf("failed to open file: %s", err)
+		t.Skipf("skipping because no file: %v", err)
+		return nil
 	}
 	otb, err := itemsotb.New(f)
 	if err != nil {
@@ -74,6 +75,10 @@ func TestMapDescriptionRange(t *testing.T) {
 	playerID := CreatureID(123)
 	gws := &GameworldServer{
 		things: LoadThingsForTest(t),
+	}
+	if gws.things == nil {
+		t.Skipf("skipping because no file: %v", "items.otb or Tibia.dat")
+		return
 	}
 	gwConn := &GameworldConnection{}
 	gwConn.clientVersion = 854
@@ -195,6 +200,10 @@ func TestMapDescriptionRangeMoveNorth(t *testing.T) {
 	playerID := CreatureID(123)
 	gws := &GameworldServer{
 		things: LoadThingsForTest(t),
+	}
+	if gws.things == nil {
+		t.Skipf("skipping because no file: %v", "items.otb or Tibia.dat")
+		return
 	}
 	gwConn := &GameworldConnection{}
 	gwConn.clientVersion = 854
