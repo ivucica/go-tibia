@@ -1,6 +1,6 @@
 module badc0de.net/pkg/go-tibia
 
-go 1.11
+go 1.16
 
 require (
 	badc0de.net/pkg/flagutil v1.0.1
