@@ -21,6 +21,16 @@ RUN curl -fSsL -o /usr/local/bin/bazelisk https://github.com/bazelbuild/bazelisk
     && ([ "${BAZELISK_DOWNLOAD_SHA}" = "dev-mode" ] || echo "${BAZELISK_DOWNLOAD_SHA} */usr/local/bin/bazelisk" | sha256sum --check - ) \
     && chmod 0755 /usr/local/bin/bazelisk
 
+# Install tinygo
+RUN curl -fSsL -o /usr/local/bin/tinygo https://github.com/tinygo-org/tinygo/releases/download/v0.23.0/tinygo_0.23.0_amd64.deb \
+    && dpkg -i /usr/local/bin/tinygo \
+    && rm /usr/local/bin/tinygo
+
+# Install wasm-opt
+RUN curl -fSsL -o /usr/local/bin/wasm-opt https://github.com/WebAssembly/binaryen/releases/download/version_105/binaryen-version_105-x86_64-linux.tar.gz \
+    && tar -xzf /usr/local/bin/wasm-opt -C /usr/local/bin \
+    && rm /usr/local/bin/wasm-opt
+
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
