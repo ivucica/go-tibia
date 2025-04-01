@@ -17,6 +17,7 @@ import (
 	"github.com/vincent-petithory/dataurl"
 )
 
+// compositeMapToDOMAsDataURL provides a single <img> with a data URL src in it; a png.
 func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
 	in := compositor.CompositeMap(m, th, x, y, floorTop, floorBottom, width, height, tileW, tileH)
 
@@ -36,6 +37,9 @@ func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworl
 	return img, nil
 }
 
+// compositeMapToDOMAsManyDIVs creates many imgs.
+//
+// BUG: no caching, no attempt to use well-known URLs that would be provided by service worker (/item/... and usch).
 func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
 	document := window.Get("document")
 	mapDiv := document.Call("createElement", "div")
@@ -129,6 +133,11 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 	return mapDiv, nil
 }
 
+// CompositeMapToDOM returns a DOM object (a js.Value) which represents an HTML element displaying the requested slice of the gameworld in a way that makes sense to the player.
+//
+// Currently, this is just the img.
+//
+// Argument window should be the value of js.Global(), either 'window' or 'global', since it should offer us a 'document' that can then be used to construct the returned tree.
 func CompositeMapToDOM(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
 	return compositeMapToDOMAsManyDIVs(ctx, window, m, th, x, y, floorTop, floorBottom, width, height, tileW, tileH)
 }
