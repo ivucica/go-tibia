@@ -14,5 +14,5 @@
 	path = nonvendor/github.com/ivucica/rules_tibia
 	url = https://github.com/ivucica/rules_tibia
 [submodule "vendor/github.com/benjaminkomen/TibiaWikiApi"]
-	path = vendor/github.com/benjaminkomen/TibiaWikiApi
+	path = _references/github.com/benjaminkomen/TibiaWikiApi
 	url = https://github.com/benjaminkomen/TibiaWikiApi
