@@ -11,3 +11,5 @@ bazel-genfiles
 bazel-testlogs
 bazel-gotibia
 vapid.inc.sh
+.DS_Store
+**/*.git
