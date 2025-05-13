@@ -4,7 +4,6 @@ import (
 	"image"
 
 	"github.com/nfnt/resize"
-	"golang.org/x/crypto/ssh/terminal"
 
 	"badc0de.net/pkg/go-tibia/imageprint"
 )
@@ -12,8 +11,17 @@ import (
 func out(img image.Image) {
 
 	if *downsize {
-		if w, h, err := terminal.GetSize(0); err == nil { // or int(os.Stdin.Fd())
-			img = resize.Thumbnail(uint(w/2), uint(h), img, resize.Lanczos3)
+		termSize, err := GetTermSize()
+		if err == nil {
+			if (termSize.WSXPixel != 0 && termSize.WSYPixel != 0) && (*rasterm && *iterm) {
+				// Prefer printing out in native size if there's a chance we print out an image rather than pixels.
+				//
+				// Ideally this can only be decided when either rasterm or iterm renderers perform the print, but this hack might help anyway until the whole of imageprint is refactored and moved into a different package.
+
+				img = resize.Thumbnail(termSize.WSXPixel/2, termSize.WSYPixel/2, img, resize.Lanczos3)
+			} else {
+				img = resize.Thumbnail(termSize.WSRow/2, termSize.WSCol/2, img, resize.Lanczos3)
+			}
 		}
 	}
 
