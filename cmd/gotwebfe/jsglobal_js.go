@@ -9,6 +9,11 @@ import (
 	"syscall/js"
 )
 
+var (
+	useImgBased     bool
+	useWellKnownUrls bool
+)
+
 // alias for js.Value in browser and non-WASI WASM is js.Value
 type jsValue = js.Value
 
@@ -28,6 +33,20 @@ func jsGlobalInjectAPI() {
 	js.Global().Set("addY", js.FuncOf(addY))
 	js.Global().Set("subX", js.FuncOf(subX))
 	js.Global().Set("subY", js.FuncOf(subY))
+
+	js.Global().Set("useImgBased", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if len(args) > 0 {
+			useImgBased = args[0].Bool()
+		}
+		return nil
+	}))
+
+	js.Global().Set("useWellKnownUrls", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if len(args) > 0 {
+			useWellKnownUrls = args[0].Bool()
+		}
+		return nil
+	}))
 }
 
 func jsGlobal() js.Value {

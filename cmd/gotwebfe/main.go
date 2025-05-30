@@ -227,7 +227,7 @@ func showMap(this jsValue, arg []jsValue) interface{} {
 	m := globalMap
 	t := globalThings
 
-	if mp, err := dom.CompositeMapToDOM(ctx, window, m, t, tx, ty, ttop, tbot, tw, th, 32, 32); err == nil {
+	if mp, err := dom.CompositeMapToDOM(ctx, window, m, t, tx, ty, ttop, tbot, tw, th, 32, 32, useImgBased, useWellKnownUrls); err == nil {
 		showDOM(mp, "map", true)
 	} else {
 		showError("showMap", err)

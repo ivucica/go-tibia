@@ -48,6 +48,9 @@ var (
 	appHTMLPath     string
 	itemsHTMLPath   string
 	outfitsHTMLPath string
+
+	useImgBased     bool
+	useWellKnownUrls bool
 )
 
 type ReadSeekerCloser = io.ReadSeekCloser
@@ -80,6 +83,9 @@ var (
 func main() {
 	setupFilePathFlags()
 	flagutil.Parse()
+
+	flag.BoolVar(&useImgBased, "use_img_based", false, "use img-based rendering in DOM-based compositor")
+	flag.BoolVar(&useWellKnownUrls, "use_well_known_urls", false, "use well-known URLs in DOM-based compositor")
 
 	th = thingsOpen()
 	r := mux.NewRouter()
