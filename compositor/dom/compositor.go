@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"image/png"
+	"sync"
 	"syscall/js"
 
 	"badc0de.net/pkg/go-tibia/compositor"
@@ -17,8 +18,22 @@ import (
 	"github.com/vincent-petithory/dataurl"
 )
 
+var (
+	dataURLCache sync.Map
+	imageCache   sync.Map
+)
+
 // compositeMapToDOMAsDataURL provides a single <img> with a data URL src in it; a png.
-func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
+func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height, tileW, tileH int) (js.Value, error) {
+	// BUG: backing storage could update, we would not catch that here.
+	cacheKey := fmt.Sprintf("dataURL-%d-%d-%d-%d-%d-%d-%d-%d", x, y, floorTop, floorBottom, width, height, tileW, tileH)
+	if cachedDataURL, ok := dataURLCache.Load(cacheKey); ok {
+		document := window.Get("document")
+		img := document.Call("createElement", "img")
+		img.Set("src", cachedDataURL.(string))
+		return img, nil
+	}
+
 	in := compositor.CompositeMap(m, th, x, y, floorTop, floorBottom, width, height, tileW, tileH)
 
 	buf := &bytes.Buffer{}
@@ -30,6 +45,8 @@ func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworl
 		return js.Null(), fmt.Errorf("failed to encode data url: %w", err)
 	}
 
+	dataURLCache.Store(cacheKey, string(byt))
+
 	document := window.Get("document")
 	img := document.Call("createElement", "img")
 	img.Set("src", string(byt))
@@ -40,7 +57,7 @@ func compositeMapToDOMAsDataURL(ctx context.Context, window js.Value, m gameworl
 // compositeMapToDOMAsManyDIVs creates many imgs.
 //
 // BUG: no caching, no attempt to use well-known URLs that would be provided by service worker (/item/... and usch).
-func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
+func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height, tileW, tileH int) (js.Value, error) {
 	document := window.Get("document")
 	mapDiv := document.Call("createElement", "div")
 	mapDiv.Get("style").Set("position", "relative")
@@ -138,6 +155,9 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 // Currently, this is just the img.
 //
 // Argument window should be the value of js.Global(), either 'window' or 'global', since it should offer us a 'document' that can then be used to construct the returned tree.
-func CompositeMapToDOM(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height int, tileW, tileH int) (js.Value, error) {
+func CompositeMapToDOM(ctx context.Context, window js.Value, m gameworld.MapDataSource, th *things.Things, x, y uint16, floorTop, floorBottom uint8, width, height, tileW, tileH int, useImgBased, useWellKnownUrls bool) (js.Value, error) {
+	if useImgBased {
+		return compositeMapToDOMAsDataURL(ctx, window, m, th, x, y, floorTop, floorBottom, width, height, tileW, tileH)
+	}
 	return compositeMapToDOMAsManyDIVs(ctx, window, m, th, x, y, floorTop, floorBottom, width, height, tileW, tileH)
 }
