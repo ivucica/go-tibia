@@ -22,7 +22,7 @@ http_file(
 
 http_file(
     name = "itemsxml",
-    sha256 = "c04ad718c90b2ea1c73234f1fd17f4ebee9df3ca9b0cdffd73f611ecb4c6937d",
+    sha256 = "61369dd2885d39b8843e5ebcbb1a7b7a2771437ec6f965d541802db680e720e8",
     url = "https://github.com/opentibia/server/raw/d5d283a6dd62a3841531428bd5e385a38d85560d/data/trunk/items/items.xml",
 )
 
