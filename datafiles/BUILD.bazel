@@ -8,3 +8,22 @@ exports_files([
     #"items.otb",
     "Tibia.dat",
 ])
+
+filegroup(
+    name = "all_data_files",
+    srcs = [
+        "itemtable.html",
+        "outfits.xml",
+        "outfittable.html",
+        "range-test-map-house.xml",
+        "range-test-map-spawn.xml",
+        "range-test-map.otbm",
+        "//datafiles/html:html",
+        ":items.otb",
+        "@tibia854//:Tibia.dat",
+        "@tibia854//:Tibia.pic",
+        "@tibia854//:Tibia.spr", #
+
+    ],
+    visibility = ["//visibility:public"], # Make the filegroup visible to other packages
+)

@@ -29,6 +29,7 @@ go_binary(
     data = [
         "@itemsotb854//file",
         "@tibia854//:Tibia.dat",
+        "//datafiles:all_data_files",
     ],
     embed = [":gotserv_lib"],
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotserv",

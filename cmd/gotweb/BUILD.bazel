@@ -6,6 +6,9 @@ go_library(
         "gotweb.go",
         "sitemap.go",
     ],
+    data = [
+        "//datafiles:all_data_files",
+    ],
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotweb",
     visibility = ["//visibility:private"],
     deps = [
