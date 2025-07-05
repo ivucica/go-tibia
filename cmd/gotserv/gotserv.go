@@ -35,6 +35,9 @@ var (
 	tibiaPicPath string
 	mapPath      string
 
+	loginListenAddr = flag.String("login_listen_address", ":7171", "where the login server will listen")
+	gameListenAddr  = flag.String("game_listen_address", ":7172", "where the game server will listen")
+
 	debugWebServer = flag.String("debug_web_server_listen_address", "", "where the debug server will listen")
 	muxRouter      *mux.Router
 )
