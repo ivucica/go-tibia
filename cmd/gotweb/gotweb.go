@@ -18,8 +18,8 @@ import (
 	"badc0de.net/pkg/flagutil"
 
 	tdat "badc0de.net/pkg/go-tibia/dat"
-	"badc0de.net/pkg/go-tibia/gameworld" // for map compositor
-	"badc0de.net/pkg/go-tibia/otb/map"   // for map loader
+	"badc0de.net/pkg/go-tibia/gameworld"    // for map compositor
+	otbm "badc0de.net/pkg/go-tibia/otb/map" // for map loader
 	"badc0de.net/pkg/go-tibia/paths"
 	"badc0de.net/pkg/go-tibia/spr"
 	"badc0de.net/pkg/go-tibia/things"
@@ -59,7 +59,7 @@ func picOpen() (ReadSeekerCloser, error) {
 func setupFilePathFlags() {
 	full.SetupFilePathFlags()
 	paths.SetupFilePathFlag("Tibia.pic", "tibia_pic_path", &tibiaPicPath)
-	paths.SetupFilePathFlag("map.otbm", "map_path", &mapPath)
+	paths.SetupFilePathFlag(":test:", "map_path", &mapPath)
 	paths.SetupFilePathFlag("itemtable.html", "items_index_html_path", &itemsHTMLPath)
 	paths.SetupFilePathFlag("outfittable.html", "outfits_index_html_path", &outfitsHTMLPath)
 	paths.SetupFilePathFlag("html/index.html", "app_html_path", &appHTMLPath)
@@ -80,6 +80,10 @@ var (
 func main() {
 	setupFilePathFlags()
 	flagutil.Parse()
+
+	if mapPath == "" {
+		mapPath = ":test:"
+	}
 
 	th = thingsOpen()
 	r := mux.NewRouter()
@@ -587,6 +591,9 @@ func main() {
 	go func() {
 		var m gameworld.MapDataSource
 		if mapPath == ":test:" {
+			m = gameworld.NewMapDataSource()
+		} else if mapPath == "" {
+			glog.Warningf("mappath passed is empty, despite default being :test:; assuming :test:")
 			m = gameworld.NewMapDataSource()
 		} else {
 			f, err := os.Open(mapPath)
