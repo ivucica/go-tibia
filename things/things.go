@@ -2,7 +2,7 @@ package things
 
 import (
 	"badc0de.net/pkg/go-tibia/dat"
-	"badc0de.net/pkg/go-tibia/otb/items"
+	itemsotb "badc0de.net/pkg/go-tibia/otb/items"
 	"badc0de.net/pkg/go-tibia/spr"
 
 	"github.com/golang/glog"
@@ -270,24 +270,36 @@ func (t *Things) MinItemServerID(clientVersion uint16) uint16 {
 //
 // Due to gaps, not the same as ItemCount.
 func (t *Things) MaxItemServerID(clientVersion uint16) uint16 {
+	if t == nil || t.items == nil {
+		return 0
+	}
 	return t.items.MaxServerID
 }
 
 // ItemCount returns the serverside items count that are known for the passed
 // version.
 func (t *Things) ItemCount(clientVersion uint16) int {
+	if t == nil || t.items == nil {
+		return 0
+	}
 	return len(t.items.Items)
 }
 
 // ClientItemCount returns the serverside items count that have a known client
 // ID for the passed version.
 func (t *Things) ClientItemCount(clientVersion uint16) int {
+	if t == nil || t.items == nil {
+		return 0
+	}
 	return len(t.items.ExtantClientItemArrayIdxs)
 }
 
 // ServerItemCount returns the serverside items count that have a known server
 // ID for the passed version.
 func (t *Things) ServerItemCount(clientVersion uint16) int {
+	if t == nil || t.items == nil {
+		return 0
+	}
 	return len(t.items.ExtantServerItemArrayIdxs)
 }
 
@@ -305,6 +317,10 @@ func (t *Things) Creature(serverID uint16, clientVersion uint16) (*Creature, err
 // has the passed client ID in the passed client version. The outfit returned
 // will have the dataset description for the passed version.
 func (t *Things) CreatureWithClientID(clientID uint16, clientVersion uint16) (*Creature, error) {
+	if t == nil || t.dataset == nil {
+		return nil, fmt.Errorf("t or t.dataset is nil")
+	}
+
 	return &Creature{
 		clientID: clientID,
 		outfit:   t.dataset.Outfit(clientID),
@@ -318,10 +334,16 @@ func (t *Things) CreatureWithClientID(clientID uint16, clientVersion uint16) (*C
 // Currently there is no distinction between client and server IDs, so the
 // dataset count is returned.
 func (t *Things) CreatureCount(clientVersion uint16) int {
+	if t == nil || t.dataset == nil {
+		return 0
+	}
 	return t.dataset.OutfitCount()
 }
 
 func (t *Things) Temp__GetClientIDForServerID(serverID uint16, clientVersion uint16) uint16 {
+	if t == nil || t.items == nil {
+		return 0
+	}
 	itm, err := t.items.ItemByServerID(serverID)
 	if err != nil {
 		glog.Errorf("item %d fetch gave error: %v", serverID, err)
@@ -388,5 +410,8 @@ func (t *Things) Temp__GetKnownClientIDItemArrayOffsetInOTB(serverID uint16, cli
 }
 
 func (t *Things) Temp__DATItemCount(clientVersion uint16) int {
+	if t == nil || t.dataset == nil {
+		return 0
+	}
 	return t.dataset.ItemCount()
 }
