@@ -3,12 +3,21 @@ set -e
 
 if [[ ! -z ${IDX_ENV_CONFIG_FILE_PATH} ]] && [[ ! -z "$(command -v jq)" ]] ; then
 	WORKSPACE="$(jq -r .config.workspaceFolder "${IDX_ENV_CONFIG_FILE_PATH}")"
-	if [[ -e "${WORKSPACE}/run-web.sh" ]] ; then
+	if [[ -e "${WORKSPACE}/run-web.sh" ]] && [[ ! -e "${HOME}"/projects/go-tibia/src/badc0de.net/pkg/go-tibia ]]; then
 		mkdir -p "${HOME}/projects/go-tibia/src/badc0de.net/pkg"
 		ln -s "${WORKSPACE}" "${HOME}"/projects/go-tibia/src/badc0de.net/pkg/go-tibia
 	fi
 	if [[ ! -e "datafiles/Tibia.spr" ]] ; then
-		bazelisk build @tibia854//:Tibia.spr
+		bazelisk build @tibia854//:Tibia.{spr,pic,dat}
+		cp "${WORKSPACE}"/bazel-go-tibia/external/tibia854/Tibia.{spr,pic,dat} datafiles/
+	fi
+	if [[ ! -e "datafiles/items.otb" ]] ; then
+		bazelisk build @itemsotb854//file:file
+		cp "${WORKSPACE}"/bazel-go-tibia/external/itemsotb854/file/downloaded datafiles/items.otb
+	fi
+	if [[ ! -e "datafiles/items.xml" ]] ; then
+		bazelisk build @itemsxml//file:file
+		cp "${WORKSPACE}"/bazel-go-tibia/external/itemsxml/file/downloaded datafiles/items.xml
 	fi
 fi
 
