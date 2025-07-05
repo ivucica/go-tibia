@@ -1,16 +1,16 @@
 # -*- mode: python; -*-
 # vim: set syntax=python:
 
-load("@io_bazel_rules_go//go:def.bzl", "gazelle", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle"  )
+
+# gazelle:prefix badc0de.net/pkg/go-tibia
+gazelle(name = "gazelle")
 
 gazelle(
-    name = "gazelle",
-    prefix = "badc0de.net/pkg/go-tibia",
-)
-
-go_library(
-    name = "go_default_library",
-    srcs = ["doc.go"],
-    importpath = "badc0de.net/pkg/go-tibia",
-    visibility = ["//visibility:public"],
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=deps.bzl%go_dependencies",
+        "-prune",
+    ]
 )
