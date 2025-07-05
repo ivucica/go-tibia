@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "itemprint_lib",
     srcs = [
         "creature.go",
         "item.go",
@@ -15,26 +15,27 @@ go_library(
     importpath = "badc0de.net/pkg/go-tibia/cmd/itemprint",
     visibility = ["//visibility:private"],
     deps = [
-        "//compositor:go_default_library",
-        "//dat:go_default_library",
-        "//gameworld:go_default_library",
-        "//imageprint:go_default_library",
-        "//otb/items:go_default_library",
-        "//otb/map:go_default_library",
-        "//paths:go_default_library",
-        "//spr:go_default_library",
-        "//things:go_default_library",
-        "@com_github_golang_glog//:go_default_library",
-        "@com_github_nfnt_resize//:go_default_library",
-        "@com_github_pkg_errors//:go_default_library",
-        "@net_badc0de_pkg_flagutil//:go_default_library",
-        "@org_golang_x_crypto//ssh/terminal:go_default_library",
+        "//compositor",
+        "//dat",
+        "//gameworld",
+        "//imageprint",
+        "//otb/items",
+        "//otb/map",
+        "//paths",
+        "//spr",
+        "//things",
+        "@com_github_common_nighthawk_go_figure//:go-figure",
+        "@com_github_golang_glog//:glog",
+        "@com_github_nfnt_resize//:resize",
+        "@com_github_pkg_errors//:errors",
+        "@net_badc0de_pkg_flagutil//:flagutil",
+        "@org_golang_x_crypto//ssh/terminal",
     ],
 )
 
 go_binary(
     name = "itemprint",
+    embed = [":itemprint_lib"],
     importpath = "badc0de.net/pkg/go-tibia/cmd/itemprint",
-    library = ":go_default_library",
     visibility = ["//visibility:public"],
 )

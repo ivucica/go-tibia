@@ -1,7 +1,7 @@
 # -*- mode: python; -*-
 # vim: set syntax=python:
 
-workspace(name="go_tibia")
+workspace(name = "go_tibia")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
@@ -11,12 +11,13 @@ local_repository(
 )
 
 load("@rules_tibia//:tibia_data.bzl", "tibia_data_repository")
-tibia_data_repository(version=854)
+
+tibia_data_repository(version = 854)
 
 http_file(
     name = "itemsotb854",
-    url = "https://github.com/opentibia/server/raw/d5d283a6dd62a3841531428bd5e385a38d85560d/data/trunk/items/items.otb",
     sha256 = "c04ad718c90b2ea1c73234f1fd17f4ebee9df3ca9b0cdffd73f611ecb4c6937d",
+    url = "https://github.com/opentibia/server/raw/d5d283a6dd62a3841531428bd5e385a38d85560d/data/trunk/items/items.otb",
 )
 
 #########################
@@ -39,15 +40,19 @@ http_archive(
     ],
 )
 
-
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 ############################################################
 # Define your own dependencies here using go_repository.
 # Else, dependencies declared by rules_go/gazelle will be used.
 # The first declaration of an external repository "wins".
 ############################################################
+
+load("//:deps.bzl", "go_dependencies")
+
+# gazelle:repository_macro deps.bzl%go_dependencies
+go_dependencies()
 
 go_rules_dependencies()
 
@@ -69,6 +74,9 @@ load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
 
 buildbuddy_deps()
 
-load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy", "UBUNTU20_04_IMAGE")
+load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "UBUNTU20_04_IMAGE", "buildbuddy")
 
-buildbuddy(name = "buildbuddy_toolchain", container_image = UBUNTU20_04_IMAGE)
+buildbuddy(
+    name = "buildbuddy_toolchain",
+    container_image = UBUNTU20_04_IMAGE,
+)

@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "wikiloader_lib",
+    srcs = ["extractor.go"],
+    importpath = "badc0de.net/pkg/go-tibia/cmd/wikiloader",
+    visibility = ["//visibility:private"],
+    deps = ["//xmls"],
+)
+
+go_binary(
+    name = "wikiloader",
+    embed = [":wikiloader_lib"],
+    visibility = ["//visibility:public"],
+)

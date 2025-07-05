@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dom",
+    srcs = ["compositor.go"],
+    importpath = "badc0de.net/pkg/go-tibia/compositor/dom",
+    visibility = ["//visibility:public"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:js_wasm": [
+            "//compositor",
+            "//gameworld",
+            "//things",
+            "@com_github_vincent_petithory_dataurl//:dataurl",
+        ],
+        "//conditions:default": [],
+    }),
+)

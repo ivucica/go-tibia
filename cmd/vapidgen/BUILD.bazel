@@ -1,16 +1,16 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "vapidgen_lib",
     srcs = ["vapidgen.go"],
     importpath = "badc0de.net/pkg/go-tibia/cmd/vapidgen",
     visibility = ["//visibility:private"],
-    deps = ["@com_github_SherClockHolmes_webpush_go//:go_default_library"],
+    deps = ["@com_github_sherclockholmes_webpush_go//:webpush-go"],
 )
 
 go_binary(
     name = "vapidgen",
+    embed = [":vapidgen_lib"],
     importpath = "badc0de.net/pkg/go-tibia/cmd/vapidgen",
-    library = ":go_default_library",
     visibility = ["//visibility:public"],
 )

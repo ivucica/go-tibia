@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "full",
     srcs = [
         "from_default_path.go",
         "from_flags.go",
@@ -10,11 +10,11 @@ go_library(
     importpath = "badc0de.net/pkg/go-tibia/things/full",
     visibility = ["//visibility:public"],
     deps = [
-        "//dat:go_default_library",
-        "//otb/items:go_default_library",
-        "//paths:go_default_library",
-        "//spr:go_default_library",
-        "//things:go_default_library",
-        "@com_github_pkg_errors//:go_default_library",
+        "//dat",
+        "//otb/items",
+        "//paths",
+        "//spr",
+        "//things",
+        "@com_github_pkg_errors//:errors",
     ],
 )

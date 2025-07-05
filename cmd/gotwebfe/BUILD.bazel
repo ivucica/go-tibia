@@ -1,15 +1,34 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
-    srcs = ["main_notweb.go"],
+    name = "gotwebfe_lib",
+    srcs = [
+        "console_js.go",
+        "jsglobal_js.go",
+        "main.go",
+        "main_notweb.go",
+    ],
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotwebfe",
     visibility = ["//visibility:private"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:js_wasm": [
+            "//compositor/dom",
+            "//gameworld",
+            "//otb/map",
+            "//paths",
+            "//spr",
+            "//things",
+            "//things/full",
+            "//xmls",
+            "@com_github_vincent_petithory_dataurl//:dataurl",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 go_binary(
     name = "gotwebfe",
+    embed = [":gotwebfe_lib"],
     importpath = "badc0de.net/pkg/go-tibia/cmd/gotwebfe",
-    library = ":go_default_library",
     visibility = ["//visibility:public"],
 )

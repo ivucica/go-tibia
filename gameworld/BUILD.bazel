@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "gameworld",
     srcs = [
         "doc.go",
         "gameworld.go",
@@ -9,29 +9,32 @@ go_library(
         "playermove.go",
         "procedural_map.go",
         "stubs.go",
-        "test_using_otb_map.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/gameworld",
     visibility = ["//visibility:public"],
     deps = [
-        "//net:go_default_library",
-        "//otb/items:go_default_library",
-        "//paths:go_default_library",
-        "//things:go_default_library",
-        "//xmls:go_default_library",
-        "@com_github_golang_glog//:go_default_library",
-        "@com_github_pkg_errors//:go_default_library",
-        "@org_golang_x_sync//errgroup:go_default_library",
+        "//dat",
+        "//gameworld/gwmap",
+        "//net",
+        "//otb/items",
+        "//paths",
+        "//things",
+        "//xmls",
+        "@com_github_golang_glog//:glog",
+        "@com_github_pkg_errors//:errors",
+        "@org_golang_x_sync//errgroup",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "gameworld_test",
     srcs = ["map_test.go"],
+    embed = [":gameworld"],
     importpath = "badc0de.net/pkg/go-tibia/gameworld",
-    library = ":go_default_library",
     deps = [
-        "//net:go_default_library",
-        "//things:go_default_library",
+        "//net",
+        "//otb/items",
+        "//paths",
+        "//things",
     ],
 )

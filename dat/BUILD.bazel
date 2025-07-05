@@ -1,25 +1,25 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "dat",
     srcs = [
         "dat.go",
         "doc.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/dat",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_golang_glog//:go_default_library"],
+    deps = ["@com_github_golang_glog//:glog"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "dat_test",
     size = "small",
     srcs = ["dat_test.go"],
     data = ["@tibia854//:Tibia.dat"],
+    embed = [":dat"],
     importpath = "badc0de.net/pkg/go-tibia/dat",
-    library = ":go_default_library",
     deps = [
-        "//paths:go_default_library",
-        "//ttesting:go_default_library",
+        "//paths",
+        "//ttesting",
     ],
 )

@@ -1,22 +1,22 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "otb",
     srcs = [
         "doc.go",
         "otb.go",
     ],
     importpath = "badc0de.net/pkg/go-tibia/otb",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_golang_glog//:go_default_library"],
+    deps = ["@com_github_golang_glog//:glog"],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "otb_test",
     size = "small",
     srcs = ["otb_test.go"],
     data = ["//datafiles:items.otb"],
+    embed = [":otb"],
     importpath = "badc0de.net/pkg/go-tibia/otb",
-    library = ":go_default_library",
-    deps = ["//paths:go_default_library"],
+    deps = ["//paths"],
 )

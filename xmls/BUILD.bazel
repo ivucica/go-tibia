@@ -1,8 +1,17 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
-    srcs = ["outfits.go"],
+    name = "xmls",
+    srcs = [
+        "outfits.go",
+        "wiki.go",
+    ],
     importpath = "badc0de.net/pkg/go-tibia/xmls",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "xmls_test",
+    srcs = ["example_test.go"],
+    embed = [":xmls"],
 )
