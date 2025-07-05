@@ -9,6 +9,7 @@
     pkgs.bazelisk
     pkgs.go
     pkgs.clang
+    pkgs.perl  # Only for tools/latest_version_tag.sh
     # pkgs.python311
     # pkgs.python311Packages.pip
     # pkgs.nodejs_20
