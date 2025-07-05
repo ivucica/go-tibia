@@ -1,2 +1,9 @@
 # wasm_exec.js comes from goroot
 html/wasm_exec.js
+# proprietary unless told otherwise; not to be a part of the repo
+Tibia.pic
+Tibia.dat
+Tibia.spr
+# avoiding shipping binaries etc from other projects
+items.otb
+items.xml

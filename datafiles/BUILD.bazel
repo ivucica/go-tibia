@@ -3,6 +3,11 @@ alias(
     actual = "@itemsotb854//file",
     visibility = ["//visibility:public"],
 )
+alias(
+    name = "items.xml",
+    actual = "@itemsxml//file",
+    visibility = ["//visibility:public"],
+)
 
 exports_files([
     #"items.otb",
@@ -20,9 +25,10 @@ filegroup(
         "range-test-map.otbm",
         "//datafiles/html:html",
         ":items.otb",
+        ":items.xml",
         "@tibia854//:Tibia.dat",
         "@tibia854//:Tibia.pic",
-        "@tibia854//:Tibia.spr", #
+        "@tibia854//:Tibia.spr",
 
     ],
     visibility = ["//visibility:public"], # Make the filegroup visible to other packages
