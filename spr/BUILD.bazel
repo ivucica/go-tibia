@@ -31,13 +31,13 @@ go_test(
 )
 
 go_test(
-    name = "go_default_test_examples",
+    name = "spr_test_examples",
     size = "small",
     srcs = ["examples_test.go"],
     data = ["@tibia854//:Tibia.spr"],
     embed = [":spr"],
     importpath = "badc0de.net/pkg/go-tibia/spr",
     deps = [
-        "//paths:go_default_library",
+        "//paths",
     ],
 )
