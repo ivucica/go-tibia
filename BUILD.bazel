@@ -1,8 +1,11 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
 # -*- mode: python; -*-
 # vim: set syntax=python:
 
-load("@bazel_gazelle//:def.bzl", "gazelle"  )
+load("@bazel_gazelle//:def.bzl", "gazelle")
 
+# gazelle:exclude _references
 # gazelle:prefix badc0de.net/pkg/go-tibia
 gazelle(name = "gazelle")
 
@@ -12,5 +15,6 @@ gazelle(
         "-from_file=go.mod",
         "-to_macro=deps.bzl%go_dependencies",
         "-prune",
-    ]
+    ],
+    command = "update-repos",
 )
