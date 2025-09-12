@@ -212,6 +212,7 @@ function handleSharePost(e) {
     e.request.formData().then(formData => {
         const title = formData.get('title') || '';
         const text = formData.get('text') || '';
+        const url = formData.get('url') || '';
         const file = formData.get('file');
 
         let fileData = null;
@@ -235,6 +236,7 @@ function handleSharePost(e) {
                         type: 'share',
                         title: title,
                         text: text,
+                        url: url,
                         file: fileDataURL,
                     });
                 }

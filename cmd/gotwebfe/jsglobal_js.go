@@ -86,6 +86,7 @@ func handleSharedMessage(this jsValue, args []jsValue) interface{} {
 	title := data.Get("title").String()
 	text := data.Get("text").String()
 	file := data.Get("file").String()
+	sharedURL := data.Get("url").String()
 
 	// TODO: abstract away creating windows in general. since this is the only
 	// one we dynamically create, it is ok for now.
@@ -115,6 +116,11 @@ func handleSharedMessage(this jsValue, args []jsValue) interface{} {
 		pText := document.Call("createElement", "p")
 		pText.Set("innerHTML", "Text: "+text)
 		content.Call("appendChild", pText)
+	}
+	if sharedURL != "" {
+		pURL := document.Call("createElement", "p")
+		pURL.Set("innerHTML", "URL: "+text)
+		content.Call("appendChild", pURL)
 	}
 
 	if file != "" {
