@@ -25,7 +25,7 @@
   ],
 
   "share_target": {
-    "action": "share-target-handler",
+    "action": "/app/_share-target-handler",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {

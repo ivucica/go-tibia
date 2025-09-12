@@ -241,11 +241,26 @@ function handleSharePost(e) {
             });
         });
     });
+    // NOTE: if the window has been opened (and on ChromeOS it does get opened),
+    // we should either switch focus to an existing window and close the newly
+    // open window, or handle a redirect here and handle it in local window, or
+    // find a way to tell the browser/OS that the share should be handled in the
+    // SW + existing window if one is already open.
+    //
+    // For now, saying that nothing needs to happen is fine, user gets bad
+    // experience but this is for testing only anyway.
     return new Response(null, { status: 204 });
 }
 
 function smartFetch(e) {
-    if (e.request.method === 'POST' && e.request.url.includes('share-target-handler')) {
+    if (e.request.method === 'POST' && (
+        e.request.url.includes('/app/_share-target-handler') ||
+        e.request.url.includes('/app/share-target-handler') // v1, when it was a relative URL, should be removed
+    )) {
+        // Note:
+        // - only appears when sharing the file types we declared in manifest.json
+        // - a window is opened for /app/_share-target-handler, service worker
+        //   might not be the only thing intercepting this
         return handleSharePost(e);
     }
 
