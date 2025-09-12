@@ -138,7 +138,17 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(smartFetch(e))
 })
 
+self.addEventListener('message', event => {
+    // service worker received a message, for example from one of the 'window'
+    // clients such as various tabs.
+    console.log('sw.js received message', event.data);
+    //
+    // We could reply to a message like so:
+    // https://stackoverflow.com/a/30226117/39974
+});
+
 function simpleFetch(e) {
+    // TODO: Remove, since we use 'smartFetch' now.
     return caches.match(e.request).then(function(response) {
         if (response != null) {
             // Found in some cache. Returning the promise containing the cached response.
@@ -188,7 +198,57 @@ function matchCachesIndividually(e) {
     })
 }
 
+
+function handleSharePost(e) {
+    // 'fetch' handler for POST requests for the share target.
+    //
+    // Expected to be already identified as a POST request to the share-target
+    // URL in the calling handler for 'fetch' events in the service worker.
+    //
+    // Posts messages to all clients (open windows/tabs) with the shared data.
+    //
+    // The client pages are expected to listen for 'message' events and handle
+    // the shared data appropriately.
+    e.request.formData().then(formData => {
+        const title = formData.get('title') || '';
+        const text = formData.get('text') || '';
+        const file = formData.get('file');
+
+        let fileData = null;
+        let fileReaderPromise = null;
+
+        if (file) {
+            fileReaderPromise = new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        } else {
+            fileReaderPromise = Promise.resolve(null);
+        }
+        
+        fileReaderPromise.then(fileDataURL => {
+            clients.matchAll({type: "window", includeUncontrolled: true}).then(function(clientList) {
+                for (var i = 0; i < clientList.length; i++) {
+                    clientList[i].postMessage({
+                        type: 'share',
+                        title: title,
+                        text: text,
+                        file: fileDataURL,
+                    });
+                }
+            });
+        });
+    });
+    return new Response(null, { status: 204 });
+}
+
 function smartFetch(e) {
+    if (e.request.method === 'POST' && e.request.url.includes('share-target-handler')) {
+        return handleSharePost(e);
+    }
+
     return matchCachesIndividually(e).then(function (response) {
         if (!response) {
             console.warn('Response from caches is unexpectedly null; falling back to fetch')

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime/debug"
 	"syscall/js"
@@ -11,6 +12,8 @@ import (
 
 // alias for js.Value in browser and non-WASI WASM is js.Value
 type jsValue = js.Value
+
+var shareUIs int
 
 // Prevent go program from exiting.
 func persistIfBrowser() {
@@ -28,6 +31,18 @@ func jsGlobalInjectAPI() {
 	js.Global().Set("addY", js.FuncOf(addY))
 	js.Global().Set("subX", js.FuncOf(subX))
 	js.Global().Set("subY", js.FuncOf(subY))
+
+	// Register message handling for messages from a service worker:
+	// https://stackoverflow.com/a/42964575/39974
+	//
+	// It is correct to register on navigator.serviceWorker.
+	//
+	// Currently mainly used to receive share target messages when the service
+	// worker receives a share request.
+	js.Global().Get("navigator").Get("serviceWorker").Call(
+		"addEventListener",
+		"message",
+		js.FuncOf(handleSharedMessage))
 }
 
 func jsGlobal() js.Value {
@@ -51,6 +66,87 @@ func subX(this js.Value, arg []js.Value) interface{} {
 
 func subY(this js.Value, arg []js.Value) interface{} {
 	ty--
+	return nil
+}
+
+// handleSharedMessage handles "message" events from the service worker when the
+// the web app is a share target and the user shares something to it.
+func handleSharedMessage(this jsValue, args []jsValue) interface{} {
+	event := args[0]
+	data := event.Get("data")
+	dataType := data.Get("type").String()
+
+	if dataType != "share" {
+		return nil
+	}
+
+	shareUIs++
+	uiID := shareUIs
+
+	title := data.Get("title").String()
+	text := data.Get("text").String()
+	file := data.Get("file").String()
+
+	// TODO: abstract away creating windows in general. since this is the only
+	// one we dynamically create, it is ok for now.
+	document := jsGlobal().Get("document")
+
+	window := document.Call("createElement", "div")
+	window.Set("className", "window")
+	window.Get("style").Set("width", "300px")
+	window.Get("style").Set("margin", "10px auto")
+	window.Set("id", fmt.Sprintf("share-window-%d", uiID))
+
+	titlebar := document.Call("createElement", "div")
+	titlebar.Set("className", "titlebar")
+	titlebar.Set("innerHTML", "Share Target")
+	window.Call("appendChild", titlebar)
+
+	content := document.Call("createElement", "div")
+	content.Set("className", "content")
+	window.Call("appendChild", content)
+
+	if title != "" {
+		pTitle := document.Call("createElement", "p")
+		pTitle.Set("innerHTML", "Title: "+title)
+		content.Call("appendChild", pTitle)
+	}
+	if text != "" {
+		pText := document.Call("createElement", "p")
+		pText.Set("innerHTML", "Text: "+text)
+		content.Call("appendChild", pText)
+	}
+
+	if file != "" {
+		img := document.Call("createElement", "img")
+		img.Set("src", file)
+		img.Get("style").Set("maxWidth", "100%")
+		content.Call("appendChild", img)
+	}
+
+	bottombar := document.Call("createElement", "div")
+	bottombar.Set("className", "bottombar")
+	window.Call("appendChild", bottombar)
+
+	buttonArea := document.Call("createElement", "div")
+	buttonArea.Get("style").Set("textAlign", "center")
+	content.Call("appendChild", buttonArea)
+
+	shareButton := document.Call("createElement", "button")
+	shareButton.Set("innerHTML", "<div>Share</div>")
+	buttonArea.Call("appendChild", shareButton)
+
+	closeButton := document.Call("createElement", "button")
+	closeButton.Set("innerHTML", "<div>Close</div>")
+	closeButton.Call("addEventListener", "click", js.FuncOf(func(this jsValue, args []jsValue) interface{} {
+		window.Call("remove")
+		return nil
+	}))
+	buttonArea.Call("appendChild", closeButton)
+
+	container := document.Call("getElementById", "share-target-container")
+	container.Call("appendChild", window)
+
 	return nil
 }
 
