@@ -334,7 +334,7 @@ function loadedMore(e) {
     if (e.clientId) {
         self.clients.get(e.clientId).then(function(client) {
             if (client) {
-                client.postMessage({loaded, total})
+                client.postMessage({type: "progress", loaded: loaded, total: total})
             } else {
                 console.warn('Client ' + e.clientId + ' not found')
             }
@@ -347,7 +347,7 @@ function loadedMore(e) {
         console.log(clientList)
         for (var i = 0; i < clientList.length; i++) {
             var client = clientList[i];
-            client.postMessage({loaded, total})
+            client.postMessage({type: "progress", loaded: loaded, total: total})
         }
     })
 }

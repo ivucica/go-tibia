@@ -8,7 +8,15 @@
     <script src="wasm_exec.js"></script>
     <script type="text/javascript">
 
-      function progress({loaded, total}) {
+      function progress(e) {
+          // Verify this is a progress install message, and not e.g. share message.
+          if (e.data.type != 'progress') {
+              return;
+          }
+
+          loaded = e.data.loaded;
+          total = e.data.total;
+
           if(document.getElementById('installProgress')) {
               document.getElementById('installProgress').max = total;
               document.getElementById('installProgress').value = loaded;
@@ -21,7 +29,7 @@
       }
 
       if (navigator.serviceWorker != null) {
-          navigator.serviceWorker.addEventListener('message', event => progress(event.data))
+          navigator.serviceWorker.addEventListener('message', event => progress(event))
           navigator.serviceWorker.register('/sw.js', {'scope': '/'})
               .then(function(registration) {
                   console.log('Registered events at scope: ', registration.scope);
