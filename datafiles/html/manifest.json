@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/web-manifest",
   "name": "GOTweb-FE",
   "short_name": "GOTweb-FE",
   "display": "standalone",
