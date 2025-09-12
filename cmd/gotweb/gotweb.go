@@ -536,6 +536,23 @@ func main() {
 			w.Header().Set("Cache-Control", "public; max-age=36000") // 36000 = 10h
 			http.ServeFile(w, r, htmlPath+"/favicon.ico")
 		})
+		r.HandleFunc("/app/_share-target-handler", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				http.Error(w, "only POST allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			// Not supposed to actually hit the backend since sw.js is supposed
+			// to intercept it. And the endpoint is meant to be hit only when
+			// PWA has something to receive as a target, i.e. it's been
+			// installed.
+			//
+			// Still, let's return 204 if we do get hit. For now.
+			//
+			// Add cache control none.
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Expires", "0")
+			w.WriteHeader(http.StatusNoContent)
+		})
 		r.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
 			f, err := os.Open(htmlPath + "/sw.js")
 			if err != nil {
