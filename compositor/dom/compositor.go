@@ -45,12 +45,31 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 	document := window.Get("document")
 	mapDiv := document.Call("createElement", "div")
 	mapDiv.Get("style").Set("position", "relative")
+	mapDiv.Get("style").Set("width", fmt.Sprintf("%dpx", width*tileW))
+	mapDiv.Get("style").Set("height", fmt.Sprintf("%dpx", height*tileH))
+
+	// Contain all floorDivOuters.
+	allFloorDivs := []js.Value{}
+
+	floorW := width * tileW
+	floorH := height * tileH
+	floorWStr := fmt.Sprintf("%dpx", floorW)
+	floorHStr := fmt.Sprintf("%dpx", floorH)
 
 	for tz := int(floorBottom); tz >= int(floorTop); tz-- {
+		floorDivOuter := document.Call("createElement", "div")
+		floorDivOuter.Get("style").Set("position", "absolute")
+		floorDivOuter.Get("style").Set("width", floorWStr)
+		floorDivOuter.Get("style").Set("height", floorHStr)
+		floorDivOuter.Get("style").Set("top", "0")
+		floorDivOuter.Get("style").Set("left", "0")
+
 		floorDiv := document.Call("createElement", "div")
 		floorDiv.Get("style").Set("position", "relative")
-		floorDiv.Get("style").Set("width", fmt.Sprintf("%dpx", width*tileW))
-		floorDiv.Get("style").Set("height", fmt.Sprintf("%dpx", height*tileH))
+		floorDiv.Get("style").Set("width", floorWStr)
+		floorDiv.Get("style").Set("height", floorHStr)
+
+		floorDivOuter.Call("appendChild", floorDiv)
 
 		for ty := int(y); ty < int(y)+height; ty++ {
 			for tx := int(x); tx < int(x)+width; tx++ {
@@ -59,10 +78,16 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 					return js.Null(), fmt.Errorf("error getting tile %d %d %d: %v", tx, ty, tz, err)
 				}
 
+				// Positioning tiles relative to position of the div itself.
+				//
+				// Tiles are placed inside a position:relative div of the floor itself, so position:absolute is fine.
+				tileLeft := (tx - int(x)) * tileW
+				tileTop := (ty - int(y)) * tileH
+
 				tileDiv := document.Call("createElement", "div")
 				tileDiv.Get("style").Set("position", "absolute")
-				tileDiv.Get("style").Set("left", fmt.Sprintf("%dpx", (tx-int(x))*tileW))
-				tileDiv.Get("style").Set("top", fmt.Sprintf("%dpx", (ty-int(y))*tileH))
+				tileDiv.Get("style").Set("left", fmt.Sprintf("%dpx", tileLeft))
+				tileDiv.Get("style").Set("top", fmt.Sprintf("%dpx", tileTop))
 				tileDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))
 				tileDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH))
 
@@ -74,13 +99,17 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 					}
 					frame := thItem.ItemFrame(0, int(tx), int(ty), int(tz))
 
+					// Positioning items relative to the tile itself.
+					//
+					// Because items and creatures can be larger than tileW/tileH, and the origin point is bottom-right corner, we use that to position the images.
 					itemDiv := document.Call("createElement", "div")
 					itemDiv.Get("style").Set("position", "absolute")
-					itemDiv.Get("style").Set("left", fmt.Sprintf("%dpx", 0))
-					itemDiv.Get("style").Set("top", fmt.Sprintf("%dpx", 0))
-					itemDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))
-					itemDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH))
+					itemDiv.Get("style").Set("right", fmt.Sprintf("%dpx", 0))
+					itemDiv.Get("style").Set("bottom", fmt.Sprintf("%dpx", 0))
+					itemDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))  // TODO: item size does NOT match tile size
+					itemDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH)) // TODO: item size does NOT match tile size
 
+					// TODO: offer option to use pre-prepared PNGs or other image formats, which browsers would like and could cache.
 					buf := &bytes.Buffer{}
 					png.Encode(buf, frame)
 					dataURL := dataurl.New(buf.Bytes(), "image/png")
@@ -104,13 +133,17 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 					cols := creature.GetOutfitColors()
 					frame := thCreature.ColorizedCreatureFrame(0, creature.GetDir(), things.OutfitOverlayMask(0), []color.Color{cols[0], cols[1], cols[2], cols[3]})
 
+					// Positioning creatures relative to the tile itself.
+					//
+					// Because items and creatures can be larger than tileW/tileH, and the origin point is bottom-right corner, we use that to position the images.
 					creatureDiv := document.Call("createElement", "div")
 					creatureDiv.Get("style").Set("position", "absolute")
-					creatureDiv.Get("style").Set("left", fmt.Sprintf("%dpx", 0))
-					creatureDiv.Get("style").Set("top", fmt.Sprintf("%dpx", 0))
-					creatureDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))
-					creatureDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH))
+					creatureDiv.Get("style").Set("right", fmt.Sprintf("%dpx", 0))
+					creatureDiv.Get("style").Set("bottom", fmt.Sprintf("%dpx", 0))
+					creatureDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))  // TODO: creature size does NOT match tile size
+					creatureDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH)) // TODO: creature size does NOT match tile size
 
+					// TODO: offer option to use pre-prepared PNGs or other image formats, which browsers would like and could cache.
 					buf := &bytes.Buffer{}
 					png.Encode(buf, frame)
 					dataURL := dataurl.New(buf.Bytes(), "image/png")
@@ -128,8 +161,17 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 			}
 		}
 
-		mapDiv.Call("appendChild", floorDiv)
+		// Performing this as the last action would group redraws together...
+		// mapDiv.Call("appendChild", floorDivOuter)
+		// but it is even better to collect them for later.
+		allFloorDivs = append(allFloorDivs, floorDivOuter)
 	}
+
+	for _, floorDivOuter := range allFloorDivs {
+		mapDiv.Call("appendChild", floorDivOuter)
+	}
+
+	// TODO: a fast-to-generate lightmap, possibly prepared per-tile; or better, a low-res image stretched as an overlay per-floor.
 
 	return mapDiv, nil
 }
