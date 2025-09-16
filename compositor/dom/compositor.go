@@ -48,7 +48,7 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 	mapDiv.Get("style").Set("width", fmt.Sprintf("%dpx", width*tileW))
 	mapDiv.Get("style").Set("height", fmt.Sprintf("%dpx", height*tileH))
 
-	// Contain all floorDivOuters.
+	// Contains all floorDivOuters.
 	allFloorDivs := []js.Value{}
 
 	floorW := width * tileW
@@ -57,19 +57,7 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 	floorHStr := fmt.Sprintf("%dpx", floorH)
 
 	for tz := int(floorBottom); tz >= int(floorTop); tz-- {
-		floorDivOuter := document.Call("createElement", "div")
-		floorDivOuter.Get("style").Set("position", "absolute")
-		floorDivOuter.Get("style").Set("width", floorWStr)
-		floorDivOuter.Get("style").Set("height", floorHStr)
-		floorDivOuter.Get("style").Set("top", "0")
-		floorDivOuter.Get("style").Set("left", "0")
-
-		floorDiv := document.Call("createElement", "div")
-		floorDiv.Get("style").Set("position", "relative")
-		floorDiv.Get("style").Set("width", floorWStr)
-		floorDiv.Get("style").Set("height", floorHStr)
-
-		floorDivOuter.Call("appendChild", floorDiv)
+		allTileDivs := []js.Value{}
 
 		for ty := int(y); ty < int(y)+height; ty++ {
 			for tx := int(x); tx < int(x)+width; tx++ {
@@ -84,12 +72,8 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 				tileLeft := (tx - int(x)) * tileW
 				tileTop := (ty - int(y)) * tileH
 
-				tileDiv := document.Call("createElement", "div")
-				tileDiv.Get("style").Set("position", "absolute")
-				tileDiv.Get("style").Set("left", fmt.Sprintf("%dpx", tileLeft))
-				tileDiv.Get("style").Set("top", fmt.Sprintf("%dpx", tileTop))
-				tileDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))
-				tileDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH))
+				itemDivs := []js.Value{}
+				creatureDivs := []js.Value{}
 
 				idx := 0
 				for item, err := t.GetItem(idx); err == nil; item, err = t.GetItem(idx) {
@@ -119,7 +103,7 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 					}
 					itemDiv.Get("style").Set("backgroundImage", fmt.Sprintf("url('%s')", string(byt)))
 
-					tileDiv.Call("appendChild", itemDiv)
+					itemDivs = append(itemDivs, itemDiv)
 					idx++
 				}
 
@@ -153,18 +137,53 @@ func compositeMapToDOMAsManyDIVs(ctx context.Context, window js.Value, m gamewor
 					}
 					creatureDiv.Get("style").Set("backgroundImage", fmt.Sprintf("url('%s')", string(byt)))
 
-					tileDiv.Call("appendChild", creatureDiv)
+					creatureDivs = append(creatureDivs, creatureDiv)
 					idx++
 				}
 
-				floorDiv.Call("appendChild", tileDiv)
+				if len(itemDivs) > 0 || len(creatureDivs) > 0 {
+					tileDiv := document.Call("createElement", "div")
+					tileDiv.Get("style").Set("position", "absolute")
+					tileDiv.Get("style").Set("left", fmt.Sprintf("%dpx", tileLeft))
+					tileDiv.Get("style").Set("top", fmt.Sprintf("%dpx", tileTop))
+					tileDiv.Get("style").Set("width", fmt.Sprintf("%dpx", tileW))
+					tileDiv.Get("style").Set("height", fmt.Sprintf("%dpx", tileH))
+					for _, itemDiv := range itemDivs {
+						tileDiv.Call("appendChild", itemDiv)
+					}
+					for _, creatureDiv := range creatureDivs {
+						tileDiv.Call("appendChild", creatureDiv)
+					}
+
+					allTileDivs = append(allTileDivs, tileDiv)
+				}
 			}
 		}
 
-		// Performing this as the last action would group redraws together...
-		// mapDiv.Call("appendChild", floorDivOuter)
-		// but it is even better to collect them for later.
-		allFloorDivs = append(allFloorDivs, floorDivOuter)
+		if len(allTileDivs) > 0 {
+			floorDivOuter := document.Call("createElement", "div")
+			floorDivOuter.Get("style").Set("position", "absolute")
+			floorDivOuter.Get("style").Set("width", floorWStr)
+			floorDivOuter.Get("style").Set("height", floorHStr)
+			floorDivOuter.Get("style").Set("top", "0")
+			floorDivOuter.Get("style").Set("left", "0")
+
+			floorDiv := document.Call("createElement", "div")
+			floorDiv.Get("style").Set("position", "relative")
+			floorDiv.Get("style").Set("width", floorWStr)
+			floorDiv.Get("style").Set("height", floorHStr)
+
+			for _, tileDiv := range allTileDivs {
+				floorDiv.Call("appendChild", tileDiv)
+			}
+
+			floorDivOuter.Call("appendChild", floorDiv)
+
+			// Performing this as the last action would group redraws together...
+			// mapDiv.Call("appendChild", floorDivOuter)
+			// but it is even better to collect them for later.
+			allFloorDivs = append(allFloorDivs, floorDivOuter)
+		}
 	}
 
 	for _, floorDivOuter := range allFloorDivs {
