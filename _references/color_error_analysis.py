@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import pandas as pd
 
 # --- 1. Original Color Table Data ---
 original_hex_table = [
@@ -29,6 +30,7 @@ original_hex_table = [
     0x00007F, 0x2A007F, 0x54007F, 0x7F007F, 0x7F0055, 0x7F002A,
     0x7F0000,
 ]
+
 
 def hex_to_rgb(hex_val):
     r = (hex_val >> 16) & 0xFF
@@ -76,7 +78,7 @@ def get_simplified_color(index):
     r = getValue(v, rCode)
     g = getValue(v, gCode)
     b = getValue(v, bCode)
-    
+
     return r, g, b
 
 simplified_colors = np.array([get_simplified_color(i) for i in range(133)], dtype=np.uint8)
@@ -86,7 +88,15 @@ error_matrix = simplified_colors.astype(np.int16) - original_colors.astype(np.in
 r_error = error_matrix[:, 0]
 g_error = error_matrix[:, 1]
 b_error = error_matrix[:, 2]
+
+# Convert error matrix to pandas DataFrame
+error_df = pd.DataFrame(error_matrix, columns=['Red Error', 'Green Error', 'Blue Error'])
+
+r_error = error_df['Red Error']
+g_error = error_df['Green Error']
+b_error = error_df['Blue Error']
 indices = np.arange(133)
+
 
 # --- 4. Plotting ---
 plt.figure(figsize=(16, 7))
@@ -105,7 +115,6 @@ plt.tight_layout()
 # plt.savefig("color_error_analysis.png", dpi=150)
 # plt.show()
 
-
 # --- 5. Summary Statistics ---
 abs_error = np.abs(error_matrix)
 mae = np.mean(abs_error)
@@ -114,9 +123,37 @@ min_error = np.min(error_matrix)
 total_non_zero = np.count_nonzero(error_matrix)
 
 print("\n--- Error Analysis Summary ---")
+mae = error_df.abs().mean().mean() # Calculate MAE using pandas
 print(f"Mean Absolute Error (MAE): {mae:.4f}")
 print(f"Max Positive Error: {max_error}")
 print(f"Max Negative Error: {min_error}")
 print(f"Total error points (non-zero): {total_non_zero} (out of {133*3} total values)")
 print(f"Percentage of correct values: {100.0 * (1 - (total_non_zero / (133.0*3.0))):.2f}%")
 
+
+# Reshape the original_colors array into 7 rows of 19 values
+rgb_display = original_colors.reshape(7, 19, 3)
+
+# Display the reshaped array
+print("Original RGB Values (7 rows of 19):")
+for row in rgb_display:
+    print(row)
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 4))
+
+# Reshape the arrays for plotting
+original_display = original_colors.reshape(7, 19, 3)
+simplified_display = simplified_colors.reshape(7, 19, 3)
+
+# Display original colors
+axes[0].imshow(original_display, aspect='auto')
+axes[0].set_title('Original Colors')
+axes[0].axis('off')
+
+# Display simplified colors
+axes[1].imshow(simplified_display, aspect='auto')
+axes[1].set_title('Simplified Formula Colors')
+axes[1].axis('off')
+
+plt.tight_layout()
+plt.show()
