@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"math"
 
 	"badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
@@ -77,20 +78,39 @@ var (
 		13: 0b010011, 14: 0b100011, 15: 0b110011,
 		16: 0b110010, 17: 0b110001, 18: 0b110000,
 	}
-
-	// valueLevels maps [v][c] to the final 8-bit component value.
-	// v = brightness (0-6), c = 2-bit code (0-3)
-	valueLevels = [7][4]uint8{
-		// c=0,  c=1,  c=2,  c=3
-		{0xBF, 0xD4, 0xE9, 0xFF}, // v=0
-		{0x8F, 0x9F, 0xAF, 0xBF}, // v=1
-		{0x5F, 0x7F, 0x9F, 0xBF}, // v=2
-		{0x3F, 0x6A, 0x94, 0xBF}, // v=3
-		{0x00, 0x55, 0xAA, 0xFF}, // v=4
-		{0x00, 0x3F, 0x7F, 0xBF}, // v=5
-		{0x00, 0x2A, 0x55, 0x7F}, // v=6
-	}
 )
+
+// valueLevels maps [v][c] to the final 8-bit component value.
+// v = brightness (0-6), c = 2-bit code (0-3)
+func valueLevels(v int, c uint8) uint8 {
+    var val float64
+    c_float := float64(c)
+
+    switch v {
+    case 0: // v=0 (Pastel/Tint)
+        // Blends from 191 (0xBF) to 255 (0xFF)
+        val = 191.0 + (64.0 * c_float / 3.0)
+    case 1: // v=1 (Tone)
+        // Blends from 143 (0x8F) to 191 (0xBF)
+        val = 143.0 + (48.0 * c_float / 3.0)
+    case 2: // v=2 (Tone)
+        // Blends from 95 (0x5F) to 191 (0xBF)
+        val = 95.0 + (96.0 * c_float / 3.0)
+    case 3: // v=3 (Tone)
+        // Blends from 63 (0x3F) to 191 (0xBF)
+        val = 63.0 + (128.0 * c_float / 3.0)
+    case 4: // v=4 (Pure)
+        // Blends from 0 to 255 (0xFF)
+        val = 255.0 * c_float / 3.0
+    case 5: // v=5 (Shade)
+        // Blends from 0 to 191 (0xBF)
+        val = 191.0 * c_float / 3.0
+    case 6: // v=6 (Dark Shade)
+        // Blends from 0 to 127 (0x7F)
+        val = 127.5 * c_float / 3.0
+    }
+    return uint8(math.Round(val))
+}
 
 type OutfitColor int
 
@@ -100,8 +120,8 @@ func (index OutfitColor) RGBA() (r, g, b, a uint32) {
 	}
 
 	// 1. Decompose the index
-	v := index / 19 // Brightness/Value (0-6)
-	h := index % 19 // Hue/Chroma (0-18)
+	v := int(index) / 19 // Brightness/Value (0-6)
+	h := int(index) % 19 // Hue/Chroma (0-18)
 
 	// 2. Handle Grayscale Case (h=0)
 	if h == 0 {
@@ -119,9 +139,9 @@ func (index OutfitColor) RGBA() (r, g, b, a uint32) {
 	bCode := (code >> 0) & 0b11
 
 	// Look up the final 8-bit values from the valueLevels table
-	r = uint32(valueLevels[v][rCode]) << 8
-	g = uint32(valueLevels[v][gCode]) << 8
-	b = uint32(valueLevels[v][bCode]) << 8
+	r = uint32(valueLevels(v, rCode)) << 8
+	g = uint32(valueLevels(v, gCode)) << 8
+	b = uint32(valueLevels(v, bCode)) << 8
 
 	return
 }
