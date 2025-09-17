@@ -1,4 +1,4 @@
-RAW_REPORT: str = """# Project Retrospective: Deconstructing the OutfitColor Palette
+# Project Retrospective: Deconstructing the OutfitColor Palette
 
 This report details the step-by-step process of reverse-engineering a 133-entry color lookup table. The journey began with a large, static data table and concluded with a compact, procedural formula that replicates the original data with near-perfect accuracy.
 
@@ -545,5 +545,3 @@ This result is exceptional. It confirms that the simplified formula is an extrem
 * The small deviations (e.g., max error of 8) are almost certainly due to rounding or minor "off-by-one" human adjustments in the *original* table (e.g., `0xA9` instead of `0xAA`).
 
 The formula is not just an approximation; it is very likely the *true, underlying logic* used to generate the original table, with the table itself containing a few minor rounding errors.
-"""
-
