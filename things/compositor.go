@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"math"
 
 	"badc0de.net/pkg/go-tibia/dat"
 	"badc0de.net/pkg/go-tibia/otb/items"
@@ -78,38 +77,37 @@ var (
 		13: 0b010011, 14: 0b100011, 15: 0b110011,
 		16: 0b110010, 17: 0b110001, 18: 0b110000,
 	}
+
+	// These two tables replace the 7-case switch statement
+
+	// The "clean" 8-bit value when c=0.
+	baseV = [7]int{192, 144, 96, 64, 0, 0, 0}
+	// The "clean" 8-bit value (plus one) when c=3.
+	topV = [7]int{256, 192, 192, 192, 256, 192, 128}
 )
 
 // valueLevels maps [v][c] to the final 8-bit component value.
 // v = brightness (0-6), c = 2-bit code (0-3)
 func valueLevels(v int, c uint8) uint8 {
-    var val float64
-    c_float := float64(c)
+	// Get the "clean" base and top values
+	base := baseV[v]
+	top := topV[v]
 
-    switch v {
-    case 0: // v=0 (Pastel/Tint)
-        // Blends from 191 (0xBF) to 255 (0xFF)
-        val = 191.0 + (64.0 * c_float / 3.0)
-    case 1: // v=1 (Tone)
-        // Blends from 143 (0x8F) to 191 (0xBF)
-        val = 143.0 + (48.0 * c_float / 3.0)
-    case 2: // v=2 (Tone)
-        // Blends from 95 (0x5F) to 191 (0xBF)
-        val = 95.0 + (96.0 * c_float / 3.0)
-    case 3: // v=3 (Tone)
-        // Blends from 63 (0x3F) to 191 (0xBF)
-        val = 63.0 + (128.0 * c_float / 3.0)
-    case 4: // v=4 (Pure)
-        // Blends from 0 to 255 (0xFF)
-        val = 255.0 * c_float / 3.0
-    case 5: // v=5 (Shade)
-        // Blends from 0 to 191 (0xBF)
-        val = 191.0 * c_float / 3.0
-    case 6: // v=6 (Dark Shade)
-        // Blends from 0 to 127 (0x7F)
-        val = 127.5 * c_float / 3.0
-    }
-    return uint8(math.Round(val))
+	// Apply the "-1" rule (except for 0)
+	baseVal := 0
+	if base > 0 {
+		baseVal = base - 1
+	}
+	topVal := top - 1
+
+	// Calculate the range to blend across
+	delta := topVal - baseVal
+
+	// Calculate the blend using integer math:
+	// val = Base + (Range * (c / 3))
+	val := baseVal + (delta*int(c))/3
+
+	return uint8(val)
 }
 
 type OutfitColor int
