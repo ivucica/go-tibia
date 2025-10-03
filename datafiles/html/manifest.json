@@ -34,8 +34,36 @@
       "url": "url",
       "files": [
         {
-          "name": "file",
-          "accept": ["image/*", "application/octet-stream"]
+          "name": "jpegs",
+          "accept": ["image/jpeg", ".jpg", ".jpeg"]
+        },
+        {
+          "name": "pngs",
+          "accept": ["image/png", ".png"]
+        },
+        {
+          "name": "graphs",
+          "accept": "image/svg+xml"
+        },
+        {
+          "name": "images",
+          "accept": ["image/*"]
+        },
+        {
+          "name": "plaintextfiles",
+          "accept": ["text/plain", ".txt"]
+        },
+        {
+          "name": "records",
+          "accept": ["text/csv", ".csv"]
+        },
+        {
+          "name": "textfiles",
+          "accept": ["text/*"]
+        },
+        {
+          "name": "otherfiles",
+          "accept": ["application/octet-stream"]
         }
       ]
     }

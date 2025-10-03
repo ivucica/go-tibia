@@ -85,7 +85,19 @@ func handleSharedMessage(this jsValue, args []jsValue) interface{} {
 
 	title := data.Get("title").String()
 	text := data.Get("text").String()
-	file := data.Get("file").String()
+	var fileImg string
+	for _, field := range []string{"jpegs", "pngs", "graphs", "images"} {
+		if data.Get(field).Truthy() && data.Get(field).String() != "" {
+			fileImg = data.Get(field).String()
+			// TODO: What if we get more than one file in the field? what if we get more than one field?
+		}
+	}
+	var fileOther string
+	for _, field := range []string{"plaintextfiles", "records", "textfiles", "otherfiles"} {
+		if data.Get(field).Truthy() && data.Get(field).String() != "" {
+			fileOther = data.Get(field).String()
+		}
+	}
 	sharedURL := data.Get("url").String()
 
 	// TODO: abstract away creating windows in general. since this is the only
@@ -123,11 +135,17 @@ func handleSharedMessage(this jsValue, args []jsValue) interface{} {
 		content.Call("appendChild", pURL)
 	}
 
-	if file != "" {
+	if fileImg != "" {
 		img := document.Call("createElement", "img")
-		img.Set("src", file)
+		img.Set("src", fileImg)
 		img.Get("style").Set("maxWidth", "100%")
 		content.Call("appendChild", img)
+	}
+	if fileOther != "" {
+		a := document.Call("createElement", "a")
+		a.Set("href", fileOther)
+		a.Set("innerHTML", "Other file")
+		content.Call("appendChild", a)
 	}
 
 	bottombar := document.Call("createElement", "div")
