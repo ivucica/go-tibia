@@ -3,6 +3,11 @@
   "name": "GOTweb-FE",
   "short_name": "GOTweb-FE",
   "display": "standalone",
+  "categories": ["games", "entertainment"],
+  "description": "Go-Tibia's WASM + PWA experiment",
+  "shortcuts": [{"name": "GOTweb-FE WASM App", "url": "/app/", "description": "Main WASM+PWA experiment"}],
+  "handle_links": "auto",
+  "id": "gotweb-fe",
   "start_url": "/app/",
   "theme_color": "#444444",
   "background_color": "#444444",
@@ -10,17 +15,28 @@
     {
       "src": "/app/go-tibia.png",
       "sizes": "128x128",
+      "purpose": "any",
       "type": "image/png"
     },
     {
       "src": "/app/go-tibia-192.png",
       "sizes": "192x192",
+      "purpose": "any",
       "type": "image/png"
     },
     {
       "src": "/app/go-tibia-512.png",
       "sizes": "512x512",
+      "purpose": "any",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/pic/1",
+      "sizes": "640x480",
+      "form_factor": "wide",
+      "label": "Main background"
     }
   ],
 
