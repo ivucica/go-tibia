@@ -7,6 +7,9 @@
   "description": "Go-Tibia's WASM + PWA experiment",
   "shortcuts": [{"name": "GOTweb-FE WASM App", "url": "/app/", "description": "Main WASM+PWA experiment"}],
   "handle_links": "auto",
+  "orientation": "landscape",
+  "prefer_related_applications": false,
+
   "id": "gotweb-fe",
   "start_url": "/app/",
   "theme_color": "#444444",
