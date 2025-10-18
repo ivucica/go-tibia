@@ -94,6 +94,7 @@
                   // see https://developer.chrome.com/docs/capabilities/pwa-navigation-management
                   window.launchQueue.setConsumer((launchParams) => {
                       // TODO: LaunchFiles has .files property, with POSTed files.
+                      console.log(launchParams); // for identifying what data is in there, put object in console for now
                       if (launchParams.targetURL) {
                           var paramsAsURL = new URL(launchParams.targetURL);
                           // var getQueryArgs = paramsAsURL.searchParams; // an URLSearchParams object, access with e.g. parseInt(getQueryArgs.get("num"));
@@ -104,7 +105,6 @@
                               // and WASM registers its handleSharedMessage in each tab as handler for the message event;
                               // WASM also exposes this func as global scope's handleSharedMessage (like addX, subX etc)
                               // and it'd ordinarily take an event, but we can just construct an object.
-                              console.log(launchParams); // for identifying what data is in there, put object in console for now
                               handleSharedMessage({"type": "share", "data": { // we can populate these:
                                   // title, text, url, jpegs, pngs, graphs, images, plaintextfiles, records, textfiles,
                                   // otherfiles
