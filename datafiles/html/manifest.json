@@ -69,13 +69,6 @@
     }
   },
 
-  "side_panel": {
-    "default_path": "/"
-  },
-  "permissions": [
-    "sidePanel"
-  ],
-
   "display_override": ["window-controls-overlay"],
   "scope": "/"
 }
