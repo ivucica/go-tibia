@@ -88,24 +88,6 @@
     }
   },
 
-  "file_handlers": [
-    {
-      "action": "/app/_share-target-handler",
-      "accept": {
-          "image/jpeg": [".jpg", ".jpeg"],
-          "image/png": [".png"],
-          "image/svg+xml": [".svg"],
-          "text/plain": [".txt", ".log", ".c", ".cpp", ".h"],
-          "text/csv": [".csv"],
-          "application/octet-stream": [".img"]
-      }
-    }
-  ],
-
-  "launch_handler": {
-    "client_mode": ["focus-existing"]
-  },
-
   "display_override": ["window-controls-overlay"],
   "scope": "/"
 }
