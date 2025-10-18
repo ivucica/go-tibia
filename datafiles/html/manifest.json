@@ -69,6 +69,10 @@
     }
   },
 
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+
   "display_override": ["window-controls-overlay"],
   "scope": "/"
 }

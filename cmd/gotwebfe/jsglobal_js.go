@@ -43,6 +43,7 @@ func jsGlobalInjectAPI() {
 		"addEventListener",
 		"message",
 		js.FuncOf(handleSharedMessage))
+	js.Global().Set("handleSharedMessage", js.FuncOf(handleSharedMessage))
 }
 
 func jsGlobal() js.Value {
