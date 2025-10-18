@@ -98,6 +98,7 @@
                   console.log(launchParams); // for identifying what data is in there, put object in console for now
                   // TODO: unclear why, but with Edge and focus-existing, we actually get sent to "/app/", i.e. the main launch URL of the app,
                   // and receive no files, when coming in from Share sheet in Windows 10 Explorer.
+                  // Likely culprint: need to use file_handlers instead. (has example of using a file's blob = .getFile(), window.URL.createObjectURL(blob): https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/file_handlers)
                   if (launchParams.targetURL) {
                       var paramsAsURL = new URL(launchParams.targetURL);
                       // var getQueryArgs = paramsAsURL.searchParams; // an URLSearchParams object, access with e.g. parseInt(getQueryArgs.get("num"));
