@@ -95,6 +95,8 @@
               window.launchQueue.setConsumer((launchParams) => {
                   // TODO: LaunchFiles has .files property, with POSTed files.
                   console.log(launchParams); // for identifying what data is in there, put object in console for now
+                  // TODO: unclear why, but with Edge and focus-existing, we actually get sent to "/app/", i.e. the main launch URL of the app,
+                  // and receive no files, when coming in from Share sheet in Windows 10 Explorer.
                   if (launchParams.targetURL) {
                       var paramsAsURL = new URL(launchParams.targetURL);
                       // var getQueryArgs = paramsAsURL.searchParams; // an URLSearchParams object, access with e.g. parseInt(getQueryArgs.get("num"));
@@ -114,6 +116,7 @@
                           return
                       }
                       // otherwise we actually want to navigate and would probably want to post files and other formdata somehow
+                      if (window.location == launchParams.targetURL) { return; } // per above, on Win10, we get redirected to /app/, which is likely the same as what we're displaying now.
                       window.location.assign(launchParams.targetURL);  // for some other use cases:location.replace(`https://example.com/#${location.pathname}`); per https://developer.mozilla.org/en-US/docs/Web/API/Window/location
                   }
               });
