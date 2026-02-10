@@ -9,13 +9,17 @@
 			"BAZELISK_DOWNLOAD_SHA": "4cb534c52cdd47a6223d4596d530e7c9c785438ab3b0a49ff347e991c210b2cd"
 		}
 	},
-	// Set *default* container specific settings.json values on container create.
-	"settings": {},
-	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
-		"devondcarew.bazel-code",
-		"golang.go"
-	],
+	"customizations": {
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"devondcarew.bazel-code",
+				"golang.go"
+			]
+		}
+	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -27,10 +31,9 @@
 	"remoteUser": "vscode",
 	"features": {
 		"git": "os-provided",
-		"golang": "1.17"
-  },
-  "tasks": {
-    "build": "cd cmd && go build ./...",
-    "test": "./test.sh"
-  }
+		"golang": "1.17",
+		"ghcr.io/tailscale/codespace/tailscale": {
+    		"version": "latest"
+  		}
+  	}
 }
