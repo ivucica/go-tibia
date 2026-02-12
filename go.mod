@@ -1,6 +1,6 @@
 module badc0de.net/pkg/go-tibia
 
-go 1.16
+go 1.23.0
 
 require (
 	badc0de.net/pkg/flagutil v1.0.1
@@ -19,8 +19,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/vincent-petithory/dataurl v1.0.0
 	github.com/wasmerio/wasmer-go v1.0.4
-	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
+	golang.org/x/crypto v0.36.0
+	golang.org/x/net v0.38.0
+	golang.org/x/sync v0.12.0
+	golang.org/x/sys v0.31.0
+)
+
+require (
+	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	golang.org/x/term v0.30.0 // indirect
 )
