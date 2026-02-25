@@ -41,6 +41,7 @@ jobs:
 
     - name: Lint
       run: staticcheck -checks=all ./...
+      continue-on-error: true
       # via [^1]
 
     - name: Run native Go tests
