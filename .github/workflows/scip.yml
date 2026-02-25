@@ -3,6 +3,8 @@ name: SCIP
   - push
 permissions:
   contents: read
+env:
+  SRC_ACCESS_TOKEN: ${{ secrets.SRC_ACCESS_TOKEN }}
 jobs:
   scip-go:
     runs-on: ubuntu-latest
